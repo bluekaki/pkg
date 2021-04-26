@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+option go_package = ".;pbutil";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+message HelloRequest {
+  string track_id = 1;
+  string message = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  google.protobuf.Duration duration = 4;
+
+  enum Status {
+    UNKNOWN = 0;
+    STARTED = 1;
+    Closing = 2;
+    Shutdown = 3;
+  }
+  Status status = 5;
+
+  message Payload { bytes raw = 1; }
+  repeated Payload payloads = 6;
+
+  oneof name {
+    string cn_name = 7;
+    string en_name = 8;
+  }
+
+  map<int32, bool> meta = 9;
+}
