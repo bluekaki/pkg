@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+option go_package = ".;pb";
+
+import "google/protobuf/any.proto";
+
+message Stack { string info = 1; }
+
+message Journal {
+  string id = 1;
+  Request request = 2;
+  Response response = 3;
+  bool success = 4;
+  double cost_seconds = 5;
+}
+
+message Request {
+  bool restapi = 1;
+  string method = 2;
+  map<string, string> metadata = 3;
+  google.protobuf.Any payload = 4;
+}
+
+message Response {
+  string code = 1;
+  string message = 2;
+  repeated google.protobuf.Any details = 3;
+  google.protobuf.Any payload = 4;
+}
