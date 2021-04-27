@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package bluekaki.vv.options;
+package vv.options;
 
-option go_package = "github.com/bluekaki/vv/options";
+option go_package = "github.com/byepichi/pkg/vv/options";
 
 import "google/protobuf/descriptor.proto";
 
