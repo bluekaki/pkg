@@ -1,6 +1,6 @@
 # protoc-gen-go-grpc
 
-**base on 53788aa5dcb46078eb29b05869a7472a5cd886e8**
+**base on 52a707c0dafe4ac6c0443c3d83dfdeeb9b828684**
 
 This tool generates Go language bindings of `service`s in protobuf definition
 files for gRPC.  For usage information, please see our [quick start
