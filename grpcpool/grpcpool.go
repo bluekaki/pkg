@@ -22,7 +22,7 @@ const (
 	defaultRecycleTicker     = time.Second * 5
 	defaultChannelCapacity   = 10
 
-	namespace = "koketama"
+	namespace = "byepichi"
 	subsystem = "grpcpool"
 )
 

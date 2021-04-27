@@ -177,7 +177,7 @@ func generateMessage(structName, prefix string, message *protogen.Message, g *pr
 const (
 	stringsPackage = protogen.GoImportPath("strings")
 	timePackage    = protogen.GoImportPath("time")
-	errorsPackage  = protogen.GoImportPath("github.com/koketama/errors")
+	errorsPackage  = protogen.GoImportPath("github.com/byepichi/pkg/errors")
 )
 
 func generateRequire(structName, prefix string, field *protogen.Field, g *protogen.GeneratedFile) {

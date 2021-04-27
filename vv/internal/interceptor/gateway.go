@@ -25,7 +25,7 @@ var gwHeader = struct {
 	value string
 }{
 	key:   "grpc-gateway",
-	value: "koketama/grpcgw/m/v1.0",
+	value: "byepichi/grpcgw/m/v1.0",
 }
 
 // ForwardedByGrpcGateway whether forwarded by grpc gateway

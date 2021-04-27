@@ -21,6 +21,7 @@ require (
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb // indirect
 	golang.org/x/text v0.3.4 // indirect
+	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 	golang.org/x/tools v0.0.0-20201224043029-2b0845dc783e
 	google.golang.org/genproto v0.0.0-20201214200347-8c77b98c765d
 	google.golang.org/grpc v1.37.0
