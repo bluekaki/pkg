@@ -45,17 +45,17 @@ func (i *item) Format(s fmt.State, verb rune) {
 }
 
 // New create a new error
-func New(msg string) error {
+func New(msg string) Error {
 	return &item{msg: msg, stack: callers()}
 }
 
 // Errorf create a new error
-func Errorf(format string, args ...interface{}) error {
+func Errorf(format string, args ...interface{}) Error {
 	return &item{msg: fmt.Sprintf(format, args...), stack: callers()}
 }
 
 // Wrap with some extra message into err
-func Wrap(err error, msg string) error {
+func Wrap(err error, msg string) Error {
 	if err == nil {
 		return nil
 	}
@@ -70,7 +70,7 @@ func Wrap(err error, msg string) error {
 }
 
 // Wrapf with some extra message into err
-func Wrapf(err error, format string, args ...interface{}) error {
+func Wrapf(err error, format string, args ...interface{}) Error {
 	if err == nil {
 		return nil
 	}
@@ -87,13 +87,13 @@ func Wrapf(err error, format string, args ...interface{}) error {
 }
 
 // WithStack add caller stack information
-func WithStack(err error) error {
+func WithStack(err error) Error {
 	if err == nil {
 		return nil
 	}
 
-	if _, ok := err.(*item); ok {
-		return err
+	if e, ok := err.(*item); ok {
+		return e
 	}
 
 	return &item{msg: err.Error(), stack: callers()}
