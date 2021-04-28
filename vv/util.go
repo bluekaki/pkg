@@ -5,6 +5,7 @@ import (
 	stderr "errors"
 	"fmt"
 
+	"github.com/byepichi/pkg/errors"
 	"github.com/byepichi/pkg/vv/internal/interceptor"
 	"github.com/byepichi/pkg/vv/internal/protos/gen"
 
@@ -37,7 +38,7 @@ func JournalID(ctx context.Context) (string, error) {
 }
 
 // Error create some error
-func Error(c codes.Code, msg string, err error) error {
+func Error(c codes.Code, msg string, err errors.Error) error {
 	if c == codes.OK && err != nil {
 		c = codes.Internal
 	}
