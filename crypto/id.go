@@ -2,15 +2,26 @@ package crypto
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"io"
-
-	"github.com/byepichi/pkg/minami58"
+	"strconv"
 )
 
-// A32RandomID  a 32 bytes random id
-func A32RandomID() string {
-	buf := make([]byte, 16)
-	io.ReadFull(rand.Reader, buf)
+// IDPrefix ...
+type IDPrefix [2]byte
 
-	return string(minami58.Encode(buf))
+func (i IDPrefix) String() string {
+	return string(i[:])
+}
+
+// A20RID  a 18len decimal random id with 2len prefix
+func A20RID(prefix IDPrefix) string {
+	id := prefix.String()
+	buf := make([]byte, 8)
+	for len(id) <= 20 {
+		io.ReadFull(rand.Reader, buf)
+		id += strconv.FormatUint(binary.BigEndian.Uint64(buf), 10)
+	}
+
+	return id[:20]
 }

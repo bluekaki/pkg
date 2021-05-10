@@ -98,7 +98,7 @@ func newStubP(builder Builder) *stub {
 	}
 
 	return &stub{
-		id:   crypto.A32RandomID(),
+		id:   crypto.A20RID(crypto.IDPrefix{'S', 'T'}),
 		conn: &clientConn{conn},
 	}
 }
