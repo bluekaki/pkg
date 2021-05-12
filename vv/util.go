@@ -57,5 +57,25 @@ func ForwardedByGrpcGateway(ctx context.Context) bool {
 }
 
 func Userinfo(ctx context.Context) interface{} {
+	if ctx == nil {
+		return nil
+	}
 	return ctx.Value(interceptor.SessionUserinfo{})
+}
+
+func SignatureIdentifier(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+
+	val := ctx.Value(interceptor.SignatureIdentifier{})
+	if val == nil {
+		return ""
+	}
+
+	identifier, ok := val.(string)
+	if !ok {
+		return ""
+	}
+	return identifier
 }

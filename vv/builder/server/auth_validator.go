@@ -13,6 +13,6 @@ func RegisteAuthorizationValidator(name string, handler func(authorization strin
 }
 
 // RegisteProxyAuthorizationValidator some handler(s) for validate signature
-func RegisteProxyAuthorizationValidator(name string, handler func(proxyAuthorization string, payload Payload) (ok bool, err error)) {
+func RegisteProxyAuthorizationValidator(name string, handler func(proxyAuthorization string, payload Payload) (identifier string, ok bool, err error)) {
 	interceptor.Validator.RegisteProxyAuthorizationValidator(name, handler)
 }

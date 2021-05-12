@@ -5,7 +5,7 @@ import (
 )
 
 type userinfoHandler func(authorization string, payload Payload) (userinfo interface{}, err error)
-type signatureHandler func(proxyAuthorization string, payload Payload) (ok bool, err error)
+type signatureHandler func(proxyAuthorization string, payload Payload) (identifier string, ok bool, err error)
 type whitelistingHandler func(xForwardedFor string) (ok bool, err error)
 
 // Validator authorization & proxy_authorization validator

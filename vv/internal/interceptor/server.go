@@ -60,6 +60,9 @@ type MessageValidator interface {
 // SessionUserinfo mark userinfo in context
 type SessionUserinfo struct{}
 
+// SignatureIdentifier mark identifier in context
+type SignatureIdentifier struct{}
+
 var toLoggedMetadata = map[string]bool{
 	Authorization:      true,
 	ProxyAuthorization: true,
@@ -418,23 +421,25 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 	}
 
 	if proxyAuthorizationValidator != nil {
-		ok, err := proxyAuthorizationValidator(proxyAuth, payload)
+		identifier, ok, err := proxyAuthorizationValidator(proxyAuth, payload)
 		if err != nil {
 			return nil, status.Error(codes.PermissionDenied, fmt.Sprintf("%+v", err))
 		}
 		if !ok {
 			return nil, status.Error(codes.PermissionDenied, "signature does not match")
 		}
+		ctx = context.WithValue(ctx, SignatureIdentifier{}, identifier)
 	}
 
 	if mixAuthorizationValidator != nil {
-		ok, err := mixAuthorizationValidator(mixAuth, payload)
+		identifier, ok, err := mixAuthorizationValidator(mixAuth, payload)
 		if err != nil {
 			return nil, status.Error(codes.PermissionDenied, fmt.Sprintf("%+v", err))
 		}
 		if !ok {
 			return nil, status.Error(codes.PermissionDenied, "signature does not match")
 		}
+		ctx = context.WithValue(ctx, SignatureIdentifier{}, identifier)
 	}
 
 	return handler(ctx, req)
