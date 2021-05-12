@@ -32,7 +32,7 @@ import (
 var (
 	defaultKeepAlive = &keepalive.ClientParameters{
 		Time:                10 * time.Second,
-		Timeout:             time.Second,
+		Timeout:             2 * time.Second,
 		PermitWithoutStream: true,
 	}
 
@@ -40,7 +40,7 @@ var (
 )
 
 func init() {
-	runtime.DefaultContextTimeout = time.Second * 10
+	runtime.DefaultContextTimeout = time.Second * 30
 }
 
 // Option how setup client
@@ -212,6 +212,7 @@ func New(logger *zap.Logger, options ...Option) (*runtime.ServeMux, []grpc.DialO
 		grpc.WithResolvers(dns.NewBuilder()),
 		grpc.WithTimeout(dialTimeout),
 		grpc.WithBlock(),
+		grpc.WithMaxMsgSize(20 << 20),
 		grpc.WithKeepaliveParams(*kacp),
 		grpc.WithUnaryInterceptor(gatewayInterceptor.UnaryInterceptor),
 		grpc.WithDefaultServiceConfig(configs.ServiceConfig),

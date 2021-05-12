@@ -23,7 +23,7 @@ var (
 		MaxConnectionAge:      30 * time.Second,
 		MaxConnectionAgeGrace: 5 * time.Second,
 		Time:                  5 * time.Second,
-		Timeout:               1 * time.Second,
+		Timeout:               2 * time.Second,
 	}
 )
 
@@ -102,6 +102,8 @@ func New(logger *zap.Logger, options ...Option) *grpc.Server {
 	serverInterceptor := interceptor.NewServerInterceptor(logger, opt.prometheusHandler != nil, opt.marshalJournal, opt.notifyHandler)
 
 	serverOptions := []grpc.ServerOption{
+		grpc.MaxRecvMsgSize(20 << 20),
+		grpc.MaxSendMsgSize(20 << 20),
 		grpc.KeepaliveEnforcementPolicy(*enforcementPolicy),
 		grpc.KeepaliveParams(*keepalive),
 		grpc.UnaryInterceptor(serverInterceptor.UnaryInterceptor),

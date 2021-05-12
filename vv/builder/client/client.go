@@ -17,7 +17,7 @@ import (
 var (
 	defaultKeepAlive = &keepalive.ClientParameters{
 		Time:                10 * time.Second,
-		Timeout:             time.Second,
+		Timeout:             2 * time.Second,
 		PermitWithoutStream: true,
 	}
 
@@ -107,6 +107,7 @@ func New(endpoint string, options ...Option) (*grpc.ClientConn, error) {
 		grpc.WithResolvers(resolverBuilder),
 		grpc.WithTimeout(dialTimeout),
 		grpc.WithBlock(),
+		grpc.WithMaxMsgSize(20 << 20),
 		grpc.WithKeepaliveParams(*kacp),
 		grpc.WithUnaryInterceptor(clientInterceptor.UnaryInterceptor),
 		grpc.WithStreamInterceptor(clientInterceptor.StreamInterceptor),
