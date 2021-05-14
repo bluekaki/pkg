@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/byepichi/pkg/crypto"
 	"github.com/byepichi/pkg/errors"
+	"github.com/byepichi/pkg/id"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
@@ -98,7 +98,7 @@ func newStubP(builder Builder) *stub {
 	}
 
 	return &stub{
-		id:   crypto.A20RID(crypto.IDPrefix{'S', 'T'}),
+		id:   id.A20RID(id.Prefix{'S', 'T'}),
 		conn: &clientConn{conn},
 	}
 }
