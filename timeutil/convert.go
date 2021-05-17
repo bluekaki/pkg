@@ -3,7 +3,7 @@ package timeutil
 import (
 	"time"
 
-	"github.com/byepichi/pkg/errors"
+	"github.com/bluekaki/pkg/errors"
 )
 
 // CSTLayout China Standard Time Layout

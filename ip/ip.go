@@ -6,7 +6,7 @@ import (
 	"net"
 	"sort"
 
-	"github.com/byepichi/pkg/errors"
+	"github.com/bluekaki/pkg/errors"
 )
 
 const intervalSize = 1024

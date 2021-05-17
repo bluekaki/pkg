@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/byepichi/pkg/errors"
-	"github.com/byepichi/pkg/id"
+	"github.com/bluekaki/pkg/errors"
+	"github.com/bluekaki/pkg/id"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
@@ -22,7 +22,7 @@ const (
 	defaultRecycleTicker     = time.Second * 5
 	defaultChannelCapacity   = 10
 
-	namespace = "byepichi"
+	namespace = "bluekaki"
 	subsystem = "grpcpool"
 )
 

@@ -5,7 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 
-	"github.com/byepichi/pkg/errors"
+	"github.com/bluekaki/pkg/errors"
 )
 
 func chaos(key string) ([]byte, []byte) {

@@ -1,4 +1,4 @@
-module github.com/byepichi/pkg
+module github.com/bluekaki/pkg
 
 go 1.15
 
@@ -17,8 +17,6 @@ require (
 	go.uber.org/multierr v1.6.0
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/image v0.0.0-20210220032944-ac19c3e999fb // indirect
-	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 	golang.org/x/tools v0.0.0-20201224043029-2b0845dc783e
 	google.golang.org/genproto v0.0.0-20210224155714-063164c882e6

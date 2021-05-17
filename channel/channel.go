@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/byepichi/pkg/errors"
+	"github.com/bluekaki/pkg/errors"
 )
 
 var _ Channel = (*channel)(nil)

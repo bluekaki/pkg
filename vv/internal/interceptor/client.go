@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/byepichi/pkg/pbutil"
-	"github.com/byepichi/pkg/vv/internal/protos/gen"
+	"github.com/bluekaki/pkg/pbutil"
+	"github.com/bluekaki/pkg/vv/internal/protos/gen"
 
 	protoV1 "github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"

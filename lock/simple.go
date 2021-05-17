@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/byepichi/pkg/errors"
+	"github.com/bluekaki/pkg/errors"
 
 	"github.com/go-redis/redis/v7"
 )

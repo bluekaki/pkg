@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/byepichi/pkg/errors"
+	"github.com/bluekaki/pkg/errors"
 )
 
 const (

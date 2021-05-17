@@ -5,9 +5,9 @@ import (
 	stderr "errors"
 	"fmt"
 
-	"github.com/byepichi/pkg/errors"
-	"github.com/byepichi/pkg/vv/internal/interceptor"
-	"github.com/byepichi/pkg/vv/internal/protos/gen"
+	"github.com/bluekaki/pkg/errors"
+	"github.com/bluekaki/pkg/vv/internal/interceptor"
+	"github.com/bluekaki/pkg/vv/internal/protos/gen"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"

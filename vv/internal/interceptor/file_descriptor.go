@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/byepichi/pkg/vv/options"
+	"github.com/bluekaki/pkg/vv/options"
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"

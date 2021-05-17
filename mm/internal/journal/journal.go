@@ -5,7 +5,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/byepichi/pkg/minami58"
+	"github.com/bluekaki/pkg/minami58"
 )
 
 // JournalHeader http/rpc header中的名字

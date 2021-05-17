@@ -7,7 +7,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/byepichi/pkg/mm/internal/journal"
+	"github.com/bluekaki/pkg/mm/internal/journal"
 
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"

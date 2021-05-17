@@ -1,7 +1,7 @@
 package gateway
 
 import (
-	"github.com/byepichi/pkg/vv/internal/interceptor"
+	"github.com/bluekaki/pkg/vv/internal/interceptor"
 )
 
 // RegisteWhitelistingValidator some handler(s) for whitelisting signature

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/byepichi/pkg/errors"
+	"github.com/bluekaki/pkg/errors"
 )
 
 // MkZone util to make zone

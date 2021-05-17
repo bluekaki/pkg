@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/byepichi/pkg/mm/internal/journal"
+	"github.com/bluekaki/pkg/mm/internal/journal"
 
 	"go.uber.org/zap"
 )

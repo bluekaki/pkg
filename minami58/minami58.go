@@ -1,7 +1,7 @@
 package minami58
 
 import (
-	"github.com/byepichi/pkg/errors"
+	"github.com/bluekaki/pkg/errors"
 )
 
 // Coefficient of expansion 1.5

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/byepichi/pkg/mm/internal/journal"
+	"github.com/bluekaki/pkg/mm/internal/journal"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"

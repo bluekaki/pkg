@@ -9,9 +9,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/byepichi/pkg/grpcpool"
-	"github.com/byepichi/pkg/grpcpool/testdata/pb"
-	"github.com/byepichi/pkg/zaplog"
+	"github.com/bluekaki/pkg/grpcpool"
+	"github.com/bluekaki/pkg/grpcpool/testdata/pb"
+	"github.com/bluekaki/pkg/zaplog"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"

@@ -15,8 +15,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/byepichi/pkg/errors"
-	"github.com/byepichi/pkg/zaplog"
+	"github.com/bluekaki/pkg/errors"
+	"github.com/bluekaki/pkg/zaplog"
 
 	"go.uber.org/zap"
 	"golang.org/x/tools/go/packages"

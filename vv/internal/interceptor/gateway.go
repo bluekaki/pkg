@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/byepichi/pkg/pbutil"
-	"github.com/byepichi/pkg/vv/internal/protos/gen"
-	"github.com/byepichi/pkg/vv/options"
+	"github.com/bluekaki/pkg/pbutil"
+	"github.com/bluekaki/pkg/vv/internal/protos/gen"
+	"github.com/bluekaki/pkg/vv/options"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -25,7 +25,7 @@ var gwHeader = struct {
 	value string
 }{
 	key:   "grpc-gateway",
-	value: "byepichi/grpcgw/m/v1.0",
+	value: "bluekaki/grpcgw/m/v1.0",
 }
 
 // ForwardedByGrpcGateway whether forwarded by grpc gateway

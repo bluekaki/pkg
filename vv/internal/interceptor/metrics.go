@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	namespace = "byepichi"
+	namespace = "bluekaki"
 	subsystem = "vv"
 )
 

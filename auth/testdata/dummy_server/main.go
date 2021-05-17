@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/byepichi/pkg/auth"
+	"github.com/bluekaki/pkg/auth"
 )
 
 func main() {

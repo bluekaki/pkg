@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 
-	"github.com/byepichi/pkg/errors"
+	"github.com/bluekaki/pkg/errors"
 
 	"google.golang.org/grpc/credentials"
 )

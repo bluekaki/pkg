@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/byepichi/pkg/errors"
+	"github.com/bluekaki/pkg/errors"
 
 	"github.com/go-redis/redis/v7"
 	"go.uber.org/zap"
@@ -16,7 +16,7 @@ import (
 var _ Limiter = (*limiter)(nil)
 
 const (
-	prefix                = "byepichi-ratelimiter:"
+	prefix                = "bluekaki-ratelimiter:"
 	defaultTickerInterval = time.Millisecond * 300
 )
 

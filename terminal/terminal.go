@@ -7,7 +7,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/byepichi/pkg/errors"
+	"github.com/bluekaki/pkg/errors"
 
 	"golang.org/x/crypto/ssh/terminal"
 )

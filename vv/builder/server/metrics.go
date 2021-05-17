@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/byepichi/pkg/vv/internal/interceptor"
+	"github.com/bluekaki/pkg/vv/internal/interceptor"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/client_golang/prometheus/push"

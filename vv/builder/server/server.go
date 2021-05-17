@@ -3,7 +3,7 @@ package server
 import (
 	"time"
 
-	"github.com/byepichi/pkg/vv/internal/interceptor"
+	"github.com/bluekaki/pkg/vv/internal/interceptor"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

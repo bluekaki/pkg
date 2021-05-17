@@ -3,9 +3,9 @@ package client
 import (
 	"time"
 
-	"github.com/byepichi/pkg/errors"
-	"github.com/byepichi/pkg/vv/internal/configs"
-	"github.com/byepichi/pkg/vv/internal/interceptor"
+	"github.com/bluekaki/pkg/errors"
+	"github.com/bluekaki/pkg/vv/internal/configs"
+	"github.com/bluekaki/pkg/vv/internal/interceptor"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

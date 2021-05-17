@@ -7,8 +7,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/byepichi/pkg/grpcpool/testdata/pb"
-	"github.com/byepichi/pkg/zaplog"
+	"github.com/bluekaki/pkg/grpcpool/testdata/pb"
+	"github.com/bluekaki/pkg/zaplog"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"

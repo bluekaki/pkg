@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/byepichi/pkg/errors"
+	"github.com/bluekaki/pkg/errors"
 
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"

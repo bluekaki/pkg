@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/byepichi/pkg/errors"
+	"github.com/bluekaki/pkg/errors"
 )
 
 // ErrSequenceOverflow oveflow error

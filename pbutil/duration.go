@@ -3,7 +3,7 @@ package pbutil
 import (
 	"time"
 
-	"github.com/byepichi/pkg/errors"
+	"github.com/bluekaki/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/protobuf/types/known/durationpb"

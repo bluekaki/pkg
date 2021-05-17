@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/byepichi/pkg/minami58"
-	"github.com/byepichi/pkg/vv/internal/configs"
-	"github.com/byepichi/pkg/vv/internal/interceptor"
+	"github.com/bluekaki/pkg/minami58"
+	"github.com/bluekaki/pkg/vv/internal/configs"
+	"github.com/bluekaki/pkg/vv/internal/interceptor"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.uber.org/zap"

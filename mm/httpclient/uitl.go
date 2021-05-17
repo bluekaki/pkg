@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/byepichi/pkg/errors"
-	"github.com/byepichi/pkg/mm/internal/journal"
+	"github.com/bluekaki/pkg/errors"
+	"github.com/bluekaki/pkg/mm/internal/journal"
 
 	"go.uber.org/zap"
 )

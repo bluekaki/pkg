@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package vv.options;
 
-option go_package = "github.com/byepichi/pkg/vv/options";
+option go_package = "github.com/bluekaki/pkg/vv/options";
 
 import "google/protobuf/descriptor.proto";
 
