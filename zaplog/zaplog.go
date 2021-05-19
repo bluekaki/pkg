@@ -136,7 +136,7 @@ func NewJSONLogger(opts ...Option) (*zap.Logger, error) {
 
 	// similar to zap.NewProductionEncoderConfig()
 	encoderConfig := zapcore.EncoderConfig{
-		TimeKey:       "ts",
+		TimeKey:       "timestamp",
 		LevelKey:      "level",
 		NameKey:       "logger", // used by logger.Named(key); optional; useless
 		CallerKey:     "caller",
