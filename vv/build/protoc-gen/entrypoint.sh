@@ -8,5 +8,5 @@ protoc -I/usr/local/include -I. --proto_path=. \
 --go-grpc_out=gen \
 --message-validator_out=gen \
 --grpc-gateway_out=logtostderr=true:gen \
---openapiv2_out=logtostderr=true:api \
+--openapiv2_out=json_names_for_fields=false,logtostderr=true:api \
 *.proto
