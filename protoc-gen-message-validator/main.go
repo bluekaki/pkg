@@ -143,6 +143,10 @@ func generateMessage(structName, prefix string, message *protogen.Message, g *pr
 			generateCSTMinute(structName, prefix, field, g)
 		}
 
+		if proto.GetExtension(desc.Options(), options.E_CstDay).(bool) {
+			generateCSTDay(structName, prefix, field, g)
+		}
+
 		if proto.GetExtension(desc.Options(), options.E_CnMobile).(bool) {
 			generateCNMobile(structName, prefix, field, g)
 		}
@@ -168,6 +172,14 @@ func generateMessage(structName, prefix string, message *protogen.Message, g *pr
 			g.P()
 			g.P("func (", prefix, "*", structName, ") Parse", field.GoName, "() time.Time {")
 			g.P("ts, _ := ", timePackage.Ident("ParseInLocation"), `("2006-01-02 15:04",`, prefix, ".", field.GoName, ", time.Local)")
+			g.P("return ts")
+			g.P("}")
+		}
+
+		if proto.GetExtension(desc.Options(), options.E_CstDay).(bool) {
+			g.P()
+			g.P("func (", prefix, "*", structName, ") Parse", field.GoName, "() time.Time {")
+			g.P("ts, _ := ", timePackage.Ident("ParseInLocation"), `("2006-01-02",`, prefix, ".", field.GoName, ", time.Local)")
 			g.P("return ts")
 			g.P("}")
 		}
@@ -426,6 +438,15 @@ func generateCSTMinute(structName, prefix string, field *protogen.Field, g *prot
 
 	g.P()
 	g.P("if _, err := ", timePackage.Ident("ParseInLocation"), `("2006-01-02 15:04",`, prefix, ".", field.GoName, ", time.Local); err != nil {")
+	g.P("return ", errorsPackage.Ident("Wrap"), `(err, "`, desc.Name(), ` illegal")`)
+	g.P("}")
+}
+
+func generateCSTDay(structName, prefix string, field *protogen.Field, g *protogen.GeneratedFile) {
+	desc := field.Desc
+
+	g.P()
+	g.P("if _, err := ", timePackage.Ident("ParseInLocation"), `("2006-01-02",`, prefix, ".", field.GoName, ", time.Local); err != nil {")
 	g.P("return ", errorsPackage.Ident("Wrap"), `(err, "`, desc.Name(), ` illegal")`)
 	g.P("}")
 }

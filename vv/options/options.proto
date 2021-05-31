@@ -34,4 +34,5 @@ extend google.protobuf.FieldOptions {
   optional bool cst_datetime = 74609; // 2006-01-02 15:04:05
   optional bool cst_minute = 74610;   // 2006-01-02 15:04
   optional bool cn_mobile = 74611;    // 10000000000
+  optional bool cst_day = 74612;      // 2006-01-02
 }
