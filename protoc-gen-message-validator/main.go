@@ -428,8 +428,10 @@ func generateCSTDatetime(structName, prefix string, field *protogen.Field, g *pr
 	desc := field.Desc
 
 	g.P()
+	g.P("if ", prefix, ".", field.GoName, ` != "" {`)
 	g.P("if _, err := ", timePackage.Ident("ParseInLocation"), `("2006-01-02 15:04:05",`, prefix, ".", field.GoName, ", time.Local); err != nil {")
 	g.P("return ", errorsPackage.Ident("Wrap"), `(err, "`, desc.Name(), ` illegal")`)
+	g.P("}")
 	g.P("}")
 }
 
@@ -437,8 +439,10 @@ func generateCSTMinute(structName, prefix string, field *protogen.Field, g *prot
 	desc := field.Desc
 
 	g.P()
+	g.P("if ", prefix, ".", field.GoName, ` != "" {`)
 	g.P("if _, err := ", timePackage.Ident("ParseInLocation"), `("2006-01-02 15:04",`, prefix, ".", field.GoName, ", time.Local); err != nil {")
 	g.P("return ", errorsPackage.Ident("Wrap"), `(err, "`, desc.Name(), ` illegal")`)
+	g.P("}")
 	g.P("}")
 }
 
@@ -446,8 +450,10 @@ func generateCSTDay(structName, prefix string, field *protogen.Field, g *protoge
 	desc := field.Desc
 
 	g.P()
+	g.P("if ", prefix, ".", field.GoName, ` != "" {`)
 	g.P("if _, err := ", timePackage.Ident("ParseInLocation"), `("2006-01-02",`, prefix, ".", field.GoName, ", time.Local); err != nil {")
 	g.P("return ", errorsPackage.Ident("Wrap"), `(err, "`, desc.Name(), ` illegal")`)
+	g.P("}")
 	g.P("}")
 }
 
