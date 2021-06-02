@@ -7,6 +7,7 @@ import (
 	"github.com/bluekaki/pkg/vv/internal/configs"
 	"github.com/bluekaki/pkg/vv/internal/interceptor"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
@@ -38,6 +39,8 @@ type option struct {
 	resolverBuilder resolver.Builder
 	dialTimeout     time.Duration
 	sign            Sign
+	marshalJournal  bool
+	notifyHandler   func(desc, err, stack, journalID string)
 }
 
 // WithCredential setup credential for tls
@@ -75,8 +78,26 @@ func WithSign(sign Sign) Option {
 	}
 }
 
+// WithMarshalJournal marshal journal to json string
+func WithMarshalJournal() Option {
+	return func(opt *option) {
+		opt.marshalJournal = true
+	}
+}
+
+// WithNotifyHandler notify when got panic
+func WithNotifyHandler(handler func(desc, err, stack, journalID string)) Option {
+	return func(opt *option) {
+		opt.notifyHandler = handler
+	}
+}
+
 // New create a grpc client conn
-func New(endpoint string, options ...Option) (*grpc.ClientConn, error) {
+func New(logger *zap.Logger, endpoint string, options ...Option) (*grpc.ClientConn, error) {
+	if logger == nil {
+		panic("logger required")
+	}
+
 	if endpoint == "" {
 		return nil, errors.New("endpoint required")
 	}
@@ -101,7 +122,7 @@ func New(endpoint string, options ...Option) (*grpc.ClientConn, error) {
 		dialTimeout = opt.dialTimeout
 	}
 
-	clientInterceptor := interceptor.NewClientInterceptor(opt.sign)
+	clientInterceptor := interceptor.NewClientInterceptor(opt.sign, logger, opt.marshalJournal, opt.notifyHandler)
 
 	dialOptions := []grpc.DialOption{
 		grpc.WithResolvers(resolverBuilder),

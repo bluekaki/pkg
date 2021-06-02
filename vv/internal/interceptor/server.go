@@ -2,15 +2,12 @@ package interceptor
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
-	"io"
 	"runtime/debug"
 	"strings"
 	"time"
 
 	"github.com/bluekaki/pkg/errors"
-	"github.com/bluekaki/pkg/minami58"
 	"github.com/bluekaki/pkg/pbutil"
 	"github.com/bluekaki/pkg/vv/internal/protos/gen"
 	"github.com/bluekaki/pkg/vv/options"
@@ -186,13 +183,6 @@ type ServerInterceptor struct {
 	notify           notifyHandler
 }
 
-func (s *ServerInterceptor) journalID() string {
-	nonce := make([]byte, 16)
-	io.ReadFull(rand.Reader, nonce)
-
-	return string(minami58.Encode(nonce))
-}
-
 // UnaryInterceptor a interceptor for server unary operations
 func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	ts := time.Now()
@@ -335,7 +325,7 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 	var journalID string
 	meta, _ := metadata.FromIncomingContext(ctx)
 	if values := meta.Get(JournalID); len(values) == 0 || values[0] == "" {
-		journalID = s.journalID()
+		journalID = GenJournalID()
 		meta.Set(JournalID, journalID)
 		ctx = metadata.NewOutgoingContext(ctx, meta)
 	} else {
