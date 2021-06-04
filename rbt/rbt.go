@@ -1,6 +1,7 @@
 package rbt
 
 import (
+	"container/list"
 	"fmt"
 	"strconv"
 )
@@ -19,7 +20,12 @@ type node struct {
 }
 
 func (n *node) String() string {
-	return strconv.Itoa(n.val)
+	if n.Red() {
+		return strconv.Itoa(n.val) + "r"
+
+	} else {
+		return strconv.Itoa(n.val) + "b"
+	}
 }
 
 func (n *node) Red() bool {
@@ -82,13 +88,14 @@ type rbTree struct {
 }
 
 func (t *rbTree) Asc() {
-	var values []int
-	push := func(value int) {
-		values = append(values, value)
-	}
+	// var values []int
+	// push := func(value int) {
+	// 	values = append(values, value)
+	// }
 
-	asc(t.root, push)
+	// asc(t.root, push)
 
+	values := t.InOrderNoRecursion()
 	for i := 1; i < len(values); i++ {
 		// if values[i]-values[i-1] != 1 {
 		// 	fmt.Println(values[:i+1])
@@ -102,12 +109,59 @@ func (t *rbTree) Asc() {
 	}
 }
 
-func asc(root *node, push func(value int)) {
-	if root != nil {
-		asc(root.L, push)
-		push(root.val)
-		asc(root.R, push)
+func (t *rbTree) InOrderNoRecursion() []int {
+	root := t.root
+	stack := list.New()
+	res := make([]int, 0)
+	for root != nil || stack.Len() != 0 {
+		for root != nil {
+			stack.PushBack(root)
+			root = root.L
+		}
+		if stack.Len() != 0 {
+			v := stack.Back()
+			root = v.Value.(*node)
+			res = append(res, root.val) //visit
+			root = root.R
+			stack.Remove(v)
+		}
 	}
+	return res
+}
+
+func reverse(a []int) {
+	for i, n := 0, len(a); i < n/2; i++ {
+		a[i], a[n-1-i] = a[n-1-i], a[i]
+	}
+}
+
+func postorderTraversal(root *node) (res []int) {
+	addPath := func(node *node) {
+		resSize := len(res)
+		for ; node != nil; node = node.R {
+			res = append(res, node.val)
+		}
+		reverse(res[resSize:])
+	}
+
+	p1 := root
+	for p1 != nil {
+		if p2 := p1.L; p2 != nil {
+			for p2.R != nil && p2.R != p1 {
+				p2 = p2.R
+			}
+			if p2.R == nil {
+				p2.R = p1
+				p1 = p1.L
+				continue
+			}
+			p2.R = nil
+			addPath(p1.L)
+		}
+		p1 = p1.R
+	}
+	addPath(root)
+	return
 }
 
 func (t *rbTree) String() string {
