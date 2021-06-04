@@ -41,15 +41,13 @@ loop:
 sw:
 	switch {
 	case x.P.Left() && x.Left():
-		// fmt.Println("left left left left left left left left left left")
-
 		g := x.G()
 		g.color = red
 
 		x.P.color = black
-		t3 := x.P.R
-		if t3 != nil {
-			t3.P = g
+		y := x.P.R
+		if y != nil {
+			y.P = g
 		}
 
 		x.P.P = g.P
@@ -66,17 +64,15 @@ sw:
 
 		x.P.R = g
 		g.P = x.P
-		g.L = t3
+		g.L = y
 
 	case x.P.Left() && x.Right():
-		// fmt.Println("left right left right left right left right left right")
-
 		p := x.P
-		t1 := x.L
-		if t1 != nil {
-			t1.P = p
+		y := x.L
+		if y != nil {
+			y.P = p
 		}
-		p.R = t1
+		p.R = y
 
 		g := x.G()
 		g.L = x
@@ -90,15 +86,13 @@ sw:
 		goto sw
 
 	case x.P.Right() && x.Right():
-		// fmt.Println("right right right right right right right right right right")
-
 		g := x.G()
 		g.color = red
 
 		x.P.color = black
-		t3 := x.P.L
-		if t3 != nil {
-			t3.P = g
+		y := x.P.L
+		if y != nil {
+			y.P = g
 		}
 
 		x.P.P = g.P
@@ -115,17 +109,15 @@ sw:
 
 		x.P.L = g
 		g.P = x.P
-		g.R = t3
+		g.R = y
 
 	case x.P.Right() && x.Left():
-		// fmt.Println("right left right left right left right left right left right left ")
-
 		p := x.P
-		t4 := x.R
-		if t4 != nil {
-			t4.P = p
+		y := x.R
+		if y != nil {
+			y.P = p
 		}
-		p.L = t4
+		p.L = y
 
 		g := x.G()
 		g.R = x

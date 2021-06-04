@@ -2,6 +2,7 @@ package rbt
 
 import (
 	"fmt"
+	"strconv"
 )
 
 type color uint8
@@ -15,6 +16,10 @@ type node struct {
 	color   color
 	val     int
 	L, R, P *node
+}
+
+func (n *node) String() string {
+	return strconv.Itoa(n.val)
 }
 
 func (n *node) Red() bool {
@@ -85,7 +90,12 @@ func (t *rbTree) Asc() {
 	asc(t.root, push)
 
 	for i := 1; i < len(values); i++ {
-		if values[i]-values[i-1] != 1 {
+		// if values[i]-values[i-1] != 1 {
+		// 	fmt.Println(values[:i+1])
+		// 	panic("xxx")
+		// }
+
+		if values[i] < values[i-1] {
 			fmt.Println(values[:i+1])
 			panic("xxx")
 		}
@@ -97,5 +107,41 @@ func asc(root *node, push func(value int)) {
 		asc(root.L, push)
 		push(root.val)
 		asc(root.R, push)
+	}
+}
+
+func (t *rbTree) String() string {
+	str := "RedBlackTree\n"
+	if t.root != nil {
+		output(t.root, "", true, &str)
+	}
+	return str
+}
+
+func output(root *node, prefix string, isTail bool, str *string) {
+	if root.R != nil {
+		newPrefix := prefix
+		if isTail {
+			newPrefix += "│   "
+		} else {
+			newPrefix += "    "
+		}
+		output(root.R, newPrefix, false, str)
+	}
+	*str += prefix
+	if isTail {
+		*str += "└── "
+	} else {
+		*str += "┌── "
+	}
+	*str += root.String() + "\n"
+	if root.L != nil {
+		newPrefix := prefix
+		if isTail {
+			newPrefix += "    "
+		} else {
+			newPrefix += "│   "
+		}
+		output(root.L, newPrefix, true, str)
 	}
 }
