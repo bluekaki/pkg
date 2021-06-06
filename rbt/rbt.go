@@ -87,15 +87,26 @@ type rbTree struct {
 	root *node
 }
 
+func (t *rbTree) Root() int {
+	return t.root.val
+}
+
 func (t *rbTree) Asc() {
+	var values []int
+	push := func(value int) {
+		values = append(values, value)
+	}
+
+	asc(t.root, push)
+
 	// var values []int
-	// push := func(value int) {
-	// 	values = append(values, value)
+	// iterator := t.Iterator()
+	// for iterator.Next() {
+	// 	values = append(values, iterator.Value())
 	// }
+	// fmt.Println(values)
 
-	// asc(t.root, push)
-
-	values := t.InOrderNoRecursion()
+	// values := t.InOrderNoRecursion()
 	for i := 1; i < len(values); i++ {
 		// if values[i]-values[i-1] != 1 {
 		// 	fmt.Println(values[:i+1])
@@ -106,6 +117,14 @@ func (t *rbTree) Asc() {
 			fmt.Println(values[:i+1])
 			panic("xxx")
 		}
+	}
+}
+
+func asc(root *node, push func(value int)) {
+	if root != nil {
+		asc(root.L, push)
+		push(root.val)
+		asc(root.R, push)
 	}
 }
 

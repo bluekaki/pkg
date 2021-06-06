@@ -3,6 +3,7 @@ package rbt
 import (
 	// "fmt"
 	"math/rand"
+	_ "net/http/pprof"
 	"testing"
 	"time"
 )
@@ -14,8 +15,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestXXX(t *testing.T) {
-	for k := 0; k < 10000; k++ {
-		seeds := rand.Perm(200)
+	for k := 0; k < 1; k++ {
+		seeds := rand.Perm(100)
 
 		tree := NewRbTree()
 		for _, seed := range seeds {
@@ -27,7 +28,7 @@ func TestXXX(t *testing.T) {
 			// t.Log(seed)
 			// fmt.Println("-----------------", seed)
 			// fmt.Println(tree.String())
-			tree.Delete(seed)
+			tree.Delete(seed, nil)
 			tree.Asc()
 		}
 	}
