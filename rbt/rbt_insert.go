@@ -1,6 +1,10 @@
 package rbt
 
 func (t *rbTree) Add(value int) {
+	t.Lock()
+	defer t.Unlock()
+
+	t.size++
 	if t.root == nil {
 		t.root = &node{
 			color: black,
@@ -162,6 +166,7 @@ func (t *rbTree) add(value int) *node {
 			}
 
 		} else {
+			// TODO duplicated
 			return nil
 		}
 	}
