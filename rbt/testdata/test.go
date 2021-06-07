@@ -3,10 +3,37 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
 	"time"
 
 	"github.com/bluekaki/pkg/rbt"
 )
+
+var _ rbt.Value = (*Value)(nil)
+
+type Value struct {
+	val int
+}
+
+func (v *Value) ID() string {
+	return strconv.Itoa(v.val)
+}
+
+func (v *Value) String() string {
+	return strconv.Itoa(v.val)
+}
+
+func (v *Value) Compare(val rbt.Value) rbt.Diff {
+	x := val.(*Value)
+	switch {
+	case v.val < x.val:
+		return rbt.Less
+	case v.val > x.val:
+		return rbt.Greater
+	default:
+		return rbt.Equal
+	}
+}
 
 func main() {
 	do := func() {
@@ -17,7 +44,7 @@ func main() {
 		check := func() {
 			values := tree.Asc()
 			for i := 1; i < len(values); i++ {
-				if values[i] < values[i-1] {
+				if values[i].Compare(values[i-1]) != rbt.Greater {
 					fmt.Println(values[:i+1])
 					panic("not sorted in asc")
 				}
@@ -25,7 +52,7 @@ func main() {
 		}
 
 		for _, seed := range seeds {
-			tree.Add(seed)
+			tree.Add(&Value{val: seed})
 		}
 		check()
 		if tree.Size() != uint32(len(seeds)) {
@@ -34,7 +61,7 @@ func main() {
 		}
 
 		for _, seed := range seeds {
-			tree.Delete(seed)
+			tree.Delete(&Value{val: seed})
 			check()
 		}
 		if tree.Size() != 0 {

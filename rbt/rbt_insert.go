@@ -1,19 +1,28 @@
 package rbt
 
-func (t *rbTree) Add(value int) {
-	t.Lock()
-	defer t.Unlock()
-
-	t.size++
-	if t.root == nil {
-		t.root = &node{
-			color: black,
-			val:   value,
-		}
+func (t *rbTree) Add(val Value) {
+	if val == nil {
 		return
 	}
 
-	x := t.add(value)
+	t.Lock()
+	defer t.Unlock()
+
+	if t.root == nil {
+		t.root = &node{
+			color:  black,
+			values: []Value{val},
+		}
+		t.size++
+		return
+	}
+
+	x := t.add(val)
+	if x == nil {
+		// duplicated
+		return
+	}
+	t.size++
 
 loop:
 	if x.Root() {
@@ -136,38 +145,46 @@ sw:
 	}
 }
 
-func (t *rbTree) add(value int) *node {
+func (t *rbTree) add(val Value) *node {
 	root := t.root
 	for {
-		if value < root.val {
+		switch val.Compare(root.values[0]) {
+		case Less:
 			if root.L != nil {
 				root = root.L
 
 			} else {
 				root.L = &node{
-					P:     root,
-					color: red,
-					val:   value,
+					P:      root,
+					color:  red,
+					values: []Value{val},
 				}
 				return root.L
 			}
 
-		} else if value > root.val {
+		case Greater:
 			if root.R != nil {
 				root = root.R
 
 			} else {
 				root.R = &node{
-					P:     root,
-					color: red,
-					val:   value,
+					P:      root,
+					color:  red,
+					values: []Value{val},
 				}
 				return root.R
 			}
 
-		} else {
-			// TODO duplicated
-			return nil
+		case Equal:
+			for _, value := range root.values {
+				if val.ID() == value.ID() {
+					// duplicated
+					return nil
+				}
+			}
+
+			root.values = append(root.values, val)
+			return root
 		}
 	}
 }

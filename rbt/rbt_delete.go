@@ -1,14 +1,27 @@
 package rbt
 
-func (t *rbTree) Delete(value int) {
+func (t *rbTree) Delete(val Value) {
+	if val == nil {
+		return
+	}
+
 	t.Lock()
 	defer t.Unlock()
 
-	x := t.lookup(value)
+	x := t.lookup(val)
 	if x == nil {
 		return
 	}
+
+	var ok bool
+	if x.values, ok = delVal(x.values, val); !ok {
+		return
+	}
+
 	t.size--
+	if len(x.values) != 0 {
+		return
+	}
 
 del:
 	switch {
@@ -28,12 +41,12 @@ del:
 	case x.L == nil || x.R == nil:
 		if x.L == nil {
 			s := t.minimum(x.R)
-			x.val = s.val
+			x.values = s.values
 			x = s
 
 		} else {
 			s := t.maximum(x.L)
-			x.val = s.val
+			x.values = s.values
 			x = s
 		}
 
@@ -41,7 +54,7 @@ del:
 
 	default:
 		s := t.minimum(x.R)
-		x.val = s.val
+		x.values = s.values
 		x = s
 
 		goto del
@@ -139,16 +152,17 @@ loop:
 	}
 }
 
-func (t *rbTree) lookup(value int) *node {
+func (t *rbTree) lookup(val Value) *node {
 	root := t.root
 	for root != nil {
-		if value < root.val {
+		switch val.Compare(root.values[0]) {
+		case Less:
 			root = root.L
 
-		} else if value > root.val {
+		case Greater:
 			root = root.R
 
-		} else {
+		case Equal:
 			return root
 		}
 	}
@@ -212,4 +226,14 @@ func (t *rbTree) rotateToTheRight(x, s *node) {
 
 	s.L = x.P
 	x.P.P = s
+}
+
+func delVal(values []Value, val Value) ([]Value, bool) {
+	for i, value := range values {
+		if value.ID() == val.ID() {
+			return append(values[:i], values[i+1:]...), true
+		}
+	}
+
+	return values, false
 }

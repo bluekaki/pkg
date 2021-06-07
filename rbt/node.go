@@ -1,8 +1,23 @@
 package rbt
 
 import (
-	"strconv"
+	"fmt"
+	"strings"
 )
+
+type Diff int
+
+const (
+	Less    Diff = -1
+	Equal   Diff = 0
+	Greater Diff = 1
+)
+
+type Value interface {
+	ID() string
+	String() string
+	Compare(Value) Diff
+}
 
 type color uint8
 
@@ -13,16 +28,21 @@ const (
 
 type node struct {
 	color   color
-	val     int
+	values  []Value
 	L, R, P *node
 }
 
 func (n *node) String() string {
+	ids := make([]string, len(n.values))
+	for i, val := range n.values {
+		ids[i] = val.ID()
+	}
+
 	if n.Red() {
-		return strconv.Itoa(n.val) + "r"
+		return fmt.Sprintf("[%s]_%s", strings.Join(ids, ","), "r")
 
 	} else {
-		return strconv.Itoa(n.val) + "b"
+		return fmt.Sprintf("[%s]_%s", strings.Join(ids, ","), "b")
 	}
 }
 

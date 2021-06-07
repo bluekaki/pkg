@@ -75,11 +75,11 @@ func (t *rbTree) Size() uint32 {
 	return t.size
 }
 
-func (t *rbTree) Asc() []int {
+func (t *rbTree) Asc() []Value {
 	t.RLock()
 	defer t.RUnlock()
 
-	values := make([]int, 0, t.size)
+	values := make([]Value, 0, t.size)
 
 	stack := list.New()
 	root := t.root
@@ -92,7 +92,8 @@ func (t *rbTree) Asc() []int {
 		if stack.Len() != 0 {
 			v := stack.Back()
 			root = v.Value.(*node)
-			values = append(values, root.val) //visit
+			values = append(values, root.values...) //visit
+
 			root = root.R
 			stack.Remove(v)
 		}
