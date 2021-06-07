@@ -8,6 +8,14 @@ func (t *rbTree) Delete(val Value) {
 	t.Lock()
 	defer t.Unlock()
 
+	t.delete(val)
+}
+
+func (t *rbTree) delete(val Value) {
+	if val == nil {
+		return
+	}
+
 	x := t.lookup(val)
 	if x == nil {
 		return

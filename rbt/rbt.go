@@ -79,6 +79,24 @@ func (t *rbTree) Asc() []Value {
 	t.RLock()
 	defer t.RUnlock()
 
+	return t.asc()
+}
+
+func (t *rbTree) Desc() []Value {
+	t.RLock()
+	defer t.RUnlock()
+
+	asc := t.asc()
+	values := make([]Value, len(asc))
+	for i, val := range asc {
+		val := val
+		values[len(asc)-i-1] = val
+	}
+
+	return values
+}
+
+func (t *rbTree) asc() []Value {
 	values := make([]Value, 0, t.size)
 
 	stack := list.New()
@@ -99,5 +117,65 @@ func (t *rbTree) Asc() []Value {
 		}
 	}
 
+	return values
+}
+
+func (t *rbTree) Maximum() []Value {
+	t.RLock()
+	defer t.RUnlock()
+
+	if t.root == nil {
+		return nil
+	}
+
+	root := t.maximum(t.root)
+	return root.values
+}
+
+func (t *rbTree) PopMaximum() []Value {
+	t.Lock()
+	defer t.Unlock()
+
+	if t.root == nil {
+		return nil
+	}
+
+	root := t.maximum(t.root)
+	values := make([]Value, len(root.values))
+	copy(values, root.values)
+
+	for _, val := range values {
+		t.delete(val)
+	}
+	return values
+}
+
+func (t *rbTree) Minimum() []Value {
+	t.RLock()
+	defer t.RUnlock()
+
+	if t.root == nil {
+		return nil
+	}
+
+	root := t.minimum(t.root)
+	return root.values
+}
+
+func (t *rbTree) PopMinimum() []Value {
+	t.Lock()
+	defer t.Unlock()
+
+	if t.root == nil {
+		return nil
+	}
+
+	root := t.minimum(t.root)
+	values := make([]Value, len(root.values))
+	copy(values, root.values)
+
+	for _, val := range values {
+		t.delete(val)
+	}
 	return values
 }
