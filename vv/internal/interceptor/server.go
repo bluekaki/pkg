@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/bluekaki/pkg/errors"
+	"github.com/bluekaki/pkg/id"
 	"github.com/bluekaki/pkg/pbutil"
 	"github.com/bluekaki/pkg/vv/internal/protos/gen"
 	"github.com/bluekaki/pkg/vv/options"
@@ -325,7 +326,7 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 	var journalID string
 	meta, _ := metadata.FromIncomingContext(ctx)
 	if values := meta.Get(JournalID); len(values) == 0 || values[0] == "" {
-		journalID = GenJournalID()
+		journalID = id.JournalID()
 		meta.Set(JournalID, journalID)
 		ctx = metadata.NewOutgoingContext(ctx, meta)
 	} else {

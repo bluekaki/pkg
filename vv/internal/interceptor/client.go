@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/bluekaki/pkg/id"
 	"github.com/bluekaki/pkg/pbutil"
 	"github.com/bluekaki/pkg/vv/internal/protos/gen"
 
@@ -47,9 +48,9 @@ func (c *ClientInterceptor) UnaryInterceptor(ctx context.Context, method string,
 	var journalID string
 	meta, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		journalID = GenJournalID()
+		journalID = id.JournalID()
 	} else if values := meta.Get(JournalID); len(values) == 0 || values[0] == "" {
-		journalID = GenJournalID()
+		journalID = id.JournalID()
 	} else {
 		journalID = values[0]
 	}
