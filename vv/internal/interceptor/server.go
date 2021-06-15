@@ -350,14 +350,23 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 	if option := proto.GetExtension(FileDescriptor.Options(serviceName), options.E_Authorization).(*options.Handler); option != nil {
 		authorizationValidator = Validator.AuthorizationValidator(option.Name)
 	}
+	// if option := proto.GetExtension(FileDescriptor.Options(info.FullMethod), options.E_Authorization).(*options.Handler); option != nil {
+	// 	authorizationValidator = Validator.AuthorizationValidator(option.Name)
+	// }
 
 	if option := proto.GetExtension(FileDescriptor.Options(serviceName), options.E_ProxyAuthorization).(*options.Handler); option != nil {
 		proxyAuthorizationValidator = Validator.ProxyAuthorizationValidator(option.Name)
 	}
+	// if option := proto.GetExtension(FileDescriptor.Options(info.FullMethod), options.E_ProxyAuthorization).(*options.Handler); option != nil {
+	// 	proxyAuthorizationValidator = Validator.ProxyAuthorizationValidator(option.Name)
+	// }
 
 	if option := proto.GetExtension(FileDescriptor.Options(serviceName), options.E_MixAuthorization).(*options.Handler); option != nil {
 		mixAuthorizationValidator = Validator.ProxyAuthorizationValidator(option.Name)
 	}
+	// if option := proto.GetExtension(FileDescriptor.Options(info.FullMethod), options.E_MixAuthorization).(*options.Handler); option != nil {
+	// 	mixAuthorizationValidator = Validator.ProxyAuthorizationValidator(option.Name)
+	// }
 
 	if authorizationValidator == nil && proxyAuthorizationValidator == nil && mixAuthorizationValidator == nil {
 		return handler(ctx, req)

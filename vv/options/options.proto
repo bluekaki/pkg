@@ -20,6 +20,13 @@ extend google.protobuf.ServiceOptions {
   optional Handler whitelisting = 74503;
 }
 
+extend google.protobuf.MethodOptions {
+  optional Handler method_authorization = 74504;
+  optional Handler method_proxy_authorization = 74505;
+  optional Handler method_mix_authorization = 74506;
+  optional Handler method_whitelisting = 74507;
+}
+
 extend google.protobuf.FieldOptions {
   // for string: not empty; numeric: not zero; bytes: not nil; map: not nil
   optional bool require = 74600;
