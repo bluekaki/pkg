@@ -415,6 +415,10 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 	if authorizationValidator != nil {
 		userinfo, err := authorizationValidator(auth, payload)
 		if err != nil {
+			if _, ok := status.FromError(err); ok {
+				return nil, err
+			}
+
 			s := status.New(codes.Unauthenticated, codes.Unauthenticated.String())
 			s, _ = s.WithDetails(&pb.Stack{Info: fmt.Sprintf("%+v", err)})
 			return nil, s.Err()
@@ -425,6 +429,10 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 	if proxyAuthorizationValidator != nil {
 		identifier, ok, err := proxyAuthorizationValidator(proxyAuth, payload)
 		if err != nil {
+			if _, ok := status.FromError(err); ok {
+				return nil, err
+			}
+
 			s := status.New(codes.PermissionDenied, codes.PermissionDenied.String())
 			s, _ = s.WithDetails(&pb.Stack{Info: fmt.Sprintf("%+v", err)})
 			return nil, s.Err()
@@ -438,6 +446,10 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 	if mixAuthorizationValidator != nil {
 		identifier, ok, err := mixAuthorizationValidator(mixAuth, payload)
 		if err != nil {
+			if _, ok := status.FromError(err); ok {
+				return nil, err
+			}
+
 			s := status.New(codes.PermissionDenied, codes.PermissionDenied.String())
 			s, _ = s.WithDetails(&pb.Stack{Info: fmt.Sprintf("%+v", err)})
 			return nil, s.Err()

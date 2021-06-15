@@ -181,6 +181,10 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, method string
 	if whitelistingValidator != nil {
 		ok, err := whitelistingValidator(meta.Get(XForwardedFor)[0])
 		if err != nil {
+			if _, ok := status.FromError(err); ok {
+				return err
+			}
+
 			s := status.New(codes.Aborted, codes.Aborted.String())
 			s, _ = s.WithDetails(&pb.Stack{Info: fmt.Sprintf("%+v", err)})
 			return s.Err()
