@@ -63,20 +63,20 @@ func (f *fileDescriptor) ParseMethod(descriptor protoreflect.FileDescriptor) {
 			fullMethod := fmt.Sprintf("/%s/%s", serivce.FullName(), method.Name())
 			f.options[fullMethod] = method.Options()
 
-			// if option := proto.GetExtension(method.Options(), options.E_Authorization).(*options.Handler); option != nil &&
-			// 	Validator.AuthorizationValidator(option.Name) == nil {
-			// 	panic(fmt.Sprintf("%s options.authorization validator: [%s] not found", fullMethod, option.Name))
-			// }
+			if option := proto.GetExtension(method.Options(), options.E_MethodAuthorization).(*options.Handler); option != nil &&
+				Validator.AuthorizationValidator(option.Name) == nil {
+				panic(fmt.Sprintf("%s options.authorization validator: [%s] not found", fullMethod, option.Name))
+			}
 
-			// if option := proto.GetExtension(method.Options(), options.E_ProxyAuthorization).(*options.Handler); option != nil &&
-			// 	Validator.ProxyAuthorizationValidator(option.Name) == nil {
-			// 	panic(fmt.Sprintf("%s options.proxy_authorization validator: [%s] not found", fullMethod, option.Name))
-			// }
+			if option := proto.GetExtension(method.Options(), options.E_MethodProxyAuthorization).(*options.Handler); option != nil &&
+				Validator.ProxyAuthorizationValidator(option.Name) == nil {
+				panic(fmt.Sprintf("%s options.proxy_authorization validator: [%s] not found", fullMethod, option.Name))
+			}
 
-			// if option := proto.GetExtension(method.Options(), options.E_MixAuthorization).(*options.Handler); option != nil &&
-			// 	Validator.ProxyAuthorizationValidator(option.Name) == nil {
-			// 	panic(fmt.Sprintf("%s options.mix_authorization validator: [%s] not found", fullMethod, option.Name))
-			// }
+			if option := proto.GetExtension(method.Options(), options.E_MethodMixAuthorization).(*options.Handler); option != nil &&
+				Validator.ProxyAuthorizationValidator(option.Name) == nil {
+				panic(fmt.Sprintf("%s options.mix_authorization validator: [%s] not found", fullMethod, option.Name))
+			}
 		}
 	}
 }

@@ -350,23 +350,23 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 	if option := proto.GetExtension(FileDescriptor.Options(serviceName), options.E_Authorization).(*options.Handler); option != nil {
 		authorizationValidator = Validator.AuthorizationValidator(option.Name)
 	}
-	// if option := proto.GetExtension(FileDescriptor.Options(info.FullMethod), options.E_Authorization).(*options.Handler); option != nil {
-	// 	authorizationValidator = Validator.AuthorizationValidator(option.Name)
-	// }
+	if option := proto.GetExtension(FileDescriptor.Options(info.FullMethod), options.E_MethodAuthorization).(*options.Handler); option != nil {
+		authorizationValidator = Validator.AuthorizationValidator(option.Name)
+	}
 
 	if option := proto.GetExtension(FileDescriptor.Options(serviceName), options.E_ProxyAuthorization).(*options.Handler); option != nil {
 		proxyAuthorizationValidator = Validator.ProxyAuthorizationValidator(option.Name)
 	}
-	// if option := proto.GetExtension(FileDescriptor.Options(info.FullMethod), options.E_ProxyAuthorization).(*options.Handler); option != nil {
-	// 	proxyAuthorizationValidator = Validator.ProxyAuthorizationValidator(option.Name)
-	// }
+	if option := proto.GetExtension(FileDescriptor.Options(info.FullMethod), options.E_MethodProxyAuthorization).(*options.Handler); option != nil {
+		proxyAuthorizationValidator = Validator.ProxyAuthorizationValidator(option.Name)
+	}
 
 	if option := proto.GetExtension(FileDescriptor.Options(serviceName), options.E_MixAuthorization).(*options.Handler); option != nil {
 		mixAuthorizationValidator = Validator.ProxyAuthorizationValidator(option.Name)
 	}
-	// if option := proto.GetExtension(FileDescriptor.Options(info.FullMethod), options.E_MixAuthorization).(*options.Handler); option != nil {
-	// 	mixAuthorizationValidator = Validator.ProxyAuthorizationValidator(option.Name)
-	// }
+	if option := proto.GetExtension(FileDescriptor.Options(info.FullMethod), options.E_MethodMixAuthorization).(*options.Handler); option != nil {
+		mixAuthorizationValidator = Validator.ProxyAuthorizationValidator(option.Name)
+	}
 
 	if authorizationValidator == nil && proxyAuthorizationValidator == nil && mixAuthorizationValidator == nil {
 		return handler(ctx, req)
@@ -415,7 +415,9 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 	if authorizationValidator != nil {
 		userinfo, err := authorizationValidator(auth, payload)
 		if err != nil {
-			return nil, status.Error(codes.Unauthenticated, fmt.Sprintf("%+v", err))
+			s := status.New(codes.Unauthenticated, codes.Unauthenticated.String())
+			s, _ = s.WithDetails(&pb.Stack{Info: fmt.Sprintf("%+v", err)})
+			return nil, s.Err()
 		}
 		ctx = context.WithValue(ctx, SessionUserinfo{}, userinfo)
 	}
@@ -423,7 +425,9 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 	if proxyAuthorizationValidator != nil {
 		identifier, ok, err := proxyAuthorizationValidator(proxyAuth, payload)
 		if err != nil {
-			return nil, status.Error(codes.PermissionDenied, fmt.Sprintf("%+v", err))
+			s := status.New(codes.PermissionDenied, codes.PermissionDenied.String())
+			s, _ = s.WithDetails(&pb.Stack{Info: fmt.Sprintf("%+v", err)})
+			return nil, s.Err()
 		}
 		if !ok {
 			return nil, status.Error(codes.PermissionDenied, "signature does not match")
@@ -434,7 +438,9 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 	if mixAuthorizationValidator != nil {
 		identifier, ok, err := mixAuthorizationValidator(mixAuth, payload)
 		if err != nil {
-			return nil, status.Error(codes.PermissionDenied, fmt.Sprintf("%+v", err))
+			s := status.New(codes.PermissionDenied, codes.PermissionDenied.String())
+			s, _ = s.WithDetails(&pb.Stack{Info: fmt.Sprintf("%+v", err)})
+			return nil, s.Err()
 		}
 		if !ok {
 			return nil, status.Error(codes.PermissionDenied, "signature does not match")

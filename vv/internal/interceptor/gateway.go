@@ -169,14 +169,24 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, method string
 	}()
 
 	serviceName := strings.Split(method, "/")[1]
+
+	var whitelistingValidator whitelistingHandler
 	if option := proto.GetExtension(FileDescriptor.Options(serviceName), options.E_Whitelisting).(*options.Handler); option != nil {
-		handler := Validator.WhitelistingValidator(option.Name)
-		ok, err := handler(meta.Get(XForwardedFor)[0])
+		whitelistingValidator = Validator.WhitelistingValidator(option.Name)
+	}
+	if option := proto.GetExtension(FileDescriptor.Options(method), options.E_MethodWhitelisting).(*options.Handler); option != nil {
+		whitelistingValidator = Validator.WhitelistingValidator(option.Name)
+	}
+
+	if whitelistingValidator != nil {
+		ok, err := whitelistingValidator(meta.Get(XForwardedFor)[0])
 		if err != nil {
-			return status.Error(codes.PermissionDenied, fmt.Sprintf("%+v", err))
+			s := status.New(codes.Aborted, codes.Aborted.String())
+			s, _ = s.WithDetails(&pb.Stack{Info: fmt.Sprintf("%+v", err)})
+			return s.Err()
 		}
 		if !ok {
-			return status.Error(codes.PermissionDenied, "ip does not allow access")
+			return status.Error(codes.Aborted, "ip does not allow access")
 		}
 	}
 
