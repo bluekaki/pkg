@@ -13,5 +13,5 @@ func ParseFileDescriptor(descriptor protoreflect.FileDescriptor) {
 	}
 
 	interceptor.FileDescriptor.VerifyValidator(descriptor)
-	interceptor.FileDescriptor.ParseMethod(descriptor)
+	interceptor.FileDescriptor.ParseMethod(descriptor, true)
 }

@@ -13,5 +13,5 @@ func ParseFileDescriptor(descriptor protoreflect.FileDescriptor) {
 	}
 
 	interceptor.FileDescriptor.VerifyWhitelisting(descriptor)
-	interceptor.FileDescriptor.ParseMethod(descriptor)
+	interceptor.FileDescriptor.ParseMethod(descriptor, false)
 }
