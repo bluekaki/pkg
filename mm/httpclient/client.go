@@ -51,18 +51,18 @@ func shouldRetry(ctx context.Context, httpCode int) bool {
 }
 
 // Get get 请求
-func Get(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, err error) {
+func Get(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withoutBody(http.MethodGet, url, form, options...)
 }
 
 // Delete delete 请求
-func Delete(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, err error) {
+func Delete(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withoutBody(http.MethodDelete, url, form, options...)
 }
 
-func withoutBody(method, url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, err error) {
+func withoutBody(method, url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	if url == "" {
-		return nil, nil, errors.New("url required")
+		return nil, nil, -1, errors.New("url required")
 	}
 
 	if len(form) > 0 {
@@ -139,10 +139,9 @@ func withoutBody(method, url string, form httpURL.Values, options ...Option) (bo
 		retryDelay = DefaultRetryDelay
 	}
 
-	var httpCode int
 	for k := 0; k < retryTimes; k++ {
-		body, header, httpCode, err = doHTTP(ctx, method, url, nil, opt)
-		if shouldRetry(ctx, httpCode) {
+		body, header, statusCode, err = doHTTP(ctx, method, url, nil, opt)
+		if shouldRetry(ctx, statusCode) {
 			time.Sleep(retryDelay)
 			continue
 		}
@@ -153,41 +152,41 @@ func withoutBody(method, url string, form httpURL.Values, options ...Option) (bo
 }
 
 // PostForm post form 请求
-func PostForm(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, err error) {
+func PostForm(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withFormBody(http.MethodPost, url, form, options...)
 }
 
 // PostJSON post json 请求
-func PostJSON(url string, raw json.RawMessage, options ...Option) (body []byte, header http.Header, err error) {
+func PostJSON(url string, raw json.RawMessage, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withJSONBody(http.MethodPost, url, raw, options...)
 }
 
 // PutForm put form 请求
-func PutForm(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, err error) {
+func PutForm(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withFormBody(http.MethodPut, url, form, options...)
 }
 
 // PutJSON put json 请求
-func PutJSON(url string, raw json.RawMessage, options ...Option) (body []byte, header http.Header, err error) {
+func PutJSON(url string, raw json.RawMessage, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withJSONBody(http.MethodPut, url, raw, options...)
 }
 
 // PatchFrom patch form 请求
-func PatchFrom(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, err error) {
+func PatchFrom(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withFormBody(http.MethodPatch, url, form, options...)
 }
 
 // PatchJSON patch json 请求
-func PatchJSON(url string, raw json.RawMessage, options ...Option) (body []byte, header http.Header, err error) {
+func PatchJSON(url string, raw json.RawMessage, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withJSONBody(http.MethodPatch, url, raw, options...)
 }
 
-func withFormBody(method, url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, err error) {
+func withFormBody(method, url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	if url == "" {
-		return nil, nil, errors.New("url required")
+		return nil, nil, -1, errors.New("url required")
 	}
 	if len(form) == 0 {
-		return nil, nil, errors.New("form required")
+		return nil, nil, -1, errors.New("form required")
 	}
 
 	ts := time.Now()
@@ -260,10 +259,9 @@ func withFormBody(method, url string, form httpURL.Values, options ...Option) (b
 		retryDelay = DefaultRetryDelay
 	}
 
-	var httpCode int
 	for k := 0; k < retryTimes; k++ {
-		body, header, httpCode, err = doHTTP(ctx, method, url, []byte(formValue), opt)
-		if shouldRetry(ctx, httpCode) {
+		body, header, statusCode, err = doHTTP(ctx, method, url, []byte(formValue), opt)
+		if shouldRetry(ctx, statusCode) {
 			time.Sleep(retryDelay)
 			continue
 		}
@@ -273,12 +271,12 @@ func withFormBody(method, url string, form httpURL.Values, options ...Option) (b
 	return
 }
 
-func withJSONBody(method, url string, raw json.RawMessage, options ...Option) (body []byte, header http.Header, err error) {
+func withJSONBody(method, url string, raw json.RawMessage, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	if url == "" {
-		return nil, nil, errors.New("url required")
+		return nil, nil, -1, errors.New("url required")
 	}
 	if len(raw) == 0 {
-		return nil, nil, errors.New("raw required")
+		return nil, nil, -1, errors.New("raw required")
 	}
 
 	ts := time.Now()
@@ -350,10 +348,9 @@ func withJSONBody(method, url string, raw json.RawMessage, options ...Option) (b
 		retryDelay = DefaultRetryDelay
 	}
 
-	var httpCode int
 	for k := 0; k < retryTimes; k++ {
-		body, header, httpCode, err = doHTTP(ctx, method, url, raw, opt)
-		if shouldRetry(ctx, httpCode) {
+		body, header, statusCode, err = doHTTP(ctx, method, url, raw, opt)
+		if shouldRetry(ctx, statusCode) {
 			time.Sleep(retryDelay)
 			continue
 		}
