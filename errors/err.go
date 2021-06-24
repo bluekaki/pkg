@@ -8,9 +8,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-func callers() []uintptr {
+func callers(skip int) []uintptr {
 	var pcs [32]uintptr
-	l := runtime.Callers(3, pcs[:])
+	l := runtime.Callers(skip, pcs[:])
 	return pcs[:l]
 }
 
@@ -46,12 +46,12 @@ func (i *item) Format(s fmt.State, verb rune) {
 
 // New create a new error
 func New(msg string) Error {
-	return &item{msg: msg, stack: callers()}
+	return &item{msg: msg, stack: callers(3)}
 }
 
 // Errorf create a new error
 func Errorf(format string, args ...interface{}) Error {
-	return &item{msg: fmt.Sprintf(format, args...), stack: callers()}
+	return &item{msg: fmt.Sprintf(format, args...), stack: callers(3)}
 }
 
 // Wrap with some extra message into err
@@ -62,7 +62,7 @@ func Wrap(err error, msg string) Error {
 
 	e, ok := err.(*item)
 	if !ok {
-		return &item{msg: fmt.Sprintf("%s; %s", msg, err.Error()), stack: callers()}
+		return &item{msg: fmt.Sprintf("%s; %s", msg, err.Error()), stack: callers(3)}
 	}
 
 	e.msg = fmt.Sprintf("%s; %s", msg, e.msg)
@@ -79,7 +79,7 @@ func Wrapf(err error, format string, args ...interface{}) Error {
 
 	e, ok := err.(*item)
 	if !ok {
-		return &item{msg: fmt.Sprintf("%s; %s", msg, err.Error()), stack: callers()}
+		return &item{msg: fmt.Sprintf("%s; %s", msg, err.Error()), stack: callers(3)}
 	}
 
 	e.msg = fmt.Sprintf("%s; %s", msg, e.msg)
@@ -96,5 +96,5 @@ func WithStack(err error) Error {
 		return e
 	}
 
-	return &item{msg: err.Error(), stack: callers()}
+	return &item{msg: err.Error(), stack: callers(3)}
 }

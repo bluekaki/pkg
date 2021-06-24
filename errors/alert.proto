@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package errors;
+
+option go_package = "./;errors";
+
+import "google/protobuf/timestamp.proto";
+
+message AlertMessage {
+  message Meta {
+    string url = 1;
+    string parameters = 2;
+  }
+  string project_name = 1;
+  string desc = 2;
+  string journal_id = 3;
+  string error_verbose = 4;
+  string log_link = 5;
+  Meta meta = 6;
+  google.protobuf.Timestamp ts = 7;
+}
