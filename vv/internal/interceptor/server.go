@@ -167,11 +167,10 @@ func (g *grpcPayload) Body() string {
 func (g *grpcPayload) t() {}
 
 // NewServerInterceptor create a server interceptor
-func NewServerInterceptor(logger *zap.Logger, enablePrometheus, marshalJournal bool, notify notifyHandler) *ServerInterceptor {
+func NewServerInterceptor(logger *zap.Logger, enablePrometheus bool, notify notifyHandler) *ServerInterceptor {
 	return &ServerInterceptor{
 		logger:           logger,
 		enablePrometheus: enablePrometheus,
-		marshalJournal:   marshalJournal,
 		notify:           notify,
 	}
 }
@@ -180,7 +179,6 @@ func NewServerInterceptor(logger *zap.Logger, enablePrometheus, marshalJournal b
 type ServerInterceptor struct {
 	logger           *zap.Logger
 	enablePrometheus bool
-	marshalJournal   bool
 	notify           notifyHandler
 }
 
@@ -280,17 +278,10 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 
 			journal.CostSeconds = time.Since(ts).Seconds()
 
-			var json interface{}
-			if s.marshalJournal {
-				json, _ = pbutil.ProtoMessage2JSON(journal)
-			} else {
-				json, _ = pbutil.ProtoMessage2Map(journal)
-			}
-
 			if err == nil {
-				s.logger.Info("server unary interceptor", zap.Any("journal", json))
+				s.logger.Info("server unary interceptor", zap.Any("journal", journal))
 			} else {
-				s.logger.Error("server unary interceptor", zap.Any("journal", json))
+				s.logger.Error("server unary interceptor", zap.Any("journal", journal))
 			}
 		}
 

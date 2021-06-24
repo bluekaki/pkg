@@ -39,7 +39,6 @@ type option struct {
 	resolverBuilder resolver.Builder
 	dialTimeout     time.Duration
 	sign            Sign
-	marshalJournal  bool
 	notifyHandler   func(desc, err, stack, journalID string)
 }
 
@@ -75,13 +74,6 @@ func WithDialTimeout(timeout time.Duration) Option {
 func WithSign(sign Sign) Option {
 	return func(opt *option) {
 		opt.sign = sign
-	}
-}
-
-// WithMarshalJournal marshal journal to json string
-func WithMarshalJournal() Option {
-	return func(opt *option) {
-		opt.marshalJournal = true
 	}
 }
 
@@ -122,7 +114,7 @@ func New(logger *zap.Logger, endpoint string, options ...Option) (*grpc.ClientCo
 		dialTimeout = opt.dialTimeout
 	}
 
-	clientInterceptor := interceptor.NewClientInterceptor(opt.sign, logger, opt.marshalJournal, opt.notifyHandler)
+	clientInterceptor := interceptor.NewClientInterceptor(opt.sign, logger, opt.notifyHandler)
 
 	dialOptions := []grpc.DialOption{
 		grpc.WithResolvers(resolverBuilder),

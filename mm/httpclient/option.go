@@ -16,17 +16,16 @@ type Journal = journal.T
 type Option func(*option)
 
 type option struct {
-	Ctx            context.Context
-	TTL            time.Duration
-	Header         map[string]string
-	Journal        *journal.Journal
-	Dialog         *journal.Dialog
-	Logger         *zap.Logger
-	RetryTimes     int
-	RetryDelay     time.Duration
-	PrintJournal   bool
-	MarshalJournal bool
-	Desc           string
+	Ctx          context.Context
+	TTL          time.Duration
+	Header       map[string]string
+	Journal      *journal.Journal
+	Dialog       *journal.Dialog
+	Logger       *zap.Logger
+	RetryTimes   int
+	RetryDelay   time.Duration
+	PrintJournal bool
+	Desc         string
 }
 
 func newOption() *option {
@@ -97,12 +96,5 @@ func WithPrintJournal(desc string) Option {
 	return func(opt *option) {
 		opt.PrintJournal = true
 		opt.Desc = desc
-	}
-}
-
-// WithMarshalJournal 序列化journal
-func WithMarshalJournal() Option {
-	return func(opt *option) {
-		opt.MarshalJournal = true
 	}
 }

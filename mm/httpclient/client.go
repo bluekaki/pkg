@@ -83,16 +83,10 @@ func withoutBody(method, url string, form httpURL.Values, options ...Option) (bo
 			opt.Journal.CostSeconds = time.Since(ts).Seconds()
 
 			if opt.Logger != nil && opt.PrintJournal {
-				var journal interface{} = opt.Journal
-				if opt.MarshalJournal {
-					raw, _ := json.Marshal(opt.Journal)
-					journal = string(raw)
-				}
-
 				if err == nil {
-					opt.Logger.Info(opt.Desc, zap.Any("journal", journal))
+					opt.Logger.Info(opt.Desc, zap.Any("journal", opt.Journal))
 				} else {
-					opt.Logger.Error(opt.Desc, zap.Any("journal", journal))
+					opt.Logger.Error(opt.Desc, zap.Any("journal", opt.Journal))
 				}
 			}
 		}
@@ -201,16 +195,10 @@ func withFormBody(method, url string, form httpURL.Values, options ...Option) (b
 			opt.Journal.CostSeconds = time.Since(ts).Seconds()
 
 			if opt.Logger != nil && opt.PrintJournal {
-				var journal interface{} = opt.Journal
-				if opt.MarshalJournal {
-					raw, _ := json.Marshal(opt.Journal)
-					journal = string(raw)
-				}
-
 				if err == nil {
-					opt.Logger.Info(opt.Desc, zap.Any("journal", journal))
+					opt.Logger.Info(opt.Desc, zap.Any("journal", opt.Journal))
 				} else {
-					opt.Logger.Error(opt.Desc, zap.Any("journal", journal))
+					opt.Logger.Error(opt.Desc, zap.Any("journal", opt.Journal))
 				}
 			}
 		}
@@ -291,16 +279,10 @@ func withJSONBody(method, url string, raw json.RawMessage, options ...Option) (b
 			opt.Journal.CostSeconds = time.Since(ts).Seconds()
 
 			if opt.Logger != nil && opt.PrintJournal {
-				var journal interface{} = opt.Journal
-				if opt.MarshalJournal {
-					raw, _ := json.Marshal(opt.Journal)
-					journal = string(raw)
-				}
-
 				if err == nil {
-					opt.Logger.Info(opt.Desc, zap.Any("journal", journal))
+					opt.Logger.Info(opt.Desc, zap.Any("journal", opt.Journal))
 				} else {
-					opt.Logger.Error(opt.Desc, zap.Any("journal", journal))
+					opt.Logger.Error(opt.Desc, zap.Any("journal", opt.Journal))
 				}
 			}
 		}

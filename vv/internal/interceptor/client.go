@@ -24,21 +24,19 @@ import (
 type Sign func(fullMethod string, message []byte) (auth, date string, err error)
 
 // NewClientInterceptor create a client interceptor
-func NewClientInterceptor(sign Sign, logger *zap.Logger, marshalJournal bool, notify notifyHandler) *ClientInterceptor {
+func NewClientInterceptor(sign Sign, logger *zap.Logger, notify notifyHandler) *ClientInterceptor {
 	return &ClientInterceptor{
-		sign:           sign,
-		logger:         logger,
-		marshalJournal: marshalJournal,
-		notify:         notify,
+		sign:   sign,
+		logger: logger,
+		notify: notify,
 	}
 }
 
 // ClientInterceptor the client's interceptor
 type ClientInterceptor struct {
-	sign           Sign
-	logger         *zap.Logger
-	marshalJournal bool
-	notify         notifyHandler
+	sign   Sign
+	logger *zap.Logger
+	notify notifyHandler
 }
 
 // UnaryInterceptor a interceptor for client unary operations
@@ -132,17 +130,10 @@ func (c *ClientInterceptor) UnaryInterceptor(ctx context.Context, method string,
 
 		journal.CostSeconds = time.Since(ts).Seconds()
 
-		var json interface{}
-		if c.marshalJournal {
-			json, _ = pbutil.ProtoMessage2JSON(journal)
-		} else {
-			json, _ = pbutil.ProtoMessage2Map(journal)
-		}
-
 		if err == nil {
-			c.logger.Info("client unary interceptor", zap.Any("journal", json))
+			c.logger.Info("client unary interceptor", zap.Any("journal", journal))
 		} else {
-			c.logger.Error("client unary interceptor", zap.Any("journal", json))
+			c.logger.Error("client unary interceptor", zap.Any("journal", journal))
 		}
 	}()
 

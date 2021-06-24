@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bluekaki/pkg/pbutil"
 	"github.com/bluekaki/pkg/vv/internal/protos/gen"
 	"github.com/bluekaki/pkg/vv/options"
 
@@ -48,19 +47,17 @@ func forwardedByGrpcGateway(meta metadata.MD) bool {
 }
 
 // NewGatewayInterceptor create a gateway interceptor
-func NewGatewayInterceptor(logger *zap.Logger, marshalJournal bool, notify notifyHandler) *GatewayInterceptor {
+func NewGatewayInterceptor(logger *zap.Logger, notify notifyHandler) *GatewayInterceptor {
 	return &GatewayInterceptor{
-		logger:         logger,
-		marshalJournal: marshalJournal,
-		notify:         notify,
+		logger: logger,
+		notify: notify,
 	}
 }
 
 // GatewayInterceptor the gateway's interceptor
 type GatewayInterceptor struct {
-	logger         *zap.Logger
-	marshalJournal bool
-	notify         notifyHandler
+	logger *zap.Logger
+	notify notifyHandler
 }
 
 // UnaryInterceptor a interceptor for gateway unary operations
@@ -153,17 +150,10 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, method string
 
 			journal.CostSeconds = time.Since(ts).Seconds()
 
-			var json interface{}
-			if g.marshalJournal {
-				json, _ = pbutil.ProtoMessage2JSON(journal)
-			} else {
-				json, _ = pbutil.ProtoMessage2Map(journal)
-			}
-
 			if err == nil {
-				g.logger.Info("gateway unary interceptor", zap.Any("journal", json))
+				g.logger.Info("gateway unary interceptor", zap.Any("journal", journal))
 			} else {
-				g.logger.Error("gateway unary interceptor", zap.Any("journal", json))
+				g.logger.Error("gateway unary interceptor", zap.Any("journal", journal))
 			}
 		}
 	}()

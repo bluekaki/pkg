@@ -35,7 +35,6 @@ type option struct {
 	enforcementPolicy *keepalive.EnforcementPolicy
 	keepalive         *keepalive.ServerParameters
 	prometheusHandler func(*zap.Logger)
-	marshalJournal    bool
 	notifyHandler     func(desc, err, stack, journalID string)
 }
 
@@ -57,13 +56,6 @@ func WithEnforcementPolicy(enforcementPolicy *keepalive.EnforcementPolicy) Optio
 func WithKeepAlive(keepalive *keepalive.ServerParameters) Option {
 	return func(opt *option) {
 		opt.keepalive = keepalive
-	}
-}
-
-// WithMarshalJournal marshal journal to json string
-func WithMarshalJournal() Option {
-	return func(opt *option) {
-		opt.marshalJournal = true
 	}
 }
 
@@ -99,7 +91,7 @@ func New(logger *zap.Logger, options ...Option) *grpc.Server {
 		keepalive = opt.keepalive
 	}
 
-	serverInterceptor := interceptor.NewServerInterceptor(logger, opt.prometheusHandler != nil, opt.marshalJournal, opt.notifyHandler)
+	serverInterceptor := interceptor.NewServerInterceptor(logger, opt.prometheusHandler != nil, opt.notifyHandler)
 
 	serverOptions := []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(20 << 20),

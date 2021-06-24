@@ -47,11 +47,10 @@ func init() {
 type Option func(*option)
 
 type option struct {
-	credential     credentials.TransportCredentials
-	keepalive      *keepalive.ClientParameters
-	dialTimeout    time.Duration
-	marshalJournal bool
-	notifyHandler  func(desc, err, stack, journalID string)
+	credential    credentials.TransportCredentials
+	keepalive     *keepalive.ClientParameters
+	dialTimeout   time.Duration
+	notifyHandler func(desc, err, stack, journalID string)
 }
 
 // WithCredential setup credential for tls
@@ -72,13 +71,6 @@ func WithKeepAlive(keepalive *keepalive.ClientParameters) Option {
 func WithDialTimeout(timeout time.Duration) Option {
 	return func(opt *option) {
 		opt.dialTimeout = timeout
-	}
-}
-
-// WithMarshalJournal marshal journal to json string
-func WithMarshalJournal() Option {
-	return func(opt *option) {
-		opt.marshalJournal = true
 	}
 }
 
@@ -206,7 +198,7 @@ func New(logger *zap.Logger, options ...Option) (*runtime.ServeMux, []grpc.DialO
 		}),
 	)
 
-	gatewayInterceptor := interceptor.NewGatewayInterceptor(logger, opt.marshalJournal, opt.notifyHandler)
+	gatewayInterceptor := interceptor.NewGatewayInterceptor(logger, opt.notifyHandler)
 
 	dialOptions := []grpc.DialOption{
 		grpc.WithResolvers(dns.NewBuilder()),
