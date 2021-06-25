@@ -14,6 +14,7 @@ type Enum interface {
 }
 
 type Error interface {
+	error
 	t()
 }
 
@@ -48,6 +49,13 @@ func (b *bzError) Desc() string {
 
 func (b *bzError) Err() error {
 	return b.err
+}
+
+func (b *bzError) Error() string {
+	if b.err == nil {
+		return "nil"
+	}
+	return b.err.Error()
 }
 
 func (b *bzError) t() {}
@@ -93,6 +101,15 @@ func (a *alertError) BzError() BzError {
 
 func (a *alertError) AlertMessage() *AlertMessage {
 	return a.alert
+}
+
+func (a *alertError) Error() string {
+	err := a.bzError.Err()
+	if err == nil {
+		return "nil"
+	}
+
+	return err.Error()
 }
 
 func (a *alertError) t() {}
