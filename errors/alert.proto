@@ -12,10 +12,8 @@ message AlertMessage {
     string parameters = 2;
   }
   string project_name = 1;
-  string desc = 2;
-  string journal_id = 3;
-  string error_verbose = 4;
-  string log_link = 5;
-  Meta meta = 6;
-  google.protobuf.Timestamp ts = 7;
+  string journal_id = 2;
+  string error_verbose = 3;
+  Meta meta = 4;
+  google.protobuf.Timestamp ts = 5;
 }

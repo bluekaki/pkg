@@ -2,9 +2,10 @@ package errors
 
 import (
 	"fmt"
-)
+	"time"
 
-var _ BzError = (*bzError)(nil)
+	"github.com/golang/protobuf/ptypes"
+)
 
 type Enum interface {
 	BZCode() int
@@ -12,10 +13,16 @@ type Enum interface {
 	Desc() string
 }
 
-type BzError interface {
-	Enum
-	Err() Error
+type Error interface {
 	t()
+}
+
+var _ BzError = (*bzError)(nil)
+
+type BzError interface {
+	Error
+	Enum
+	Err() error
 }
 
 type bzError struct {
@@ -39,13 +46,13 @@ func (b *bzError) Desc() string {
 	return b.desc
 }
 
-func (b *bzError) Err() Error {
+func (b *bzError) Err() error {
 	return b.err
 }
 
 func (b *bzError) t() {}
 
-func NewBzError(enum Enum, err error) BzError {
+func NewBzError(enum Enum, err error) Error {
 	if enum == nil {
 		return nil
 	}
@@ -70,7 +77,9 @@ func NewBzError(enum Enum, err error) BzError {
 var _ AlertError = (*alertError)(nil)
 
 type AlertError interface {
+	Error
 	BzError() BzError
+	AlertMessage() *AlertMessage
 }
 
 type alertError struct {
@@ -82,17 +91,25 @@ func (a *alertError) BzError() BzError {
 	return a.bzError
 }
 
-func NewAlertError(enum Enum, err error, projectName, desc, journalID string) AlertError {
+func (a *alertError) AlertMessage() *AlertMessage {
+	return a.alert
+}
+
+func (a *alertError) t() {}
+
+func NewAlertError(enum Enum, err error, projectName, journalID string, meta *AlertMessage_Meta) Error {
 	if enum == nil {
 		return nil
 	}
 
+	ts, _ := ptypes.TimestampProto(time.Now())
 	alertErr := &alertError{
-		bzError: NewBzError(enum, err),
+		bzError: NewBzError(enum, err).(BzError),
 		alert: &AlertMessage{
 			ProjectName: projectName,
-			Desc:        desc,
 			JournalId:   journalID,
+			Meta:        meta,
+			Ts:          ts,
 		},
 	}
 	alertErr.alert.ErrorVerbose = fmt.Sprintf("%v", alertErr.bzError.Err())
