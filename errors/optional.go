@@ -13,6 +13,15 @@ type Enum interface {
 	Desc() string
 }
 
+func NewEnum(bzCode, statusCode int, desc string) Enum {
+	bzErr := new(bzError)
+	bzErr.code.bz = bzCode
+	bzErr.code.status = statusCode
+	bzErr.desc = desc
+
+	return bzErr
+}
+
 type Error interface {
 	error
 	t()

@@ -35,6 +35,7 @@ const (
 	// TODO new features
 	protoreflectPackage = protogen.GoImportPath("google.golang.org/protobuf/reflect/protoreflect")
 	errorsPackage       = protogen.GoImportPath("github.com/bluekaki/pkg/errors")
+	httpPackage         = protogen.GoImportPath("net/http")
 )
 
 // generateFile generates a _grpc.pb.go file containing gRPC service definitions.
@@ -183,7 +184,8 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 			nilArg = "nil,"
 		}
 		g.P("func (Unimplemented", serverType, ") ", serverSignature(g, method), "{")
-		g.P("return ", nilArg, statusPackage.Ident("Errorf"), "(", codesPackage.Ident("Unimplemented"), `, "method `, method.GoName, ` not implemented")`)
+		// TODO new features
+		g.P("return ", nilArg, errorsPackage.Ident("NewBzError"), "(", errorsPackage.Ident("NewEnum"), "(int(", codesPackage.Ident("Unimplemented"), `),`, g.QualifiedGoIdent(httpPackage.Ident("StatusNotImplemented")), `, "method `, method.GoName, ` not implemented")`, ", nil)")
 		g.P("}")
 	}
 	if *requireUnimplemented {
@@ -364,11 +366,11 @@ func genClientMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.Gene
 func serverSignature(g *protogen.GeneratedFile, method *protogen.Method) string {
 	var reqArgs []string
 	// TODO new features
-	ret := protoreflectPackage.Ident("Error").String()
+	ret := g.QualifiedGoIdent(errorsPackage.Ident("Error"))
 	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 		reqArgs = append(reqArgs, g.QualifiedGoIdent(contextPackage.Ident("Context")))
 		// TODO new features
-		ret = "(*" + g.QualifiedGoIdent(method.Output.GoIdent) + ", " + protoreflectPackage.Ident("Error").String() + ")"
+		ret = "(*" + g.QualifiedGoIdent(method.Output.GoIdent) + ", " + ret + ")"
 	}
 	if !method.Desc.IsStreamingClient() {
 		reqArgs = append(reqArgs, "*"+g.QualifiedGoIdent(method.Input.GoIdent))
