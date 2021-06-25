@@ -14,7 +14,7 @@ func callers(skip int) []uintptr {
 	return pcs[:l]
 }
 
-var _ (error) = (*item)(nil)
+var _ (Error) = (*item)(nil)
 var _ (fmt.Formatter) = (*item)(nil)
 
 type item struct {
@@ -39,17 +39,22 @@ func (i *item) Format(s fmt.State, verb rune) {
 }
 
 // New create a new error
-func New(msg string) error {
+func New(msg string) Error {
 	return &item{msg: msg, stack: callers(3)}
 }
 
+// Panic create a error from panic
+func Panic(p interface{}) Error {
+	return &item{msg: fmt.Sprintf("%+v", p), stack: callers(5)}
+}
+
 // Errorf create a new error
-func Errorf(format string, args ...interface{}) error {
+func Errorf(format string, args ...interface{}) Error {
 	return &item{msg: fmt.Sprintf(format, args...), stack: callers(3)}
 }
 
 // Wrap with some extra message into err
-func Wrap(err error, msg string) error {
+func Wrap(err error, msg string) Error {
 	if err == nil {
 		return nil
 	}
@@ -64,7 +69,7 @@ func Wrap(err error, msg string) error {
 }
 
 // Wrapf with some extra message into err
-func Wrapf(err error, format string, args ...interface{}) error {
+func Wrapf(err error, format string, args ...interface{}) Error {
 	if err == nil {
 		return nil
 	}
@@ -81,7 +86,7 @@ func Wrapf(err error, format string, args ...interface{}) error {
 }
 
 // WithStack add caller stack information
-func WithStack(err error) error {
+func WithStack(err error) Error {
 	if err == nil {
 		return nil
 	}

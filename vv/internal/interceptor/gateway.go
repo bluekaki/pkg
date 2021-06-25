@@ -3,10 +3,10 @@ package interceptor
 import (
 	"context"
 	"fmt"
-	"runtime/debug"
 	"strings"
 	"time"
 
+	"github.com/bluekaki/pkg/errors"
 	"github.com/bluekaki/pkg/vv/internal/protos/gen"
 	"github.com/bluekaki/pkg/vv/options"
 
@@ -47,7 +47,7 @@ func forwardedByGrpcGateway(meta metadata.MD) bool {
 }
 
 // NewGatewayInterceptor create a gateway interceptor
-func NewGatewayInterceptor(logger *zap.Logger, notify notifyHandler) *GatewayInterceptor {
+func NewGatewayInterceptor(logger *zap.Logger, notify NotifyHandler) *GatewayInterceptor {
 	return &GatewayInterceptor{
 		logger: logger,
 		notify: notify,
@@ -57,7 +57,7 @@ func NewGatewayInterceptor(logger *zap.Logger, notify notifyHandler) *GatewayInt
 // GatewayInterceptor the gateway's interceptor
 type GatewayInterceptor struct {
 	logger *zap.Logger
-	notify notifyHandler
+	notify NotifyHandler
 }
 
 // UnaryInterceptor a interceptor for gateway unary operations
@@ -75,20 +75,32 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, method string
 
 	defer func() { // double recover for safety
 		if p := recover(); p != nil {
+			err = errors.Panic(p)
+			errVerbose := fmt.Sprintf("got double panic => error: %+v", err)
+			if g.notify != nil {
+				g.notify((&errors.AlertMessage{
+					JournalId:    journalID,
+					ErrorVerbose: errVerbose,
+				}).Init())
+			}
+
 			err = status.New(codes.Internal, "got double panic").Err()
-			g.logger.Error(fmt.Sprintf("got double panic => error: %+v\n%s", p, string(debug.Stack())))
+			g.logger.Error(fmt.Sprintf("%s %s", journalID, errVerbose))
 		}
 	}()
 
 	defer func() {
 		if p := recover(); p != nil {
-			msg := fmt.Sprintf("got panic => error: %+v", p)
-			info := string(debug.Stack())
+			err = errors.Panic(p)
+			errVerbose := fmt.Sprintf("got panic => error: %+v", err)
 			if g.notify != nil {
-				g.notify("got panic", msg, info, journalID)
+				g.notify((&errors.AlertMessage{
+					JournalId:    journalID,
+					ErrorVerbose: errVerbose,
+				}).Init())
 			}
 
-			s, _ := status.New(codes.Internal, msg).WithDetails(&pb.Stack{Info: info})
+			s, _ := status.New(codes.Internal, "got panic").WithDetails(&pb.Stack{Verbose: errVerbose})
 			err = s.Err()
 		}
 
@@ -140,11 +152,9 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, method string
 				journal.Response.Code = s.Code().String()
 				journal.Response.Message = s.Message()
 
-				journal.Response.Details = make([]*anypb.Any, len(s.Details()))
-				for i, detail := range s.Details() {
-					journal.Response.Details[i], _ = anypb.New(detail.(proto.Message))
+				if len(s.Details()) > 0 {
+					journal.Response.ErrorVerbose = s.Details()[0].(*pb.Stack).Verbose
 				}
-
 				err = status.New(s.Code(), s.Message()).Err() // reset detail
 			}
 
@@ -160,7 +170,7 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, method string
 
 	serviceName := strings.Split(method, "/")[1]
 
-	var whitelistingValidator whitelistingHandler
+	var whitelistingValidator WhitelistingHandler
 	if option := proto.GetExtension(FileDescriptor.Options(serviceName), options.E_Whitelisting).(*options.Handler); option != nil {
 		whitelistingValidator = Validator.WhitelistingValidator(option.Name)
 	}
@@ -176,7 +186,7 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, method string
 			}
 
 			s := status.New(codes.Aborted, codes.Aborted.String())
-			s, _ = s.WithDetails(&pb.Stack{Info: fmt.Sprintf("%+v", err)})
+			s, _ = s.WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", err)})
 			return s.Err()
 		}
 		if !ok {
@@ -188,7 +198,10 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, method string
 	if err != nil {
 		s, _ := status.FromError(err)
 		if s.Code() == codes.Unavailable && g.notify != nil {
-			g.notify(codes.Unavailable.String(), "", s.Proto().String(), journalID)
+			g.notify((&errors.AlertMessage{
+				JournalId:    journalID,
+				ErrorVerbose: s.Proto().String(),
+			}).Init())
 		}
 	}
 

@@ -41,11 +41,6 @@ func (f *fileDescriptor) VerifyValidator(descriptor protoreflect.FileDescriptor)
 			Validator.ProxyAuthorizationValidator(option.Name) == nil {
 			panic(fmt.Sprintf("%s options.proxy_authorization validator: [%s] not found", serivce.FullName(), option.Name))
 		}
-
-		if option := proto.GetExtension(serivce.Options(), options.E_MixAuthorization).(*options.Handler); option != nil &&
-			Validator.ProxyAuthorizationValidator(option.Name) == nil {
-			panic(fmt.Sprintf("%s options.mix_authorization validator: [%s] not found", serivce.FullName(), option.Name))
-		}
 	}
 }
 
@@ -72,11 +67,6 @@ func (f *fileDescriptor) ParseMethod(descriptor protoreflect.FileDescriptor, ver
 				if option := proto.GetExtension(method.Options(), options.E_MethodProxyAuthorization).(*options.Handler); option != nil &&
 					Validator.ProxyAuthorizationValidator(option.Name) == nil {
 					panic(fmt.Sprintf("%s options.proxy_authorization validator: [%s] not found", fullMethod, option.Name))
-				}
-
-				if option := proto.GetExtension(method.Options(), options.E_MethodMixAuthorization).(*options.Handler); option != nil &&
-					Validator.ProxyAuthorizationValidator(option.Name) == nil {
-					panic(fmt.Sprintf("%s options.mix_authorization validator: [%s] not found", fullMethod, option.Name))
 				}
 			}
 		}

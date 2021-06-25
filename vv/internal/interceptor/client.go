@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/bluekaki/pkg/errors"
 	"github.com/bluekaki/pkg/id"
 	"github.com/bluekaki/pkg/pbutil"
 	"github.com/bluekaki/pkg/vv/internal/protos/gen"
@@ -24,7 +25,7 @@ import (
 type Sign func(fullMethod string, message []byte) (auth, date string, err error)
 
 // NewClientInterceptor create a client interceptor
-func NewClientInterceptor(sign Sign, logger *zap.Logger, notify notifyHandler) *ClientInterceptor {
+func NewClientInterceptor(sign Sign, logger *zap.Logger, notify NotifyHandler) *ClientInterceptor {
 	return &ClientInterceptor{
 		sign:   sign,
 		logger: logger,
@@ -36,7 +37,7 @@ func NewClientInterceptor(sign Sign, logger *zap.Logger, notify notifyHandler) *
 type ClientInterceptor struct {
 	sign   Sign
 	logger *zap.Logger
-	notify notifyHandler
+	notify NotifyHandler
 }
 
 // UnaryInterceptor a interceptor for client unary operations
@@ -63,21 +64,34 @@ func (c *ClientInterceptor) UnaryInterceptor(ctx context.Context, method string,
 
 	defer func() { // double recover for safety
 		if p := recover(); p != nil {
+			err = errors.Panic(p)
+			errVerbose := fmt.Sprintf("got double panic => error: %+v", err)
+			if c.notify != nil {
+				c.notify((&errors.AlertMessage{
+					JournalId:    journalID,
+					ErrorVerbose: errVerbose,
+				}).Init())
+			}
+
 			err = status.New(codes.Internal, "got double panic").Err()
-			c.logger.Error(fmt.Sprintf("got double panic => error: %+v\n%s", p, string(debug.Stack())))
+			c.logger.Error(fmt.Sprintf("%s %s", journalID, errVerbose))
 		}
 	}()
 
 	defer func() {
 		if p := recover(); p != nil {
-			msg := fmt.Sprintf("got panic => error: %+v", p)
-			info := string(debug.Stack())
+			err = errors.Panic(p)
+			errVerbose := fmt.Sprintf("got panic => error: %+v", err)
 			if c.notify != nil {
-				c.notify("got panic", msg, info, journalID)
+				c.notify((&errors.AlertMessage{
+					JournalId:    journalID,
+					ErrorVerbose: errVerbose,
+				}).Init())
 			}
 
-			s, _ := status.New(codes.Internal, msg).WithDetails(&pb.Stack{Info: info})
+			s, _ := status.New(codes.Internal, "got panic").WithDetails(&pb.Stack{Verbose: errVerbose})
 			err = s.Err()
+
 		}
 
 		journal := &pb.Journal{
@@ -120,11 +134,9 @@ func (c *ClientInterceptor) UnaryInterceptor(ctx context.Context, method string,
 			journal.Response.Code = s.Code().String()
 			journal.Response.Message = s.Message()
 
-			journal.Response.Details = make([]*anypb.Any, len(s.Details()))
-			for i, detail := range s.Details() {
-				journal.Response.Details[i], _ = anypb.New(detail.(proto.Message))
+			if len(s.Details()) > 0 {
+				journal.Response.ErrorVerbose = s.Details()[0].(*pb.Stack).Verbose
 			}
-
 			err = status.New(s.Code(), s.Message()).Err() // reset detail
 		}
 
@@ -174,7 +186,7 @@ func (c *clientWrappedStream) SendMsg(m interface{}) error {
 func (c *ClientInterceptor) StreamInterceptor(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (stream grpc.ClientStream, err error) {
 	defer func() {
 		if p := recover(); p != nil {
-			s, _ := status.New(codes.Internal, fmt.Sprintf("%+v", p)).WithDetails(&pb.Stack{Info: string(debug.Stack())})
+			s, _ := status.New(codes.Internal, fmt.Sprintf("%+v", p)).WithDetails(&pb.Stack{Verbose: string(debug.Stack())})
 			err = s.Err()
 		}
 	}()

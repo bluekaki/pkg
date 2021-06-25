@@ -45,7 +45,7 @@ func Error(c codes.Code, msg string, err errors.Error) error {
 
 	s := status.New(c, msg)
 	if err != nil {
-		s, _ = s.WithDetails(&pb.Stack{Info: fmt.Sprintf("%+v", err)})
+		s, _ = s.WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", err)})
 	}
 
 	return s.Err()

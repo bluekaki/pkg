@@ -4,7 +4,7 @@ option go_package = ".;pb";
 
 import "google/protobuf/any.proto";
 
-message Stack { string info = 1; }
+message Stack { string verbose = 1; }
 
 message Journal {
   string id = 1;
@@ -24,6 +24,6 @@ message Request {
 message Response {
   string code = 1;
   string message = 2;
-  repeated google.protobuf.Any details = 3;
+  string error_verbose = 3;
   google.protobuf.Any payload = 4;
 }

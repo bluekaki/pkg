@@ -8,11 +8,11 @@ import (
 type Payload = interceptor.Payload
 
 // RegisteAuthorizationValidator some handler(s) for validate authorization and return userinfo
-func RegisteAuthorizationValidator(name string, handler func(authorization string, payload Payload) (userinfo interface{}, err error)) {
+func RegisteAuthorizationValidator(name string, handler interceptor.UserinfoHandler) {
 	interceptor.Validator.RegisteAuthorizationValidator(name, handler)
 }
 
 // RegisteProxyAuthorizationValidator some handler(s) for validate signature
-func RegisteProxyAuthorizationValidator(name string, handler func(proxyAuthorization string, payload Payload) (identifier string, ok bool, err error)) {
+func RegisteProxyAuthorizationValidator(name string, handler interceptor.SignatureHandler) {
 	interceptor.Validator.RegisteProxyAuthorizationValidator(name, handler)
 }

@@ -5,6 +5,6 @@ import (
 )
 
 // RegisteWhitelistingValidator some handler(s) for whitelisting signature
-func RegisteWhitelistingValidator(name string, handler func(xForwardedFor string) (ok bool, err error)) {
+func RegisteWhitelistingValidator(name string, handler interceptor.WhitelistingHandler) {
 	interceptor.Validator.RegisteWhitelistingValidator(name, handler)
 }

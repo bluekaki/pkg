@@ -8,12 +8,12 @@ import (
 )
 
 type Enum interface {
-	BZCode() int
-	StatueCode() int
+	BZCode() uint16
+	StatueCode() uint16
 	Desc() string
 }
 
-func NewEnum(bzCode, statusCode int, desc string) Enum {
+func NewEnum(bzCode, statusCode uint16, desc string) Enum {
 	bzErr := new(bzError)
 	bzErr.code.bz = bzCode
 	bzErr.code.status = statusCode
@@ -37,18 +37,18 @@ type BzError interface {
 
 type bzError struct {
 	code struct {
-		bz     int
-		status int
+		bz     uint16
+		status uint16
 	}
 	desc string
 	err  *item
 }
 
-func (b *bzError) BZCode() int {
+func (b *bzError) BZCode() uint16 {
 	return b.code.bz
 }
 
-func (b *bzError) StatueCode() int {
+func (b *bzError) StatueCode() uint16 {
 	return b.code.status
 }
 
@@ -141,4 +141,9 @@ func NewAlertError(enum Enum, err error, projectName, journalID string, meta *Al
 	alertErr.alert.ErrorVerbose = fmt.Sprintf("%v", alertErr.bzError.Err())
 
 	return alertErr
+}
+
+func (a *AlertMessage) Init() *AlertMessage {
+	a.Ts, _ = ptypes.TimestampProto(time.Now())
+	return a
 }

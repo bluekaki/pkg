@@ -39,7 +39,7 @@ type option struct {
 	resolverBuilder resolver.Builder
 	dialTimeout     time.Duration
 	sign            Sign
-	notifyHandler   func(desc, err, stack, journalID string)
+	notifyHandler   interceptor.NotifyHandler
 }
 
 // WithCredential setup credential for tls
@@ -78,7 +78,7 @@ func WithSign(sign Sign) Option {
 }
 
 // WithNotifyHandler notify when got panic
-func WithNotifyHandler(handler func(desc, err, stack, journalID string)) Option {
+func WithNotifyHandler(handler interceptor.NotifyHandler) Option {
 	return func(opt *option) {
 		opt.notifyHandler = handler
 	}

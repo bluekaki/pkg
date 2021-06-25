@@ -14,18 +14,14 @@ extend google.protobuf.MethodOptions {
 
   optional Handler method_authorization = 74502;
   optional Handler method_proxy_authorization = 74503;
-  optional Handler method_mix_authorization = 74504;
-  optional Handler method_whitelisting = 74505;
+  optional Handler method_whitelisting = 74504;
 }
 
 extend google.protobuf.ServiceOptions {
-  optional Handler authorization = 74506;
-  optional Handler proxy_authorization = 74507;
-  optional Handler mix_authorization = 74508;
-  optional Handler whitelisting = 74509;
+  optional Handler authorization = 74505;
+  optional Handler proxy_authorization = 74506;
+  optional Handler whitelisting = 74507;
 }
-
-
 
 extend google.protobuf.FieldOptions {
   // for string: not empty; numeric: not zero; bytes: not nil; map: not nil

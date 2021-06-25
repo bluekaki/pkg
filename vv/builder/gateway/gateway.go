@@ -50,7 +50,7 @@ type option struct {
 	credential    credentials.TransportCredentials
 	keepalive     *keepalive.ClientParameters
 	dialTimeout   time.Duration
-	notifyHandler func(desc, err, stack, journalID string)
+	notifyHandler interceptor.NotifyHandler
 }
 
 // WithCredential setup credential for tls
@@ -75,7 +75,7 @@ func WithDialTimeout(timeout time.Duration) Option {
 }
 
 // WithNotifyHandler notify when got panic
-func WithNotifyHandler(handler func(desc, err, stack, journalID string)) Option {
+func WithNotifyHandler(handler interceptor.NotifyHandler) Option {
 	return func(opt *option) {
 		opt.notifyHandler = handler
 	}
@@ -234,7 +234,6 @@ func annotator(ctx context.Context, req *http.Request) metadata.MD {
 		interceptor.JournalID, journalID,
 		interceptor.Authorization, req.Header.Get(interceptor.Authorization),
 		interceptor.ProxyAuthorization, req.Header.Get(interceptor.ProxyAuthorization),
-		interceptor.MixAuthorization, req.Header.Get(interceptor.MixAuthorization),
 		interceptor.Date, req.Header.Get(interceptor.Date),
 		interceptor.Method, req.Method,
 		interceptor.URI, req.RequestURI,
