@@ -185,7 +185,7 @@ func genService(gen *protogen.Plugin, file *protogen.File, g *protogen.Generated
 		}
 		g.P("func (Unimplemented", serverType, ") ", serverSignature(g, method), "{")
 		// TODO new features
-		g.P("return ", nilArg, errorsPackage.Ident("NewBzError"), "(", errorsPackage.Ident("NewEnum"), "(int(", codesPackage.Ident("Unimplemented"), `),`, g.QualifiedGoIdent(httpPackage.Ident("StatusNotImplemented")), `, "method `, method.GoName, ` not implemented")`, ", nil)")
+		g.P("return ", nilArg, errorsPackage.Ident("NewBzError"), "(", errorsPackage.Ident("NewEnum"), "(uint16(", codesPackage.Ident("Unimplemented"), `),`, g.QualifiedGoIdent(httpPackage.Ident("StatusNotImplemented")), `, "method `, method.GoName, ` not implemented")`, ", nil)")
 		g.P("}")
 	}
 	if *requireUnimplemented {
