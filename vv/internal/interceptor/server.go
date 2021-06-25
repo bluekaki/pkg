@@ -237,7 +237,7 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 
 		if err != nil {
 			code := func(bzCode, statuCode uint16) codes.Code {
-				val, _ := strconv.ParseUint(fmt.Sprintf("%d%d", statuCode, bzCode), 10, 32)
+				val, _ := strconv.ParseUint(fmt.Sprintf("%03d%03d", statuCode, bzCode), 10, 32)
 				return codes.Code(val)
 			}
 
@@ -316,10 +316,11 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 
 			journal.CostSeconds = time.Since(ts).Seconds()
 
+			mp, _ := pbutil.ProtoMessage2Map(journal)
 			if err == nil {
-				s.logger.Info("server unary interceptor", zap.Any("journal", journal))
+				s.logger.Info("server unary interceptor", zap.Any("journal", mp))
 			} else {
-				s.logger.Error("server unary interceptor", zap.Any("journal", journal))
+				s.logger.Error("server unary interceptor", zap.Any("journal", mp))
 			}
 		}
 

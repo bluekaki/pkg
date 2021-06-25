@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/bluekaki/pkg/errors"
+	"github.com/bluekaki/pkg/pbutil"
 	"github.com/bluekaki/pkg/vv/internal/protos/gen"
 	"github.com/bluekaki/pkg/vv/options"
 
@@ -160,10 +161,11 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, method string
 
 			journal.CostSeconds = time.Since(ts).Seconds()
 
+			mp, _ := pbutil.ProtoMessage2Map(journal)
 			if err == nil {
-				g.logger.Info("gateway unary interceptor", zap.Any("journal", journal))
+				g.logger.Info("gateway unary interceptor", zap.Any("journal", mp))
 			} else {
-				g.logger.Error("gateway unary interceptor", zap.Any("journal", journal))
+				g.logger.Error("gateway unary interceptor", zap.Any("journal", mp))
 			}
 		}
 	}()

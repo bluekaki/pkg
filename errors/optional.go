@@ -2,6 +2,7 @@ package errors
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -11,9 +12,20 @@ type Enum interface {
 	BZCode() uint16
 	StatueCode() uint16
 	Desc() string
+	t()
 }
 
 func NewEnum(bzCode, statusCode uint16, desc string) Enum {
+	if bzCode > 999 {
+		panic(fmt.Sprintf("bzCode %d illegal", bzCode))
+	}
+	if statusCode > 999 {
+		panic(fmt.Sprintf("statusCode %d illegal", statusCode))
+	}
+	if http.StatusText(int(statusCode)) == "" {
+		panic(fmt.Sprintf("statusCode %d not defined in http", statusCode))
+	}
+
 	bzErr := new(bzError)
 	bzErr.code.bz = bzCode
 	bzErr.code.status = statusCode

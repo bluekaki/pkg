@@ -142,10 +142,11 @@ func (c *ClientInterceptor) UnaryInterceptor(ctx context.Context, method string,
 
 		journal.CostSeconds = time.Since(ts).Seconds()
 
+		mp, _ := pbutil.ProtoMessage2Map(journal)
 		if err == nil {
-			c.logger.Info("client unary interceptor", zap.Any("journal", journal))
+			c.logger.Info("client unary interceptor", zap.Any("journal", mp))
 		} else {
-			c.logger.Error("client unary interceptor", zap.Any("journal", journal))
+			c.logger.Error("client unary interceptor", zap.Any("journal", mp))
 		}
 	}()
 
