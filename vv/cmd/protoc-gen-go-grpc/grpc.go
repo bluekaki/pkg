@@ -34,6 +34,7 @@ const (
 	statusPackage  = protogen.GoImportPath("google.golang.org/grpc/status")
 	// TODO new features
 	protoreflectPackage = protogen.GoImportPath("google.golang.org/protobuf/reflect/protoreflect")
+	errorsPackage       = protogen.GoImportPath("github.com/bluekaki/pkg/errors")
 )
 
 // generateFile generates a _grpc.pb.go file containing gRPC service definitions.
@@ -362,10 +363,12 @@ func genClientMethod(gen *protogen.Plugin, file *protogen.File, g *protogen.Gene
 
 func serverSignature(g *protogen.GeneratedFile, method *protogen.Method) string {
 	var reqArgs []string
-	ret := "error"
+	// TODO new features
+	ret := protoreflectPackage.Ident("Error").String()
 	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 		reqArgs = append(reqArgs, g.QualifiedGoIdent(contextPackage.Ident("Context")))
-		ret = "(*" + g.QualifiedGoIdent(method.Output.GoIdent) + ", error)"
+		// TODO new features
+		ret = "(*" + g.QualifiedGoIdent(method.Output.GoIdent) + ", " + protoreflectPackage.Ident("Error").String() + ")"
 	}
 	if !method.Desc.IsStreamingClient() {
 		reqArgs = append(reqArgs, "*"+g.QualifiedGoIdent(method.Input.GoIdent))
