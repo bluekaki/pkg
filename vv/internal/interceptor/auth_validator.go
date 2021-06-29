@@ -2,13 +2,11 @@ package interceptor
 
 import (
 	"sync"
-
-	"github.com/bluekaki/pkg/errors"
 )
 
-type UserinfoHandler func(authorization string, payload Payload) (userinfo interface{}, err errors.Error)
-type SignatureHandler func(proxyAuthorization string, payload Payload) (identifier string, ok bool, err errors.Error)
-type WhitelistingHandler func(xForwardedFor string) (ok bool, err errors.Error)
+type UserinfoHandler func(authorization string, payload Payload) (userinfo interface{}, err error)
+type SignatureHandler func(proxyAuthorization string, payload Payload) (identifier string, ok bool, err error)
+type WhitelistingHandler func(xForwardedFor string) (ok bool, err error)
 
 // Validator authorization & proxy_authorization validator
 var Validator = &validator{

@@ -155,6 +155,15 @@ func NewAlertError(enum Enum, err error, projectName string, meta *AlertMessage_
 		return nil
 	}
 
+	if err != nil {
+		if e, ok := err.(*item); ok {
+			err = e
+
+		} else {
+			err = &item{msg: err.Error(), stack: callers(4)}
+		}
+	}
+
 	ts, _ := ptypes.TimestampProto(time.Now())
 	alertErr := &alertError{
 		bzError: NewBzError(enum, err).(BzError),
