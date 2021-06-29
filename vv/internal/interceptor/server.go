@@ -3,7 +3,6 @@ package interceptor
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -236,15 +235,10 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 		}
 
 		if err != nil {
-			code := func(bzCode, statuCode uint16) codes.Code {
-				val, _ := strconv.ParseUint(fmt.Sprintf("%03d%03d", statuCode, bzCode), 10, 32)
-				return codes.Code(val)
-			}
-
 			switch err.(type) {
 			case errors.BzError:
 				bzErr := err.(errors.BzError)
-				s, _ := status.New(code(bzErr.BZCode(), bzErr.StatueCode()), bzErr.Desc()).WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", bzErr.Err())})
+				s, _ := status.New(codes.Code(bzErr.Combcode()), bzErr.Desc()).WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", bzErr.Err())})
 				err = s.Err()
 
 			case errors.AlertError:
@@ -257,7 +251,7 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 				}
 
 				bzErr := alertErr.BzError()
-				s, _ := status.New(code(bzErr.BZCode(), bzErr.StatueCode()), bzErr.Desc()).WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", bzErr.Err())})
+				s, _ := status.New(codes.Code(bzErr.Combcode()), bzErr.Desc()).WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", bzErr.Err())})
 				err = s.Err()
 			}
 		}

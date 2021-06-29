@@ -3,17 +3,21 @@ package errors
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
 )
 
 type Enum interface {
+	Combcode() uint32
 	BZCode() uint16
 	StatueCode() uint16
 	Desc() string
 	t()
 }
+
+var mapping = make(map[uint32]bool)
 
 func NewEnum(bzCode, statusCode uint16, desc string) Enum {
 	if bzCode > 999 {
@@ -30,6 +34,12 @@ func NewEnum(bzCode, statusCode uint16, desc string) Enum {
 	bzErr.code.bz = bzCode
 	bzErr.code.status = statusCode
 	bzErr.desc = desc
+
+	code := bzErr.Combcode()
+	if mapping[code] {
+		panic(fmt.Sprintf("combcode %d duplicated", code))
+	}
+	mapping[code] = true
 
 	return bzErr
 }
@@ -54,6 +64,11 @@ type bzError struct {
 	}
 	desc string
 	err  *item
+}
+
+func (b *bzError) Combcode() uint32 {
+	val, _ := strconv.ParseUint(fmt.Sprintf("%03d%03d", b.code.status, b.code.bz), 10, 32)
+	return uint32(val)
 }
 
 func (b *bzError) BZCode() uint16 {
