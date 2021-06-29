@@ -4,6 +4,11 @@ import (
 	"bytes"
 	"container/list"
 	"sync"
+
+	"github.com/bluekaki/pkg/errors"
+	"github.com/bluekaki/pkg/rbt/internal/pb/gen"
+
+	"github.com/golang/protobuf/proto"
 )
 
 func NewRbTree() *rbTree {
@@ -86,11 +91,11 @@ func (t *rbTree) Desc() []Value {
 	t.RLock()
 	defer t.RUnlock()
 
-	asc := t.asc()
-	values := make([]Value, len(asc))
-	for i, val := range asc {
-		val := val
-		values[len(asc)-i-1] = val
+	values := t.asc()
+	for i, j := 0, len(values)-1; i <= j; {
+		values[i], values[j] = values[j], values[i]
+		i++
+		j--
 	}
 
 	return values
@@ -178,4 +183,69 @@ func (t *rbTree) PopMinimum() []Value {
 		t.delete(val)
 	}
 	return values
+}
+
+func (t *rbTree) Marshal() []byte {
+	t.Lock()
+	defer t.Unlock()
+
+	if t.root == nil {
+		return nil
+	}
+
+	nodes := make([]*node, 0, t.size)
+	curLayer := []*node{t.root}
+
+	for len(curLayer) > 0 {
+		var nexLayer []*node
+
+		for _, node := range curLayer {
+			nodes = append(nodes, node)
+			if node.L != nil {
+				nexLayer = append(nexLayer, node.L)
+			}
+			if node.R != nil {
+				nexLayer = append(nexLayer, node.R)
+			}
+		}
+
+		curLayer = nexLayer
+	}
+
+	tree := &pb.Tree{
+		Nodes: make([]*pb.Tree_Node, 0, t.size),
+	}
+	for _, node := range nodes {
+		for _, value := range node.values {
+			tree.Nodes = append(tree.Nodes, &pb.Tree_Node{
+				Val: value.Marshal(),
+			})
+		}
+	}
+
+	raw, _ := proto.Marshal(tree)
+	return raw
+}
+
+func Unmarshal(payload []byte, unmarshaler func(raw []byte) Value) (*rbTree, error) {
+	if unmarshaler == nil {
+		return nil, errors.New("unmarshaler required")
+	}
+
+	if len(payload) == 0 {
+		return new(rbTree), nil
+	}
+
+	data := new(pb.Tree)
+	err := proto.Unmarshal(payload, data)
+	if err != nil {
+		return nil, errors.Wrap(err, "payload illegal")
+	}
+
+	rbt := new(rbTree)
+	for _, node := range data.Nodes {
+		rbt.Add(unmarshaler(node.Val))
+	}
+
+	return rbt, nil
 }

@@ -17,6 +17,7 @@ type Value interface {
 	ID() string
 	String() string
 	Compare(Value) Diff
+	Marshal() []byte
 }
 
 type color uint8
