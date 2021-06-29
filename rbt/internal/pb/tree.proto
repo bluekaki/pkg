@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "./;pb";
+
+message Tree {
+  message Node { bytes val = 1; }
+
+  repeated Node nodes = 1;
+}
