@@ -250,7 +250,10 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 			case errors.AlertError:
 				alertErr := err.(errors.AlertError)
 				if s.notify != nil {
-					s.notify(alertErr.AlertMessage())
+					alert := alertErr.AlertMessage()
+					alert.JournalId = journalID
+
+					s.notify(alert)
 				}
 
 				bzErr := alertErr.BzError()
@@ -316,11 +319,10 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 
 			journal.CostSeconds = time.Since(ts).Seconds()
 
-			mp, _ := pbutil.ProtoMessage2Map(journal)
 			if err == nil {
-				s.logger.Info("server unary interceptor", zap.Any("journal", mp))
+				s.logger.Info("server unary interceptor", zap.Any("journal", marshalJournal(journal)))
 			} else {
-				s.logger.Error("server unary interceptor", zap.Any("journal", mp))
+				s.logger.Error("server unary interceptor", zap.Any("journal", marshalJournal(journal)))
 			}
 		}
 
@@ -416,7 +418,7 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 				}
 
 				raw, _ := pbutil.ProtoMessage2JSON(req.(protoV1.Message))
-				return raw
+				return string(raw)
 			}(),
 		}
 	}

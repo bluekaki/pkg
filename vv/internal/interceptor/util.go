@@ -2,6 +2,11 @@ package interceptor
 
 import (
 	"net/url"
+	"os"
+
+	"github.com/bluekaki/pkg/pbutil"
+
+	"github.com/golang/protobuf/proto"
 )
 
 func QueryUnescape(uri string) string {
@@ -11,4 +16,13 @@ func QueryUnescape(uri string) string {
 	}
 
 	return decodedUri
+}
+
+func marshalJournal(journal proto.Message) interface{} {
+	json, _ := pbutil.ProtoMessage2JSON(journal)
+
+	if os.Getenv("MarshalJournal") == "true" {
+		return string(json)
+	}
+	return json
 }

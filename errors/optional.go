@@ -135,7 +135,7 @@ func (a *alertError) Error() string {
 
 func (a *alertError) t() {}
 
-func NewAlertError(enum Enum, err error, projectName, journalID string, meta *AlertMessage_Meta) Error {
+func NewAlertError(enum Enum, err error, projectName string, meta *AlertMessage_Meta) Error {
 	if enum == nil {
 		return nil
 	}
@@ -145,7 +145,6 @@ func NewAlertError(enum Enum, err error, projectName, journalID string, meta *Al
 		bzError: NewBzError(enum, err).(BzError),
 		alert: &AlertMessage{
 			ProjectName: projectName,
-			JournalId:   journalID,
 			Meta:        meta,
 			Ts:          ts,
 		},

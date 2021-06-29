@@ -32,10 +32,4 @@ func TestMarshal(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(string(raw))
-
-	mp, err := ProtoMessage2Map(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log(mp)
 }

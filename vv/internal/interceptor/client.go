@@ -2,6 +2,7 @@ package interceptor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"runtime/debug"
 	"time"
@@ -142,16 +143,15 @@ func (c *ClientInterceptor) UnaryInterceptor(ctx context.Context, method string,
 
 		journal.CostSeconds = time.Since(ts).Seconds()
 
-		mp, _ := pbutil.ProtoMessage2Map(journal)
 		if err == nil {
-			c.logger.Info("client unary interceptor", zap.Any("journal", mp))
+			c.logger.Info("client unary interceptor", zap.Any("journal", marshalJournal(journal)))
 		} else {
-			c.logger.Error("client unary interceptor", zap.Any("journal", mp))
+			c.logger.Error("client unary interceptor", zap.Any("journal", marshalJournal(journal)))
 		}
 	}()
 
 	if c.sign != nil {
-		var raw string
+		var raw json.RawMessage
 		if req != nil {
 			if raw, err = pbutil.ProtoMessage2JSON(req.(protoV1.Message)); err != nil {
 				return

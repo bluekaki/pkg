@@ -15,35 +15,17 @@ var jsonMarshal = &jsonpb.Marshaler{
 	EmitDefaults: true,
 }
 
-// ProtoMessage2JSON marshal protobuf message to json string
-func ProtoMessage2JSON(message proto.Message) (string, error) {
-	if message == nil {
-		return "", errors.New("message required")
-	}
-
-	raw, err := jsonMarshal.MarshalToString(message)
-	if err != nil {
-		return "", errors.Wrap(err, "marshal protobuf message to json err")
-	}
-
-	return raw, nil
-}
-
-// ProtoMessage2Map marshal protobuf message to map[string]interface{}
-func ProtoMessage2Map(message proto.Message) (map[string]interface{}, error) {
+// ProtoMessage2JSON marshal protobuf message to json message
+func ProtoMessage2JSON(message proto.Message) (json.RawMessage, error) {
 	if message == nil {
 		return nil, errors.New("message required")
 	}
 
-	raw := bytes.NewBuffer(nil)
-	if err := jsonMarshal.Marshal(raw, message); err != nil {
-		return nil, errors.Wrap(err, "marshal protobuf message to map err")
+	buf := bytes.NewBuffer(nil)
+	err := jsonMarshal.Marshal(buf, message)
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal protobuf message to json err")
 	}
 
-	var mp map[string]interface{}
-	if err := json.Unmarshal(raw.Bytes(), &mp); err != nil {
-		return nil, errors.Wrap(err, "marshal protobuf message to map err")
-	}
-
-	return mp, nil
+	return json.RawMessage(buf.Bytes()), nil
 }

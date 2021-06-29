@@ -32,7 +32,7 @@ func TestErr(t *testing.T) {
 
 	t.Logf("%+v", New("a dummy error"))
 
-	aerr := NewAlertError(NewEnum(13, 500, "internal error"), errors.New("some internal err"), "dev", "xxxx", &AlertMessage_Meta{
+	aerr := NewAlertError(NewEnum(13, 500, "internal error"), errors.New("some internal err"), "dev", &AlertMessage_Meta{
 		Url:        "http://xxx.com",
 		Parameters: "k=v&k=v",
 	}).(AlertError)

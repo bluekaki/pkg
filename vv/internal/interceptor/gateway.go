@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/bluekaki/pkg/errors"
-	"github.com/bluekaki/pkg/pbutil"
 	"github.com/bluekaki/pkg/vv/internal/protos/gen"
 	"github.com/bluekaki/pkg/vv/options"
 
@@ -25,7 +24,7 @@ var gwHeader = struct {
 	value string
 }{
 	key:   "grpc-gateway",
-	value: "bluekaki/grpcgw/m/v1.0",
+	value: "bluekaki/grpcgw/m/v1.1",
 }
 
 // ForwardedByGrpcGateway whether forwarded by grpc gateway
@@ -161,11 +160,10 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, method string
 
 			journal.CostSeconds = time.Since(ts).Seconds()
 
-			mp, _ := pbutil.ProtoMessage2Map(journal)
 			if err == nil {
-				g.logger.Info("gateway unary interceptor", zap.Any("journal", mp))
+				g.logger.Info("gateway unary interceptor", zap.Any("journal", marshalJournal(journal)))
 			} else {
-				g.logger.Error("gateway unary interceptor", zap.Any("journal", mp))
+				g.logger.Error("gateway unary interceptor", zap.Any("journal", marshalJournal(journal)))
 			}
 		}
 	}()
