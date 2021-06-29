@@ -3,7 +3,6 @@ package gateway
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bluekaki/pkg/minami58"
+	"github.com/bluekaki/pkg/id"
 	"github.com/bluekaki/pkg/vv/internal/configs"
 	"github.com/bluekaki/pkg/vv/internal/interceptor"
 
@@ -225,15 +224,20 @@ func annotator(ctx context.Context, req *http.Request) metadata.MD {
 
 	journalID := req.Header.Get(interceptor.JournalID)
 	if journalID == "" {
-		nonce := make([]byte, 16)
-		io.ReadFull(rand.Reader, nonce)
-		journalID = string(minami58.Encode(nonce))
+		journalID = id.JournalID()
+	}
+
+	// TODO delete the legacy code
+	mixAuth := req.Header.Get("Mix-Authorization")
+	proxyAuth := req.Header.Get(interceptor.ProxyAuthorization)
+	if mixAuth != "" {
+		proxyAuth = mixAuth
 	}
 
 	return metadata.Pairs(
 		interceptor.JournalID, journalID,
 		interceptor.Authorization, req.Header.Get(interceptor.Authorization),
-		interceptor.ProxyAuthorization, req.Header.Get(interceptor.ProxyAuthorization),
+		interceptor.ProxyAuthorization, proxyAuth,
 		interceptor.Date, req.Header.Get(interceptor.Date),
 		interceptor.Method, req.Method,
 		interceptor.URI, req.RequestURI,
