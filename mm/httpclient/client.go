@@ -84,9 +84,9 @@ func withoutBody(method, url string, form httpURL.Values, options ...Option) (bo
 
 			if opt.Logger != nil && opt.PrintJournal {
 				if err == nil {
-					opt.Logger.Info(opt.Desc, zap.Any("journal", opt.Journal))
+					opt.Logger.Info(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
 				} else {
-					opt.Logger.Error(opt.Desc, zap.Any("journal", opt.Journal))
+					opt.Logger.Error(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
 				}
 			}
 		}
@@ -196,9 +196,9 @@ func withFormBody(method, url string, form httpURL.Values, options ...Option) (b
 
 			if opt.Logger != nil && opt.PrintJournal {
 				if err == nil {
-					opt.Logger.Info(opt.Desc, zap.Any("journal", opt.Journal))
+					opt.Logger.Info(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
 				} else {
-					opt.Logger.Error(opt.Desc, zap.Any("journal", opt.Journal))
+					opt.Logger.Error(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
 				}
 			}
 		}
@@ -280,9 +280,9 @@ func withJSONBody(method, url string, raw json.RawMessage, options ...Option) (b
 
 			if opt.Logger != nil && opt.PrintJournal {
 				if err == nil {
-					opt.Logger.Info(opt.Desc, zap.Any("journal", opt.Journal))
+					opt.Logger.Info(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
 				} else {
-					opt.Logger.Error(opt.Desc, zap.Any("journal", opt.Journal))
+					opt.Logger.Error(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
 				}
 			}
 		}

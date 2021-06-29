@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -138,4 +140,13 @@ func QueryUnescape(uri string) string {
 	}
 
 	return decodedUri
+}
+
+func marshalJournal(journal *journal.Journal) interface{} {
+	json, _ := json.Marshal(journal)
+
+	if os.Getenv("MarshalJournal") == "true" {
+		return string(json)
+	}
+	return json
 }
