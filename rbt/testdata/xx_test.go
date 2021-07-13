@@ -106,22 +106,36 @@ func TestSort(t *testing.T) {
 }
 
 func TestMarshal(t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
-	seeds := rand.Perm(20)
+	do := func() {
+		rand.Seed(time.Now().UnixNano())
+		seeds := rand.Perm(1000)
 
-	tree := rbt.NewRbTree()
-	for _, seed := range seeds {
-		tree.Add(&Value{val: uint16(seed)})
+		tree := rbt.NewRbTree()
+		check := func() {
+			values := tree.Asc()
+			for i := 1; i < len(values); i++ {
+				if values[i].Compare(values[i-1]) != rbt.Greater {
+					fmt.Println(values[:i+1])
+					t.Fatal("not sorted in asc")
+				}
+			}
+		}
+
+		for _, seed := range seeds {
+			tree.Add(&Value{val: uint16(seed)})
+		}
+
+		raw := tree.Marshal()
+		tree, err := rbt.Unmarshal(raw, Unmarshal)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		check()
 	}
 
-	fmt.Println(tree.String())
-
-	raw := tree.Marshal()
-	fmt.Println(raw)
-
-	tree, err := rbt.Unmarshal(raw, Unmarshal)
-	if err != nil {
-		t.Fatal(err)
+	for k := 0; k < 10000; k++ {
+		do()
+		fmt.Println(">>", k)
 	}
-	fmt.Println(tree.String())
 }
