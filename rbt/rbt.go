@@ -84,24 +84,10 @@ func (t *rbTree) Asc() []Value {
 	t.RLock()
 	defer t.RUnlock()
 
-	return t.asc()
-}
-
-func (t *rbTree) Desc() []Value {
-	t.RLock()
-	defer t.RUnlock()
-
-	values := t.asc()
-	for i, j := 0, len(values)-1; i <= j; {
-		values[i], values[j] = values[j], values[i]
-		i++
-		j--
+	if t.size == 0 {
+		return nil
 	}
 
-	return values
-}
-
-func (t *rbTree) asc() []Value {
 	values := make([]Value, 0, t.size)
 
 	stack := list.New()
@@ -115,9 +101,40 @@ func (t *rbTree) asc() []Value {
 		if stack.Len() != 0 {
 			v := stack.Back()
 			root = v.Value.(*node)
-			values = append(values, root.values...) //visit
+			values = append(values, root.values...) // visit
 
 			root = root.R
+			stack.Remove(v)
+		}
+	}
+
+	return values
+}
+
+func (t *rbTree) Desc() []Value {
+	t.RLock()
+	defer t.RUnlock()
+
+	if t.size == 0 {
+		return nil
+	}
+
+	values := make([]Value, 0, t.size)
+
+	stack := list.New()
+	root := t.root
+	for root != nil || stack.Len() != 0 {
+		for root != nil {
+			stack.PushBack(root)
+			root = root.R
+		}
+
+		if stack.Len() != 0 {
+			v := stack.Back()
+			root = v.Value.(*node)
+			values = append(values, root.values...) // visit
+
+			root = root.L
 			stack.Remove(v)
 		}
 	}
