@@ -1,5 +1,9 @@
 package rbt
 
+import (
+	"github.com/bluekaki/pkg/stringutil"
+)
+
 func (t *rbTree) Delete(val Value) {
 	if val == nil {
 		return
@@ -164,13 +168,13 @@ func (t *rbTree) lookup(val Value) *node {
 	root := t.root
 	for root != nil {
 		switch val.Compare(root.values[0]) {
-		case Less:
+		case stringutil.Less:
 			root = root.L
 
-		case Greater:
+		case stringutil.Greater:
 			root = root.R
 
-		case Equal:
+		case stringutil.Equal:
 			return root
 		}
 	}

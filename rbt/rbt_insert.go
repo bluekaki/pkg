@@ -1,5 +1,9 @@
 package rbt
 
+import (
+	"github.com/bluekaki/pkg/stringutil"
+)
+
 func (t *rbTree) Add(val Value) {
 	if val == nil {
 		return
@@ -149,7 +153,7 @@ func (t *rbTree) add(val Value) *node {
 	root := t.root
 	for {
 		switch val.Compare(root.values[0]) {
-		case Less:
+		case stringutil.Less:
 			if root.L != nil {
 				root = root.L
 
@@ -162,7 +166,7 @@ func (t *rbTree) add(val Value) *node {
 				return root.L
 			}
 
-		case Greater:
+		case stringutil.Greater:
 			if root.R != nil {
 				root = root.R
 
@@ -175,7 +179,7 @@ func (t *rbTree) add(val Value) *node {
 				return root.R
 			}
 
-		case Equal:
+		case stringutil.Equal:
 			for _, value := range root.values {
 				if val.ID() == value.ID() {
 					// duplicated

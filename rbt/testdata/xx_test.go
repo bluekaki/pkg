@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/bluekaki/pkg/rbt"
+	"github.com/bluekaki/pkg/stringutil"
 )
 
 var _ rbt.Value = (*Value)(nil)
@@ -25,15 +26,15 @@ func (v *Value) String() string {
 	return strconv.Itoa(int(v.val))
 }
 
-func (v *Value) Compare(val rbt.Value) rbt.Diff {
+func (v *Value) Compare(val rbt.Value) stringutil.Diff {
 	x := val.(*Value)
 	switch {
 	case v.val < x.val:
-		return rbt.Less
+		return stringutil.Less
 	case v.val > x.val:
-		return rbt.Greater
+		return stringutil.Greater
 	default:
-		return rbt.Equal
+		return stringutil.Equal
 	}
 }
 
@@ -59,7 +60,7 @@ func TestXXX(t *testing.T) {
 		check := func() {
 			values := tree.Asc()
 			for i := 1; i < len(values); i++ {
-				if values[i].Compare(values[i-1]) != rbt.Greater {
+				if values[i].Compare(values[i-1]) != stringutil.Greater {
 					fmt.Println(values[:i+1])
 					t.Fatal("not sorted in asc")
 				}
@@ -114,7 +115,7 @@ func TestMarshal(t *testing.T) {
 		check := func() {
 			values := tree.Asc()
 			for i := 1; i < len(values); i++ {
-				if values[i].Compare(values[i-1]) != rbt.Greater {
+				if values[i].Compare(values[i-1]) != stringutil.Greater {
 					fmt.Println(values[:i+1])
 					t.Fatal("not sorted in asc")
 				}

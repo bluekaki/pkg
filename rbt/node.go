@@ -3,20 +3,14 @@ package rbt
 import (
 	"fmt"
 	"strings"
-)
 
-type Diff int
-
-const (
-	Less    Diff = -1
-	Equal   Diff = 0
-	Greater Diff = 1
+	"github.com/bluekaki/pkg/stringutil"
 )
 
 type Value interface {
 	ID() string
 	String() string
-	Compare(Value) Diff
+	Compare(Value) stringutil.Diff
 	Marshal() []byte
 }
 
