@@ -28,7 +28,7 @@ func Asc(values []Value) {
 		i, j := 0, len(values)-1
 		for i <= j {
 			for ; j >= i; j-- { // tail to head, find the first less one.
-				if diff := values[j].Compare(values[k]); diff == stringutil.Less || diff == stringutil.Equal {
+				if diff := values[j].Compare(values[k]); diff == stringutil.Less {
 					values[k], values[j] = values[j], values[k]
 					k = j
 					break
@@ -72,7 +72,7 @@ func Desc(values []Value) {
 		i, j := 0, len(values)-1
 		for i <= j {
 			for ; j >= i; j-- { // tail to head, find the first greater one.
-				if diff := values[j].Compare(values[k]); diff == stringutil.Greater || diff == stringutil.Equal {
+				if diff := values[j].Compare(values[k]); diff == stringutil.Greater {
 					values[k], values[j] = values[j], values[k]
 					k = j
 					break
