@@ -11,7 +11,7 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-func NewRbTree() *rbTree {
+func New() *rbTree {
 	return new(rbTree)
 }
 

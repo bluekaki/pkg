@@ -56,7 +56,7 @@ func TestXXX(t *testing.T) {
 		rand.Seed(time.Now().UnixNano())
 		seeds := rand.Perm(1000)
 
-		tree := rbt.NewRbTree()
+		tree := rbt.New()
 		check := func() {
 			values := tree.Asc()
 			for i := 1; i < len(values); i++ {
@@ -96,7 +96,7 @@ func TestSort(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	seeds := rand.Perm(20)
 
-	tree := rbt.NewRbTree()
+	tree := rbt.New()
 	for _, seed := range seeds {
 		tree.Add(&Value{val: uint16(seed)})
 	}
@@ -111,7 +111,7 @@ func TestMarshal(t *testing.T) {
 		rand.Seed(time.Now().UnixNano())
 		seeds := rand.Perm(1000)
 
-		tree := rbt.NewRbTree()
+		tree := rbt.New()
 		check := func() {
 			values := tree.Asc()
 			for i := 1; i < len(values); i++ {
