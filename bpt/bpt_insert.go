@@ -31,7 +31,7 @@ func (t *bpTree) Add(val Value) {
 			cur.children = []*node{x, y}
 		}
 
-		if len(cur.children) == 0 { // leaf
+		if len(cur.children) > 0 { // node
 			{
 				switch cur.values[0].Compare(val) {
 				case stringutil.Equal:
@@ -39,7 +39,87 @@ func (t *bpTree) Add(val Value) {
 					return
 
 				case stringutil.Greater:
-					cur.values = append([]Value{val}, cur.values...)
+					if cur.children[0].full() {
+						x, y, mid := split(cur.children[0])
+
+						cur.values = append(cur.values, cur.values[0])
+						copy(cur.values[1:], cur.values)
+						cur.values[0] = mid
+
+						cur.children = append(cur.children, cur.children[0])
+						copy(cur.children[1:], cur.children)
+						cur.children[0] = x
+						cur.children[1] = y
+
+					} else {
+						cur = cur.children[0]
+					}
+					continue
+				}
+			}
+
+			{
+				index := len(cur.values) - 1
+				switch cur.values[index].Compare(val) {
+				case stringutil.Equal:
+					cur.values[index] = val
+					return
+
+				case stringutil.Less:
+					if cur.children[len(cur.children)-1].full() {
+						x, y, mid := split(cur.children[len(cur.children)-1])
+
+						cur.values = append(cur.values, mid)
+
+						cur.children[len(cur.children)-1] = x
+						cur.children = append(cur.children, y)
+
+					} else {
+						cur = cur.children[len(cur.children)-1]
+					}
+					continue
+				}
+			}
+
+			index := sort.Search(len(cur.values), func(i int) bool {
+				diff := cur.values[i].Compare(val)
+				return diff == stringutil.Greater || diff == stringutil.Equal
+			})
+
+			if cur.values[index].Compare(val) == stringutil.Equal { // duplicated
+				cur.values[index] = val
+				return
+			}
+
+			if cur.children[index].full() {
+				x, y, mid := split(cur.children[index])
+
+				cur.values = append(cur.values, cur.values[0])
+				copy(cur.values[index+1:], cur.values[index:])
+				cur.values[index] = mid
+
+				cur.children = append(cur.children, cur.children[0])
+				copy(cur.children[index+2:], cur.children[index+1:])
+				cur.children[index] = x
+				cur.children[index+1] = y
+
+			} else {
+				cur = cur.children[index]
+			}
+			continue
+		}
+
+		{ // leaf
+			{
+				switch cur.values[0].Compare(val) {
+				case stringutil.Equal:
+					cur.values[0] = val
+					return
+
+				case stringutil.Greater:
+					cur.values = append(cur.values, cur.values[0])
+					copy(cur.values[1:], cur.values)
+					cur.values[0] = val
 					t.size++
 					return
 				}
@@ -69,93 +149,11 @@ func (t *bpTree) Add(val Value) {
 				return
 			}
 
-			values := make([]Value, len(cur.values)+1)
-			copy(values[:index], cur.values[:index])
-			values[index] = val
-			copy(values[index+1:], cur.values[index:])
-
-			cur.values = values
+			cur.values = append(cur.values, cur.values[0])
+			copy(cur.values[index+1:], cur.values[index:])
+			cur.values[index] = val
 			t.size++
 			return
-		}
-
-		if len(cur.children) > 0 { // node
-			{
-				switch cur.values[0].Compare(val) {
-				case stringutil.Equal:
-					cur.values[0] = val
-					return
-
-				case stringutil.Greater:
-					if cur.children[0].full() {
-						x, y, mid := split(cur.children[0])
-						cur.values = append([]Value{mid}, cur.values...)
-
-						children := make([]*node, len(cur.children)+1)
-						children[0] = x
-						children[1] = y
-						copy(children[2:], cur.children[1:])
-						cur.children = children
-
-					} else {
-						cur = cur.children[0]
-					}
-					continue
-				}
-			}
-
-			{
-				index := len(cur.values) - 1
-				switch cur.values[index].Compare(val) {
-				case stringutil.Equal:
-					cur.values[index] = val
-					return
-
-				case stringutil.Less:
-					if cur.children[len(cur.children)-1].full() {
-						x, y, mid := split(cur.children[len(cur.children)-1])
-						cur.values = append(cur.values, mid)
-
-						cur.children[len(cur.children)-1] = x
-						cur.children = append(cur.children, y)
-
-					} else {
-						cur = cur.children[len(cur.children)-1]
-					}
-					continue
-				}
-			}
-
-			index := sort.Search(len(cur.values), func(i int) bool {
-				diff := cur.values[i].Compare(val)
-				return diff == stringutil.Greater || diff == stringutil.Equal
-			})
-
-			if cur.values[index].Compare(val) == stringutil.Equal { // duplicated
-				cur.values[index] = val
-				return
-			}
-
-			if cur.children[index].full() {
-				x, y, mid := split(cur.children[index])
-
-				values := make([]Value, len(cur.values)+1)
-				copy(values[:index], cur.values[:index])
-				values[index] = mid
-				copy(values[index+1:], cur.values[index:])
-				cur.values = values
-
-				children := make([]*node, len(cur.children)+1)
-				copy(children[:index], cur.children[:index])
-				children[index] = x
-				children[index+1] = y
-				copy(children[index+2:], cur.children[index+1:])
-				cur.children = children
-
-			} else {
-				cur = cur.children[index]
-			}
-			continue
 		}
 	}
 }

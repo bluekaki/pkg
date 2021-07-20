@@ -11,7 +11,6 @@ type Value interface {
 }
 
 type node struct {
-	// leaf     bool
 	values   []Value
 	children []*node
 }

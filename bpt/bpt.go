@@ -9,9 +9,9 @@ import (
 )
 
 var (
-	_N   = 199
+	_N   = 199 // the max values in one node
 	_Mid = _N / 2
-	_T   = (_N + 1) / 2
+	_T   = (_N + 1) / 2 // the half children in one node
 
 	once sync.Once
 )
