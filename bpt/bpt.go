@@ -12,18 +12,26 @@ var (
 	_N   = 199 // the max values in one node
 	_Mid = _N / 2
 	_T   = (_N + 1) / 2 // the half children in one node
+	// _Limit = _T - 1
 
 	once sync.Once
 )
 
 // SetN N should be odd number
-func SetN(val uint16) {
+func SetN(n uint16) {
 	once.Do(func() {
-		if val >= 3 { // t ≥2; 2t-1 = n;
-			_N = int(val)
-			_Mid = _N / 2
-			_T = (_N + 1) / 2
+		if n%2 == 0 {
+			panic("n must be odd number")
 		}
+
+		if n < 3 { // t ≥2; 2t-1 = n;
+			panic("n must be ≥3")
+		}
+
+		_N = int(n)
+		_Mid = _N / 2
+		_T = (_N + 1) / 2
+		// _Limit = _T - 1
 	})
 }
 
@@ -64,7 +72,7 @@ func output(stack *list.List, node *node, level int, isTail bool) {
 		}
 
 		if e < len(node.values) {
-			stack.PushBack(fmt.Sprintf("%s%s\n", strings.Repeat("    ", level), node.values[e].String()))
+			stack.PushBack(fmt.Sprintf("%s%s(%d)\n", strings.Repeat("    ", level), node.values[e].String(), node.id))
 		}
 	}
 }
@@ -81,4 +89,11 @@ func (t *bpTree) Size() uint32 {
 	defer t.RUnlock()
 
 	return t.size
+}
+
+var id int
+
+func ID() int {
+	id++
+	return id
 }

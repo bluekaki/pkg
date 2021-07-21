@@ -16,6 +16,7 @@ func (t *bpTree) Add(val Value) {
 
 	if t.root == nil {
 		t.root = &node{
+			id:     ID(),
 			values: []Value{val},
 		}
 		t.size++
@@ -31,7 +32,7 @@ func (t *bpTree) Add(val Value) {
 			cur.children = []*node{x, y}
 		}
 
-		if len(cur.children) > 0 { // node
+		if !cur.leaf() { // node
 			{
 				switch cur.values[0].Compare(val) {
 				case stringutil.Equal:
@@ -81,12 +82,8 @@ func (t *bpTree) Add(val Value) {
 				}
 			}
 
-			index := sort.Search(len(cur.values), func(i int) bool {
-				diff := cur.values[i].Compare(val)
-				return diff == stringutil.Greater || diff == stringutil.Equal
-			})
-
-			if cur.values[index].Compare(val) == stringutil.Equal { // duplicated
+			index, duplicated := search(cur, val)
+			if duplicated {
 				cur.values[index] = val
 				return
 			}
@@ -139,12 +136,8 @@ func (t *bpTree) Add(val Value) {
 				}
 			}
 
-			index := sort.Search(len(cur.values), func(i int) bool {
-				diff := cur.values[i].Compare(val)
-				return diff == stringutil.Greater || diff == stringutil.Equal
-			})
-
-			if cur.values[index].Compare(val) == stringutil.Equal { // duplicated
+			index, duplicated := search(cur, val)
+			if duplicated {
 				cur.values[index] = val
 				return
 			}
@@ -158,6 +151,18 @@ func (t *bpTree) Add(val Value) {
 	}
 }
 
+func search(cur *node, val Value) (index int, duplicated bool) {
+	index = sort.Search(len(cur.values), func(i int) bool {
+		diff := cur.values[i].Compare(val)
+		return diff == stringutil.Greater || diff == stringutil.Equal
+	})
+
+	if index < len(cur.values) {
+		duplicated = cur.values[index].Compare(val) == stringutil.Equal
+	}
+	return
+}
+
 func split(cur *node) (x, y *node, mid Value) {
 	xV := make([]Value, len(cur.values[:_Mid]))
 	copy(xV, cur.values[:_Mid])
@@ -169,6 +174,7 @@ func split(cur *node) (x, y *node, mid Value) {
 	}
 
 	x = &node{
+		id:       ID(),
 		values:   xV,
 		children: xC,
 	}
@@ -183,6 +189,7 @@ func split(cur *node) (x, y *node, mid Value) {
 	}
 
 	y = &node{
+		id:       ID(),
 		values:   yV,
 		children: yC,
 	}
