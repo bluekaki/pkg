@@ -23,15 +23,15 @@ func (t *bpTree) Add(val Value) {
 		return
 	}
 
+	if t.root.full() {
+		x, y, mid := split(t.root)
+
+		t.root.values = []Value{mid}
+		t.root.children = []*node{x, y}
+	}
+
 	cur := t.root
 	for {
-		if cur.full() {
-			x, y, mid := split(cur)
-
-			cur.values = []Value{mid}
-			cur.children = []*node{x, y}
-		}
-
 		if !cur.leaf() { // node
 			{
 				switch cur.values[0].Compare(val) {

@@ -46,8 +46,8 @@ type bpTree struct {
 }
 
 func (t *bpTree) String() string {
-	t.RLock()
-	defer t.RUnlock()
+	// t.RLock()
+	// defer t.RUnlock()
 
 	stack := list.New()
 	if t.root != nil {
@@ -96,4 +96,49 @@ var id int
 func ID() int {
 	id++
 	return id
+}
+
+func (t *bpTree) Asc() (values []Value) {
+	t.Lock()
+	defer t.Unlock()
+
+	if t.root == nil {
+		return
+	}
+
+	type item struct {
+		*node
+		cur int
+	}
+
+	stack := list.New()
+	stack.PushBack(&item{node: t.root})
+
+	for stack.Len() > 0 {
+		element := stack.Back()
+		stack.Remove(element)
+
+		node := element.Value.(*item)
+		if node.node != t.root && len(node.values) < (_T-1) {
+			fmt.Println(">>", node.id, t.String())
+			panic("-----illegal------")
+		}
+
+		if node.leaf() {
+			values = append(values, node.values...)
+			continue
+		}
+
+		if node.cur <= len(node.values) {
+			child := &item{node: node.children[node.cur]}
+
+			if node.cur > 0 {
+				values = append(values, node.values[node.cur-1])
+			}
+			node.cur++
+			stack.PushBack(node)
+			stack.PushBack(child)
+		}
+	}
+	return
 }

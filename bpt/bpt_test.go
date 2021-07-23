@@ -1,11 +1,13 @@
 package bpt
 
 import (
+	crand "crypto/rand"
+	"encoding/binary"
 	"fmt"
+	"io"
 	"math/rand"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/bluekaki/pkg/stringutil"
 )
@@ -28,13 +30,19 @@ func (x value) Compare(v Value) stringutil.Diff {
 	}
 }
 
+func randSeed() int64 {
+	buf := make([]byte, 8)
+	io.ReadFull(crand.Reader, buf[:7])
+	return int64(binary.BigEndian.Uint64(buf))
+}
+
 var mp = make(map[int]int)
 
 func TestMain(m *testing.M) {
 	SetN(5)
 	fmt.Println("_N:", _N, "_Mid:", _Mid, "_T:", _T)
 
-	seed := time.Now().UnixNano()
+	seed := randSeed()
 	rand.Seed(seed)
 	fmt.Println(">>seed<<", seed)
 
@@ -78,45 +86,58 @@ func TestBPTInsert(t *testing.T) {
 }
 
 func TestBPTDelete(t *testing.T) {
-	tree := New()
-
-	tree.Add(value(mp['H']))
-	tree.Add(value(mp['P']))
-	tree.Add(value(mp['C']))
-	tree.Add(value(mp['G']))
-	tree.Add(value(mp['M']))
-	tree.Add(value(mp['T']))
-	tree.Add(value(mp['X']))
-	tree.Add(value(mp['A']))
-	tree.Add(value(mp['B']))
-	tree.Add(value(mp['D']))
-	tree.Add(value(mp['E']))
-	tree.Add(value(mp['F']))
-	tree.Add(value(mp['J']))
-	tree.Add(value(mp['K']))
-	tree.Add(value(mp['L']))
-	tree.Add(value(mp['N']))
-	tree.Add(value(mp['O']))
-	tree.Add(value(mp['Q']))
-	tree.Add(value(mp['R']))
-	tree.Add(value(mp['S']))
-	tree.Add(value(mp['U']))
-	tree.Add(value(mp['V']))
-	tree.Add(value(mp['Y']))
-	tree.Add(value(mp['Z']))
-	fmt.Println(tree)
-
-	tree.Delete(value(19))
-	fmt.Println(tree)
-
-	// // rand.Seed(1626860075868851454)
-	// values := rand.Perm(200)
-	// for i := range values[:100] {
-	// 	values[i] = -values[i]
-	// }
-	// for _, v := range values {
-	// 	tree.Add(value(v))
-	// }
+	// tree := New()
+	// tree.Add(value(mp['H']))
+	// tree.Add(value(mp['P']))
+	// tree.Add(value(mp['C']))
+	// tree.Add(value(mp['G']))
+	// tree.Add(value(mp['M']))
+	// tree.Add(value(mp['T']))
+	// tree.Add(value(mp['X']))
+	// tree.Add(value(mp['A']))
+	// tree.Add(value(mp['B']))
+	// tree.Add(value(mp['D']))
+	// tree.Add(value(mp['E']))
+	// tree.Add(value(mp['F']))
+	// tree.Add(value(mp['J']))
+	// tree.Add(value(mp['K']))
+	// tree.Add(value(mp['L']))
+	// tree.Add(value(mp['N']))
+	// tree.Add(value(mp['O']))
+	// tree.Add(value(mp['Q']))
+	// tree.Add(value(mp['R']))
+	// tree.Add(value(mp['S']))
+	// tree.Add(value(mp['U']))
+	// tree.Add(value(mp['V']))
+	// tree.Add(value(mp['Y']))
+	// tree.Add(value(mp['Z']))
 	// fmt.Println(tree)
 
+	// rand.Seed(1626955704130035742)
+
+	for k := 0; k < 1000; k++ {
+		seed := randSeed()
+		fmt.Println(">>>>", seed)
+		// rand.Seed(-7883902970251973632)
+
+		values := rand.Perm(20)
+		for i := range values[:10] {
+			values[i] = -values[i]
+		}
+
+		tree := New()
+		for _, v := range values {
+			tree.Add(value(v))
+		}
+		tree.Asc()
+		fmt.Println(k)
+
+		for _, v := range values {
+			fmt.Println("===", tree)
+			fmt.Println("del:", v)
+			tree.Delete(value(v))
+			tree.Asc()
+		}
+
+	}
 }
