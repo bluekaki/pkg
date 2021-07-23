@@ -1,8 +1,8 @@
 package bpt
 
-// import (
-// 	"fmt"
-// )
+import (
+	"fmt"
+)
 
 func (t *bpTree) Delete(val Value) {
 	if val == nil {
@@ -100,6 +100,7 @@ func (t *bpTree) delete(val Value) {
 
 			merge2Left := func() {
 				cur.values = append(append(cur.values, parent.values[parentCindex]), sR.values...)
+				cur.children = append(cur.children, sR.children...)
 
 				if len(parent.values) == 1 {
 					t.root = cur
@@ -120,6 +121,7 @@ func (t *bpTree) delete(val Value) {
 
 			merge2Right := func() {
 				cur.values = append(append(sL.values, parent.values[parentCindex-1]), cur.values...)
+				cur.children = append(sL.children, cur.children...)
 
 				if len(parent.values) == 1 {
 					t.root = cur
@@ -132,35 +134,35 @@ func (t *bpTree) delete(val Value) {
 			switch {
 			case parentCindex == 0:
 				if sR = parent.children[parentCindex+1]; sR.overHalf() {
-					// fmt.Println("------case0 rotate2Left-------")
+					fmt.Println("------case0 rotate2Left-------")
 					rotate2Left()
 				} else {
-					// fmt.Println("------case0 merge2Left-------")
+					fmt.Println("------case0 merge2Left-------")
 					merge2Left()
 				}
 
 			case parentCindex == len(parent.values):
 				if sL = parent.children[parentCindex-1]; sL.overHalf() {
-					// fmt.Println("------case1 rotate2Right-------")
+					fmt.Println("------case1 rotate2Right-------")
 					rotate2Right()
 				} else {
-					// fmt.Println("------case1 merge2Right-------")
+					fmt.Println("------case1 merge2Right-------")
 					merge2Right()
 				}
 
 			default:
-				// fmt.Println("+++++++++++++++++++", parentCindex)
+				fmt.Println("+++++++++++++++++++", parentCindex)
 				sL = parent.children[parentCindex-1]
 				sR = parent.children[parentCindex+1]
 
 				if sL.overHalf() {
-					// fmt.Println("------case2 rotate2Right-------")
+					fmt.Println("------case2 rotate2Right-------")
 					rotate2Right()
 				} else if sR.overHalf() {
-					// fmt.Println("------case2 rotate2Left-------")
+					fmt.Println("------case2 rotate2Left-------")
 					rotate2Left()
 				} else {
-					// fmt.Println("------case2 merge2Left-------")
+					fmt.Println("------case2 merge2Left-------")
 					merge2Left()
 				}
 			}
