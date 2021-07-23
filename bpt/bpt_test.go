@@ -115,13 +115,13 @@ func TestBPTDelete(t *testing.T) {
 
 	// rand.Seed(1626955704130035742)
 
-	for k := 0; k < 1000; k++ {
+	for k := 0; k < 1000000; k++ {
 		seed := randSeed()
 		fmt.Println(">>>>", seed)
-		// rand.Seed(-7883902970251973632)
+		// rand.Seed(-2084703646357133056)
 
-		values := rand.Perm(20)
-		for i := range values[:10] {
+		values := rand.Perm(100)
+		for i := range values[:50] {
 			values[i] = -values[i]
 		}
 
@@ -129,12 +129,12 @@ func TestBPTDelete(t *testing.T) {
 		for _, v := range values {
 			tree.Add(value(v))
 		}
-		tree.Asc()
+
 		fmt.Println(k)
+		tree.Asc()
 
 		for _, v := range values {
-			fmt.Println("===", tree)
-			fmt.Println("del:", v)
+			// fmt.Println("del:", v)
 			tree.Delete(value(v))
 			tree.Asc()
 		}
