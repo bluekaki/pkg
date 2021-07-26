@@ -12,7 +12,6 @@ var (
 	_N   = 199 // the max values in one node
 	_Mid = _N / 2
 	_T   = (_N + 1) / 2 // the half children in one node
-	// _Limit = _T - 1
 
 	once sync.Once
 )
@@ -31,7 +30,6 @@ func SetN(n uint16) {
 		_N = int(n)
 		_Mid = _N / 2
 		_T = (_N + 1) / 2
-		// _Limit = _T - 1
 	})
 }
 

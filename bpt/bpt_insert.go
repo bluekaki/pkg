@@ -33,55 +33,6 @@ func (t *bpTree) Add(val Value) {
 	cur := t.root
 	for {
 		if !cur.leaf() { // node
-			{
-				switch cur.values[0].Compare(val) {
-				case stringutil.Equal:
-					cur.values[0] = val
-					return
-
-				case stringutil.Greater:
-					if cur.children[0].full() {
-						x, y, mid := split(cur.children[0])
-
-						cur.values = append(cur.values, cur.values[0])
-						copy(cur.values[1:], cur.values)
-						cur.values[0] = mid
-
-						cur.children = append(cur.children, cur.children[0])
-						copy(cur.children[1:], cur.children)
-						cur.children[0] = x
-						cur.children[1] = y
-
-					} else {
-						cur = cur.children[0]
-					}
-					continue
-				}
-			}
-
-			{
-				index := len(cur.values) - 1
-				switch cur.values[index].Compare(val) {
-				case stringutil.Equal:
-					cur.values[index] = val
-					return
-
-				case stringutil.Less:
-					if cur.children[len(cur.children)-1].full() {
-						x, y, mid := split(cur.children[len(cur.children)-1])
-
-						cur.values = append(cur.values, mid)
-
-						cur.children[len(cur.children)-1] = x
-						cur.children = append(cur.children, y)
-
-					} else {
-						cur = cur.children[len(cur.children)-1]
-					}
-					continue
-				}
-			}
-
 			index, duplicated := search(cur, val)
 			if duplicated {
 				cur.values[index] = val
@@ -107,35 +58,6 @@ func (t *bpTree) Add(val Value) {
 		}
 
 		{ // leaf
-			{
-				switch cur.values[0].Compare(val) {
-				case stringutil.Equal:
-					cur.values[0] = val
-					return
-
-				case stringutil.Greater:
-					cur.values = append(cur.values, cur.values[0])
-					copy(cur.values[1:], cur.values)
-					cur.values[0] = val
-					t.size++
-					return
-				}
-			}
-
-			{
-				index := len(cur.values) - 1
-				switch cur.values[index].Compare(val) {
-				case stringutil.Equal:
-					cur.values[index] = val
-					return
-
-				case stringutil.Less:
-					cur.values = append(cur.values, val)
-					t.size++
-					return
-				}
-			}
-
 			index, duplicated := search(cur, val)
 			if duplicated {
 				cur.values[index] = val
@@ -145,6 +67,7 @@ func (t *bpTree) Add(val Value) {
 			cur.values = append(cur.values, cur.values[0])
 			copy(cur.values[index+1:], cur.values[index:])
 			cur.values[index] = val
+
 			t.size++
 			return
 		}
@@ -152,6 +75,22 @@ func (t *bpTree) Add(val Value) {
 }
 
 func search(cur *node, val Value) (index int, duplicated bool) {
+	switch cur.values[0].Compare(val) {
+	case stringutil.Equal:
+		return 0, true
+
+	case stringutil.Greater:
+		return 0, false
+	}
+
+	switch cur.values[len(cur.values)-1].Compare(val) {
+	case stringutil.Equal:
+		return len(cur.values) - 1, true
+
+	case stringutil.Less:
+		return len(cur.values), false
+	}
+
 	index = sort.Search(len(cur.values), func(i int) bool {
 		diff := cur.values[i].Compare(val)
 		return diff == stringutil.Greater || diff == stringutil.Equal
