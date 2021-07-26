@@ -36,89 +36,77 @@ func randSeed() int64 {
 	return int64(binary.BigEndian.Uint64(buf))
 }
 
-var mp = make(map[int]int)
-
 func TestMain(m *testing.M) {
 	SetN(5)
 	fmt.Println("_N:", _N, "_Mid:", _Mid, "_T:", _T)
 
-	seed := randSeed()
-	rand.Seed(seed)
-	fmt.Println(">>seed<<", seed)
-
-	index := 1
-	for k := 'A'; k <= 'Z'; k++ {
-		mp[int(k)] = index
-		index++
-	}
-
 	m.Run()
 }
 
-func TestBPTInsert(t *testing.T) {
-	if false {
-		tree := New()
+func mustContains(values []Value, target Value) {
+	found := values[0].Compare(target) == stringutil.Equal
+	for i := 1; i < len(values); i++ {
+		if values[i].Compare(values[i-1]) != stringutil.Greater {
+			panic("not in asc")
+		}
 
-		values := rand.Perm(40)
-		for i := range values[:20] {
+		if values[i].Compare(target) == stringutil.Equal {
+			found = true
+		}
+	}
+
+	if !found {
+		panic(fmt.Sprintf("%v not found", target))
+	}
+}
+
+func mustNotContains(values []Value, target Value) {
+	if len(values) == 0 {
+		return
+	}
+
+	found := values[0].Compare(target) == stringutil.Equal
+	for i := 1; i < len(values); i++ {
+		if values[i].Compare(values[i-1]) != stringutil.Greater {
+			panic("not in asc")
+		}
+
+		if values[i].Compare(target) == stringutil.Equal {
+			found = true
+		}
+	}
+
+	if found {
+		panic(fmt.Sprintf("%v should not exist", target))
+	}
+}
+
+func TestBPTInsert(t *testing.T) {
+	for k := 0; k < 1000000; k++ {
+		seed := randSeed()
+		rand.Seed(seed)
+		fmt.Println(">>>>", seed)
+
+		values := rand.Perm(100)
+		for i := range values[:50] {
 			values[i] = -values[i]
 		}
 
-		for _, v := range values {
-			tree.Add(value(v))
-		}
-		fmt.Println(tree)
-	}
-
-	if false {
 		tree := New()
-
-		for k := 0; k < 20; k++ {
-			tree.Add(value(k))
-			fmt.Println(tree)
+		for _, v := range values {
+			val := value(v)
+			tree.Add(val)
+			mustContains(tree.Asc(), val)
 		}
-
-		for k := -20; k <= 0; k++ {
-			tree.Add(value(k))
-			fmt.Println(tree)
-		}
+		fmt.Println(k)
 	}
 }
 
 func TestBPTDelete(t *testing.T) {
-	// tree := New()
-	// tree.Add(value(mp['H']))
-	// tree.Add(value(mp['P']))
-	// tree.Add(value(mp['C']))
-	// tree.Add(value(mp['G']))
-	// tree.Add(value(mp['M']))
-	// tree.Add(value(mp['T']))
-	// tree.Add(value(mp['X']))
-	// tree.Add(value(mp['A']))
-	// tree.Add(value(mp['B']))
-	// tree.Add(value(mp['D']))
-	// tree.Add(value(mp['E']))
-	// tree.Add(value(mp['F']))
-	// tree.Add(value(mp['J']))
-	// tree.Add(value(mp['K']))
-	// tree.Add(value(mp['L']))
-	// tree.Add(value(mp['N']))
-	// tree.Add(value(mp['O']))
-	// tree.Add(value(mp['Q']))
-	// tree.Add(value(mp['R']))
-	// tree.Add(value(mp['S']))
-	// tree.Add(value(mp['U']))
-	// tree.Add(value(mp['V']))
-	// tree.Add(value(mp['Y']))
-	// tree.Add(value(mp['Z']))
-	// fmt.Println(tree)
-
-	// rand.Seed(1626955704130035742)
-
 	for k := 0; k < 1000000; k++ {
 		seed := randSeed()
+		rand.Seed(seed)
 		fmt.Println(">>>>", seed)
-		// rand.Seed(-2084703646357133056)
 
 		values := rand.Perm(100)
 		for i := range values[:50] {
@@ -129,15 +117,20 @@ func TestBPTDelete(t *testing.T) {
 		for _, v := range values {
 			tree.Add(value(v))
 		}
+		// fmt.Println(tree)
 
-		fmt.Println(k)
-		tree.Asc()
+		// tree.Delete(value(-15))
+		// fmt.Println(tree)
 
 		for _, v := range values {
-			// fmt.Println("del:", v)
-			tree.Delete(value(v))
-			tree.Asc()
-		}
+			val := value(v)
+			// fmt.Println("del", val)
 
+			// fmt.Println("++++++++++++", tree)
+			tree.Delete(val)
+			// fmt.Println("============", tree)
+			mustNotContains(tree.Asc(), val)
+		}
+		fmt.Println(k)
 	}
 }
