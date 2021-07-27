@@ -87,15 +87,28 @@ func TestBPTInsert(t *testing.T) {
 		rand.Seed(seed)
 		fmt.Println(">>>>", seed)
 
-		values := rand.Perm(100)
-		for i := range values[:50] {
+		values := rand.Perm(1000)
+		for i := range values[:500] {
 			values[i] = -values[i]
 		}
 
 		tree := New()
+		size := tree.Size()
 		for _, v := range values {
 			val := value(v)
-			tree.Add(val)
+			if !tree.Add(val) {
+				t.Fatal("insert nothing")
+			}
+
+			if tree.Add(val) {
+				t.Fatal("duplicated")
+			}
+
+			if tree.Size()-size != 1 {
+				t.Fatal("size not match")
+			}
+			size = tree.size
+
 			mustContains(tree.Asc(), val)
 		}
 		fmt.Println(k)
@@ -108,8 +121,8 @@ func TestBPTDelete(t *testing.T) {
 		rand.Seed(seed)
 		fmt.Println(">>>>", seed)
 
-		values := rand.Perm(100)
-		for i := range values[:50] {
+		values := rand.Perm(1000)
+		for i := range values[:500] {
 			values[i] = -values[i]
 		}
 
@@ -117,18 +130,23 @@ func TestBPTDelete(t *testing.T) {
 		for _, v := range values {
 			tree.Add(value(v))
 		}
-		// fmt.Println(tree)
 
-		// tree.Delete(value(-15))
-		// fmt.Println(tree)
-
+		size := tree.Size()
 		for _, v := range values {
 			val := value(v)
-			// fmt.Println("del", val)
+			if !tree.Delete(val) {
+				t.Fatal("delete nothing")
+			}
 
-			// fmt.Println("++++++++++++", tree)
-			tree.Delete(val)
-			// fmt.Println("============", tree)
+			if tree.Delete(val) {
+				t.Fatal("duplicated")
+			}
+
+			if size-tree.Size() != 1 {
+				t.Fatal("size not match")
+			}
+			size = tree.size
+
 			mustNotContains(tree.Asc(), val)
 		}
 		fmt.Println(k)

@@ -97,8 +97,8 @@ func ID() int {
 }
 
 func (t *bpTree) Asc() (values []Value) {
-	t.Lock()
-	defer t.Unlock()
+	t.RLock()
+	defer t.RUnlock()
 
 	if t.root == nil {
 		return
