@@ -6,7 +6,7 @@ import (
 	"github.com/bluekaki/pkg/stringutil"
 )
 
-func (t *bpTree) Add(val Value) {
+func (t *bpTree) Add(val Value) (ok bool) {
 	if val == nil {
 		return
 	}
@@ -19,7 +19,9 @@ func (t *bpTree) Add(val Value) {
 			id:     ID(),
 			values: []Value{val},
 		}
+
 		t.size++
+		ok = true
 		return
 	}
 
@@ -69,6 +71,7 @@ func (t *bpTree) Add(val Value) {
 			cur.values[index] = val
 
 			t.size++
+			ok = true
 			return
 		}
 	}
