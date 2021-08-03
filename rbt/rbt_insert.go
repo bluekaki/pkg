@@ -4,7 +4,7 @@ import (
 	"github.com/bluekaki/pkg/stringutil"
 )
 
-func (t *rbTree) Add(val Value) {
+func (t *rbTree) Add(val Value) (ok bool) {
 	if val == nil {
 		return
 	}
@@ -18,6 +18,7 @@ func (t *rbTree) Add(val Value) {
 			values: []Value{val},
 		}
 		t.size++
+		ok = true
 		return
 	}
 
@@ -26,7 +27,9 @@ func (t *rbTree) Add(val Value) {
 		// duplicated
 		return
 	}
+
 	t.size++
+	ok = true
 
 loop:
 	if x.Root() {
@@ -147,6 +150,8 @@ sw:
 
 		goto sw
 	}
+
+	return
 }
 
 func (t *rbTree) add(val Value) *node {
