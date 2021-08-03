@@ -4,7 +4,7 @@ import (
 	"github.com/bluekaki/pkg/stringutil"
 )
 
-func (t *rbTree) Delete(val Value) {
+func (t *rbTree) Delete(val Value) (ok bool) {
 	if val == nil {
 		return
 	}
@@ -12,10 +12,10 @@ func (t *rbTree) Delete(val Value) {
 	t.Lock()
 	defer t.Unlock()
 
-	t.delete(val)
+	return t.delete(val)
 }
 
-func (t *rbTree) delete(val Value) {
+func (t *rbTree) delete(val Value) (ok bool) {
 	if val == nil {
 		return
 	}
@@ -25,7 +25,6 @@ func (t *rbTree) delete(val Value) {
 		return
 	}
 
-	var ok bool
 	if x.values, ok = delVal(x.values, val); !ok {
 		return
 	}
@@ -162,6 +161,8 @@ loop:
 			}
 		}
 	}
+
+	return
 }
 
 func (t *rbTree) lookup(val Value) *node {

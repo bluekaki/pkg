@@ -1,4 +1,4 @@
-package bpt
+package rbt
 
 import (
 	crand "crypto/rand"
@@ -12,20 +12,28 @@ import (
 	"github.com/bluekaki/pkg/stringutil"
 )
 
-type value int
+var _ Value = (*value)(nil)
 
-func (v value) String() string {
-	return strconv.Itoa(int(v))
+type value struct {
+	val int
 }
 
-func (x value) Compare(v Value) stringutil.Diff {
-	y := v.(value)
+func (v *value) ID() string {
+	return strconv.Itoa(int(v.val))
+}
 
-	if x < y {
+func (v *value) String() string {
+	return strconv.Itoa(int(v.val))
+}
+
+func (v *value) Compare(val Value) stringutil.Diff {
+	x := val.(*value)
+	switch {
+	case v.val < x.val:
 		return stringutil.Less
-	} else if x > y {
+	case v.val > x.val:
 		return stringutil.Greater
-	} else {
+	default:
 		return stringutil.Equal
 	}
 }
@@ -34,13 +42,6 @@ func randSeed() int64 {
 	buf := make([]byte, 8)
 	io.ReadFull(crand.Reader, buf[:7])
 	return int64(binary.BigEndian.Uint64(buf))
-}
-
-func TestMain(m *testing.M) {
-	SetN(5)
-	fmt.Println("_N:", _N, "_Mid:", _Mid, "_T:", _T)
-
-	m.Run()
 }
 
 func mustContains(values []Value, target Value) {
@@ -95,7 +96,7 @@ func TestInsert(t *testing.T) {
 		tree := New()
 		size := tree.Size()
 		for _, v := range values {
-			val := value(v)
+			val := &value{val: v}
 			if !tree.Add(val) {
 				t.Fatal("insert nothing")
 			}
@@ -128,12 +129,12 @@ func TestDelete(t *testing.T) {
 
 		tree := New()
 		for _, v := range values {
-			tree.Add(value(v))
+			tree.Add(&value{val: v})
 		}
 
 		size := tree.Size()
 		for _, v := range values {
-			val := value(v)
+			val := &value{val: v}
 			if !tree.Delete(val) {
 				t.Fatal("delete nothing")
 			}
