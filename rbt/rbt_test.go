@@ -116,7 +116,7 @@ func TestInsert(t *testing.T) {
 			if tree.Size()-size != 1 {
 				t.Fatal("size not match")
 			}
-			size = tree.size
+			size = tree.Size()
 
 			mustContains(tree.Asc(), val)
 		}
@@ -162,7 +162,7 @@ func TestDelete(t *testing.T) {
 			if size-tree.Size() != 1 {
 				t.Fatal("size not match")
 			}
-			size = tree.size
+			size = tree.Size()
 
 			mustNotContains(tree.Asc(), val)
 		}

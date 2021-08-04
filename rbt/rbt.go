@@ -6,7 +6,24 @@ import (
 	"sync"
 )
 
-func New() *rbTree {
+var _ RBTree = (*rbTree)(nil)
+
+type RBTree interface {
+	Add(val Value) (ok bool)
+	Delete(val Value) (ok bool)
+	Exists(val Value) (ok bool)
+	Size() uint32
+	Empty() bool
+	Maximum() []Value
+	Minimum() []Value
+	PopMaximum() []Value
+	PopMinimum() []Value
+	Asc() []Value
+	Desc() []Value
+	String() string
+}
+
+func New() RBTree {
 	return new(rbTree)
 }
 
