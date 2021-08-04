@@ -97,12 +97,20 @@ func TestInsert(t *testing.T) {
 		size := tree.Size()
 		for _, v := range values {
 			val := &value{val: v}
+			if tree.Exists(val) {
+				t.Fatal("already exists")
+			}
+
 			if !tree.Add(val) {
 				t.Fatal("insert nothing")
 			}
 
 			if tree.Add(val) {
 				t.Fatal("duplicated")
+			}
+
+			if !tree.Exists(val) {
+				t.Fatal("not found")
 			}
 
 			if tree.Size()-size != 1 {
@@ -135,12 +143,20 @@ func TestDelete(t *testing.T) {
 		size := tree.Size()
 		for _, v := range values {
 			val := &value{val: v}
+			if !tree.Exists(val) {
+				t.Fatal("not found")
+			}
+
 			if !tree.Delete(val) {
 				t.Fatal("delete nothing")
 			}
 
 			if tree.Delete(val) {
 				t.Fatal("duplicated")
+			}
+
+			if tree.Exists(val) {
+				t.Fatal("delete nothing")
 			}
 
 			if size-tree.Size() != 1 {

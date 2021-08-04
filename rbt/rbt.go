@@ -197,6 +197,18 @@ func (t *rbTree) PopMinimum() []Value {
 	return values
 }
 
+func (t *rbTree) Exists(val Value) (ok bool) {
+	if val == nil {
+		return
+	}
+
+	t.RLock()
+	defer t.RUnlock()
+
+	x := t.lookup(val)
+	return x != nil
+}
+
 func (t *rbTree) Marshal() []byte {
 	t.Lock()
 	defer t.Unlock()
