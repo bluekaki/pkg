@@ -11,6 +11,7 @@ type Value interface {
 	ID() string
 	String() string
 	Compare(Value) stringutil.Diff
+	ToJSON() []byte
 }
 
 type color uint8

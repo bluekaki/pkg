@@ -3,6 +3,7 @@ package rbt
 import (
 	crand "crypto/rand"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -15,27 +16,32 @@ import (
 var _ Value = (*value)(nil)
 
 type value struct {
-	val int
+	Val int
 }
 
 func (v *value) ID() string {
-	return strconv.Itoa(int(v.val))
+	return strconv.Itoa(int(v.Val))
 }
 
 func (v *value) String() string {
-	return strconv.Itoa(int(v.val))
+	return strconv.Itoa(int(v.Val))
 }
 
 func (v *value) Compare(val Value) stringutil.Diff {
 	x := val.(*value)
 	switch {
-	case v.val < x.val:
+	case v.Val < x.Val:
 		return stringutil.Less
-	case v.val > x.val:
+	case v.Val > x.Val:
 		return stringutil.Greater
 	default:
 		return stringutil.Equal
 	}
+}
+
+func (v *value) ToJSON() []byte {
+	raw, _ := json.Marshal(v)
+	return raw
 }
 
 func randSeed() int64 {
@@ -96,7 +102,7 @@ func TestInsert(t *testing.T) {
 		tree := New()
 		size := tree.Size()
 		for _, v := range values {
-			val := &value{val: v}
+			val := &value{Val: v}
 			if tree.Exists(val) {
 				t.Fatal("already exists")
 			}
@@ -137,12 +143,12 @@ func TestDelete(t *testing.T) {
 
 		tree := New()
 		for _, v := range values {
-			tree.Add(&value{val: v})
+			tree.Add(&value{Val: v})
 		}
 
 		size := tree.Size()
 		for _, v := range values {
-			val := &value{val: v}
+			val := &value{Val: v}
 			if !tree.Exists(val) {
 				t.Fatal("not found")
 			}
@@ -168,4 +174,21 @@ func TestDelete(t *testing.T) {
 		}
 		fmt.Println(k)
 	}
+}
+
+func TestToJSON(t *testing.T) {
+	seed := randSeed()
+	rand.Seed(seed)
+	fmt.Println(">>>>", seed)
+
+	values := rand.Perm(1000)
+	for i := range values[:500] {
+		values[i] = -values[i]
+	}
+
+	tree := New()
+	for _, v := range values {
+		tree.Add(&value{Val: v})
+	}
+	fmt.Println(string(tree.ToJSON()))
 }

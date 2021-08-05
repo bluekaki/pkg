@@ -3,6 +3,7 @@ package rbt
 import (
 	"bytes"
 	"container/list"
+	"encoding/json"
 	"sync"
 )
 
@@ -21,6 +22,7 @@ type RBTree interface {
 	Asc() []Value
 	Desc() []Value
 	String() string
+	ToJSON() []byte
 }
 
 func New() RBTree {
@@ -255,4 +257,15 @@ func (t *rbTree) Marshal() []byte {
 
 	// TODO marshal nodes to raw
 	return nil
+}
+
+func (t *rbTree) ToJSON() []byte {
+	values := t.Asc()
+	slice := make([]json.RawMessage, len(values))
+	for i, v := range values {
+		slice[i] = json.RawMessage(v.ToJSON())
+	}
+
+	raw, _ := json.Marshal(slice)
+	return raw
 }
