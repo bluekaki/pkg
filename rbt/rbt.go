@@ -5,6 +5,8 @@ import (
 	"container/list"
 	"encoding/json"
 	"sync"
+
+	"github.com/bluekaki/pkg/errors"
 )
 
 var _ RBTree = (*rbTree)(nil)
@@ -268,4 +270,24 @@ func (t *rbTree) ToJSON() []byte {
 
 	raw, _ := json.Marshal(slice)
 	return raw
+}
+
+func JSON2Tree(raw []byte, json2Value func([]byte) (Value, error)) (RBTree, error) {
+	tree := new(rbTree)
+
+	var slice []json.RawMessage
+	if err := json.Unmarshal(raw, &slice); err != nil {
+		return nil, errors.Wrap(err, "unmarshal tree err")
+	}
+
+	for _, raw := range slice {
+		val, err := json2Value([]byte(raw))
+		if err != nil {
+			return nil, errors.Wrap(err, "unmarshal value err")
+		}
+
+		tree.Add(val)
+	}
+
+	return tree, nil
 }

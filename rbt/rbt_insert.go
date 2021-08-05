@@ -42,12 +42,7 @@ loop:
 		return
 	}
 
-	u := x.U()
-	if u == nil {
-		return
-	}
-
-	if u.Red() {
+	if u := x.U(); u != nil && u.Red() {
 		x.P.color = black
 		u.color = black
 

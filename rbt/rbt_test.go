@@ -181,8 +181,8 @@ func TestToJSON(t *testing.T) {
 	rand.Seed(seed)
 	fmt.Println(">>>>", seed)
 
-	values := rand.Perm(1000)
-	for i := range values[:500] {
+	values := rand.Perm(10)
+	for i := range values[:5] {
 		values[i] = -values[i]
 	}
 
@@ -190,5 +190,16 @@ func TestToJSON(t *testing.T) {
 	for _, v := range values {
 		tree.Add(&value{Val: v})
 	}
+	fmt.Println("00", tree)
 	fmt.Println(string(tree.ToJSON()))
+
+	rbt, err := JSON2Tree(tree.ToJSON(), func(raw []byte) (Value, error) {
+		val := new(value)
+		err := json.Unmarshal(raw, val)
+		return val, err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("11", rbt)
 }
