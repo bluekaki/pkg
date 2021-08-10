@@ -12,9 +12,10 @@ import (
 var _ RBTree = (*rbTree)(nil)
 
 type RBTree interface {
-	Add(val Value) (ok bool)
-	Delete(val Value) (ok bool)
-	Exists(val Value) (ok bool)
+	Add(val Value) bool
+	Delete(Value) bool
+	Exists(Value) bool
+	Search(Value) []Value
 	Size() uint32
 	Empty() bool
 	Maximum() []Value
@@ -228,6 +229,22 @@ func (t *rbTree) Exists(val Value) (ok bool) {
 
 	x := t.lookup(val)
 	return x != nil
+}
+
+func (t *rbTree) Search(val Value) []Value {
+	if val == nil {
+		return nil
+	}
+
+	t.RLock()
+	defer t.RUnlock()
+
+	x := t.lookup(val)
+	if x == nil {
+		return nil
+	}
+
+	return x.values
 }
 
 func (t *rbTree) Marshal() []byte {
