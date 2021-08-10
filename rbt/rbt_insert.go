@@ -180,9 +180,10 @@ func (t *rbTree) add(val Value) *node {
 			}
 
 		case stringutil.Equal:
-			for _, value := range root.values {
+			for i, value := range root.values {
 				if val.ID() == value.ID() {
 					// duplicated
+					root.values[i] = val
 					return nil
 				}
 			}
