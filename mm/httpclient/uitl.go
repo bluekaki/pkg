@@ -143,10 +143,10 @@ func QueryUnescape(uri string) string {
 }
 
 func marshalJournal(journal *journal.Journal) interface{} {
-	json, _ := json.Marshal(journal)
+	raw, _ := json.Marshal(journal)
 
 	if os.Getenv("MarshalJournal") == "true" {
-		return string(json)
+		return string(raw)
 	}
-	return json
+	return json.RawMessage(raw)
 }

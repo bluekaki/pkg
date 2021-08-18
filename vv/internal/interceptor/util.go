@@ -19,10 +19,10 @@ func QueryUnescape(uri string) string {
 }
 
 func marshalJournal(journal proto.Message) interface{} {
-	json, _ := pbutil.ProtoMessage2JSON(journal)
+	raw, _ := pbutil.ProtoMessage2JSON(journal)
 
 	if os.Getenv("MarshalJournal") == "true" {
-		return string(json)
+		return string(raw)
 	}
-	return json
+	return raw
 }
