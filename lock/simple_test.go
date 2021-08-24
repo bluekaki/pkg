@@ -53,7 +53,7 @@ func TestSimple(t *testing.T) {
 			defer wg.Done()
 
 			if err := Simple("xxx", handler, WithRedisClient(client)); err != nil {
-				t.Fatal(err)
+				panic(err)
 			}
 		}()
 	}

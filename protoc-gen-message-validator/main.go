@@ -150,6 +150,10 @@ func generateMessage(structName, prefix string, message *protogen.Message, g *pr
 		if proto.GetExtension(desc.Options(), options.E_CnMobile).(bool) {
 			generateCNMobile(structName, prefix, field, g)
 		}
+
+		if proto.GetExtension(desc.Options(), options.E_Duration).(bool) {
+			generateDuration(structName, prefix, field, g)
+		}
 	}
 
 	g.P()
@@ -180,6 +184,14 @@ func generateMessage(structName, prefix string, message *protogen.Message, g *pr
 			g.P()
 			g.P("func (", prefix, "*", structName, ") Parse", field.GoName, "() time.Time {")
 			g.P("ts, _ := ", timePackage.Ident("ParseInLocation"), `("2006-01-02",`, prefix, ".", field.GoName, ", time.Local)")
+			g.P("return ts")
+			g.P("}")
+		}
+
+		if proto.GetExtension(desc.Options(), options.E_Duration).(bool) {
+			g.P()
+			g.P("func (", prefix, "*", structName, ") Parse", field.GoName, "() time.Duration {")
+			g.P("ts, _ := ", timePackage.Ident("ParseDuration"), "(", prefix, ".", field.GoName, ")")
 			g.P("return ts")
 			g.P("}")
 		}
@@ -468,6 +480,17 @@ func generateCNMobile(structName, prefix string, field *protogen.Field, g *proto
 	g.P("for _, v := range ", prefix, ".", field.GoName, "[1:] {")
 	g.P("if v < '0' || v > '9' {")
 	g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` illegal")`)
+	g.P("}")
+	g.P("}")
+}
+
+func generateDuration(structName, prefix string, field *protogen.Field, g *protogen.GeneratedFile) {
+	desc := field.Desc
+
+	g.P()
+	g.P("if ", prefix, ".", field.GoName, ` != "" {`)
+	g.P("if _, err := ", timePackage.Ident("ParseDuration"), "(", prefix, ".", field.GoName, "); err != nil {")
+	g.P("return ", errorsPackage.Ident("Wrap"), `(err, "`, desc.Name(), ` illegal")`)
 	g.P("}")
 	g.P("}")
 }
