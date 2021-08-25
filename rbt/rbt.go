@@ -12,10 +12,14 @@ import (
 var _ RBTree = (*rbTree)(nil)
 
 type RBTree interface {
+	// Add overwrite if id repeated
 	Add(val Value) bool
+	// Delete by id
 	Delete(Value) bool
+	// Exists by id
 	Exists(Value) bool
-	Search(Value) []Value
+	// Search by id
+	Search(Value) Value
 	Size() uint32
 	Empty() bool
 	Maximum() []Value
@@ -228,10 +232,19 @@ func (t *rbTree) Exists(val Value) (ok bool) {
 	defer t.RUnlock()
 
 	x := t.lookup(val)
-	return x != nil
+	if x == nil {
+		return
+	}
+
+	for _, v := range x.values {
+		if ok = v.ID() == val.ID(); ok {
+			return
+		}
+	}
+	return
 }
 
-func (t *rbTree) Search(val Value) []Value {
+func (t *rbTree) Search(val Value) Value {
 	if val == nil {
 		return nil
 	}
@@ -244,7 +257,12 @@ func (t *rbTree) Search(val Value) []Value {
 		return nil
 	}
 
-	return x.values
+	for _, v := range x.values {
+		if v.ID() == val.ID() {
+			return v
+		}
+	}
+	return nil
 }
 
 func (t *rbTree) Marshal() []byte {
