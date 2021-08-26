@@ -60,6 +60,21 @@ func Delete(url string, form httpURL.Values, options ...Option) (body []byte, he
 	return withoutBody(http.MethodDelete, url, form, options...)
 }
 
+// PostNoBody post 请求
+func PostNoBody(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+	return withoutBody(http.MethodPost, url, form, options...)
+}
+
+// PutNoBody put 请求
+func PutNoBody(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+	return withoutBody(http.MethodPut, url, form, options...)
+}
+
+// PatchNoBody patch 请求
+func PatchNoBody(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+	return withoutBody(http.MethodPatch, url, form, options...)
+}
+
 func withoutBody(method, url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	if url == "" {
 		return nil, nil, -1, errors.New("url required")
@@ -145,33 +160,33 @@ func withoutBody(method, url string, form httpURL.Values, options ...Option) (bo
 	return
 }
 
-// PostForm post form 请求
-func PostForm(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+// PostFormBody post form 请求
+func PostFormBody(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withFormBody(http.MethodPost, url, form, options...)
 }
 
-// PostJSON post json 请求
-func PostJSON(url string, raw json.RawMessage, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+// PostJSONBody post json 请求
+func PostJSONBody(url string, raw json.RawMessage, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withJSONBody(http.MethodPost, url, raw, options...)
 }
 
-// PutForm put form 请求
-func PutForm(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+// PutFormBody put form 请求
+func PutFormBody(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withFormBody(http.MethodPut, url, form, options...)
 }
 
-// PutJSON put json 请求
-func PutJSON(url string, raw json.RawMessage, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+// PutJSONBody put json 请求
+func PutJSONBody(url string, raw json.RawMessage, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withJSONBody(http.MethodPut, url, raw, options...)
 }
 
-// PatchFrom patch form 请求
-func PatchFrom(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+// PatchFromBody patch form 请求
+func PatchFromBody(url string, form httpURL.Values, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withFormBody(http.MethodPatch, url, form, options...)
 }
 
-// PatchJSON patch json 请求
-func PatchJSON(url string, raw json.RawMessage, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+// PatchJSONBody patch json 请求
+func PatchJSONBody(url string, raw json.RawMessage, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withJSONBody(http.MethodPatch, url, raw, options...)
 }
 
@@ -207,6 +222,13 @@ func withFormBody(method, url string, form httpURL.Values, options ...Option) (b
 	for _, f := range options {
 		f(opt)
 	}
+
+	if len(opt.QueryForm) > 0 {
+		if url, err = addFormValuesIntoURL(url, opt.QueryForm); err != nil {
+			return
+		}
+	}
+
 	opt.Header["Content-Type"] = "application/x-www-form-urlencoded; charset=utf-8"
 	if opt.Journal != nil {
 		opt.Header[journal.JournalHeader] = opt.Journal.ID()
@@ -291,6 +313,13 @@ func withJSONBody(method, url string, raw json.RawMessage, options ...Option) (b
 	for _, f := range options {
 		f(opt)
 	}
+
+	if len(opt.QueryForm) > 0 {
+		if url, err = addFormValuesIntoURL(url, opt.QueryForm); err != nil {
+			return
+		}
+	}
+
 	opt.Header["Content-Type"] = "application/json; charset=utf-8"
 	if opt.Journal != nil {
 		opt.Header[journal.JournalHeader] = opt.Journal.ID()

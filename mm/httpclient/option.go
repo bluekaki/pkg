@@ -2,6 +2,7 @@ package httpclient
 
 import (
 	"context"
+	"net/url"
 	"time"
 
 	"github.com/bluekaki/pkg/mm/internal/journal"
@@ -26,6 +27,7 @@ type option struct {
 	RetryDelay   time.Duration
 	PrintJournal bool
 	Desc         string
+	QueryForm    url.Values
 }
 
 func newOption() *option {
@@ -96,5 +98,12 @@ func WithPrintJournal(desc string) Option {
 	return func(opt *option) {
 		opt.PrintJournal = true
 		opt.Desc = desc
+	}
+}
+
+// WithQueryForm 添加queryform(仅对 PostWithBody PutWithBody PatchWithBody 有效)
+func WithQueryForm(form url.Values) Option {
+	return func(opt *option) {
+		opt.QueryForm = form
 	}
 }

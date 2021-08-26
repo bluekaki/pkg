@@ -125,7 +125,7 @@ func addFormValuesIntoURL(rawURL string, form url.Values) (string, error) {
 	urlValues := target.Query()
 	for key, values := range form {
 		for _, value := range values {
-			urlValues.Add(key, value)
+			urlValues.Set(key, value)
 		}
 	}
 
