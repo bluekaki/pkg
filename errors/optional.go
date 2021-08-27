@@ -14,6 +14,7 @@ type Enum interface {
 	BZCode() uint16
 	StatueCode() uint16
 	Desc() string
+	WithDesc(string) Enum
 	t()
 }
 
@@ -81,6 +82,11 @@ func (b *bzError) StatueCode() uint16 {
 
 func (b *bzError) Desc() string {
 	return b.desc
+}
+
+func (b *bzError) WithDesc(desc string) Enum {
+	b.desc = desc
+	return b
 }
 
 func (b *bzError) Err() error {

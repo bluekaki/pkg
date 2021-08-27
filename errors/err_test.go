@@ -37,5 +37,4 @@ func TestErr(t *testing.T) {
 		Parameters: "k=v&k=v",
 	}).(AlertError)
 	logger.Sugar().Info(aerr.AlertMessage())
-
 }
