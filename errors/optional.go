@@ -85,8 +85,9 @@ func (b *bzError) Desc() string {
 }
 
 func (b *bzError) WithDesc(desc string) Enum {
-	b.desc = desc
-	return b
+	clone := *b
+	clone.desc = desc
+	return &clone
 }
 
 func (b *bzError) Err() error {
