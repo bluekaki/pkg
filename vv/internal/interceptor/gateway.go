@@ -11,6 +11,7 @@ import (
 	"github.com/bluekaki/pkg/vv/internal/protos/gen"
 	"github.com/bluekaki/pkg/vv/options"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/grpc"
@@ -50,6 +51,10 @@ func forwardedByGrpcGateway(meta metadata.MD) bool {
 
 // NewGatewayInterceptor create a gateway interceptor
 func NewGatewayInterceptor(logger *zap.Logger, metrics func(http.Handler), notify NotifyHandler) *GatewayInterceptor {
+	if metrics != nil {
+		metrics(promhttp.Handler())
+	}
+
 	return &GatewayInterceptor{
 		logger:  logger,
 		metrics: metrics,
