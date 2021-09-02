@@ -3,6 +3,7 @@ package interceptor
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/bluekaki/pkg/vv/options"
 
 	"go.uber.org/zap"
+	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -47,21 +49,23 @@ func forwardedByGrpcGateway(meta metadata.MD) bool {
 }
 
 // NewGatewayInterceptor create a gateway interceptor
-func NewGatewayInterceptor(logger *zap.Logger, notify NotifyHandler) *GatewayInterceptor {
+func NewGatewayInterceptor(logger *zap.Logger, metrics func(http.Handler), notify NotifyHandler) *GatewayInterceptor {
 	return &GatewayInterceptor{
-		logger: logger,
-		notify: notify,
+		logger:  logger,
+		metrics: metrics,
+		notify:  notify,
 	}
 }
 
 // GatewayInterceptor the gateway's interceptor
 type GatewayInterceptor struct {
-	logger *zap.Logger
-	notify NotifyHandler
+	logger  *zap.Logger
+	metrics func(http.Handler)
+	notify  NotifyHandler
 }
 
 // UnaryInterceptor a interceptor for gateway unary operations
-func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error) {
+func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, fullMethod string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error) {
 	ts := time.Now()
 	meta, _ := metadata.FromOutgoingContext(ctx)
 	meta.Set(gwHeader.key, gwHeader.value)
@@ -69,7 +73,7 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, method string
 	journalID := meta.Get(JournalID)[0]
 
 	doJournal := false
-	if proto.GetExtension(FileDescriptor.Options(method), options.E_Journal).(bool) {
+	if proto.GetExtension(FileDescriptor.Options(fullMethod), options.E_Journal).(bool) {
 		doJournal = true
 	}
 
@@ -109,7 +113,7 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, method string
 				Id: journalID,
 				Request: &pb.Request{
 					Restapi: true,
-					Method:  method,
+					Method:  fullMethod,
 					Metadata: func() map[string]string {
 						mp := make(map[string]string)
 						for key, values := range meta {
@@ -162,19 +166,49 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, method string
 
 			if err == nil {
 				g.logger.Info("gateway unary interceptor", zap.Any("journal", marshalJournal(journal)))
+
 			} else {
 				g.logger.Error("gateway unary interceptor", zap.Any("journal", marshalJournal(journal)))
+			}
+
+			if g.metrics != nil {
+				method := fullMethod
+
+				if http := proto.GetExtension(FileDescriptor.Options(fullMethod), annotations.E_Http).(*annotations.HttpRule); http != nil {
+					if x, ok := http.GetPattern().(*annotations.HttpRule_Get); ok {
+						method = "GET " + x.Get
+					} else if x, ok := http.GetPattern().(*annotations.HttpRule_Put); ok {
+						method = "PUT " + x.Put
+					} else if x, ok := http.GetPattern().(*annotations.HttpRule_Post); ok {
+						method = "POST " + x.Post
+					} else if x, ok := http.GetPattern().(*annotations.HttpRule_Delete); ok {
+						method = "DELETE " + x.Delete
+					} else if x, ok := http.GetPattern().(*annotations.HttpRule_Patch); ok {
+						method = "PATCH " + x.Patch
+					}
+				}
+
+				if alias := proto.GetExtension(FileDescriptor.Options(method), options.E_MetricsAlias).(string); alias != "" {
+					method = alias
+				}
+
+				if err == nil {
+					requestsCounter.WithLabelValues("gateway", method, "true").Inc()
+
+				} else {
+					requestsCounter.WithLabelValues("gateway", method, "false").Inc()
+				}
 			}
 		}
 	}()
 
-	serviceName := strings.Split(method, "/")[1]
+	serviceName := strings.Split(fullMethod, "/")[1]
 
 	var whitelistingValidator WhitelistingHandler
 	if option := proto.GetExtension(FileDescriptor.Options(serviceName), options.E_Whitelisting).(*options.Handler); option != nil {
 		whitelistingValidator = Validator.WhitelistingValidator(option.Name)
 	}
-	if option := proto.GetExtension(FileDescriptor.Options(method), options.E_MethodWhitelisting).(*options.Handler); option != nil {
+	if option := proto.GetExtension(FileDescriptor.Options(fullMethod), options.E_MethodWhitelisting).(*options.Handler); option != nil {
 		whitelistingValidator = Validator.WhitelistingValidator(option.Name)
 	}
 
@@ -190,7 +224,7 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, method string
 		}
 	}
 
-	err = invoker(metadata.NewOutgoingContext(ctx, meta), method, req, reply, cc, opts...)
+	err = invoker(metadata.NewOutgoingContext(ctx, meta), fullMethod, req, reply, cc, opts...)
 	if err != nil {
 		s, _ := status.FromError(err)
 		if s.Code() == codes.Unavailable && g.notify != nil {

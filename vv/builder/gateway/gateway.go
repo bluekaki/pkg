@@ -50,6 +50,7 @@ type option struct {
 	keepalive     *keepalive.ClientParameters
 	dialTimeout   time.Duration
 	notifyHandler interceptor.NotifyHandler
+	metrics       func(http.Handler)
 }
 
 // WithCredential setup credential for tls
@@ -77,6 +78,13 @@ func WithDialTimeout(timeout time.Duration) Option {
 func WithNotifyHandler(handler interceptor.NotifyHandler) Option {
 	return func(opt *option) {
 		opt.notifyHandler = handler
+	}
+}
+
+// WithPrometheus enable prometheus metrics
+func WithPrometheus(metrics func(http.Handler)) Option {
+	return func(opt *option) {
+		opt.metrics = metrics
 	}
 }
 
@@ -197,7 +205,7 @@ func New(logger *zap.Logger, options ...Option) (*runtime.ServeMux, []grpc.DialO
 		}),
 	)
 
-	gatewayInterceptor := interceptor.NewGatewayInterceptor(logger, opt.notifyHandler)
+	gatewayInterceptor := interceptor.NewGatewayInterceptor(logger, opt.metrics, opt.notifyHandler)
 
 	dialOptions := []grpc.DialOption{
 		grpc.WithResolvers(dns.NewBuilder()),

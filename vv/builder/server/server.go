@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/bluekaki/pkg/vv/internal/interceptor"
@@ -36,6 +37,7 @@ type option struct {
 	keepalive         *keepalive.ServerParameters
 	prometheusHandler func(*zap.Logger)
 	notifyHandler     interceptor.NotifyHandler
+	metrics           func(http.Handler)
 }
 
 // WithCredential setup credential for tls
@@ -66,6 +68,13 @@ func WithNotifyHandler(handler interceptor.NotifyHandler) Option {
 	}
 }
 
+// WithPrometheus enable prometheus metrics
+func WithPrometheus(metrics func(http.Handler)) Option {
+	return func(opt *option) {
+		opt.metrics = metrics
+	}
+}
+
 // New create a grpc server
 func New(logger *zap.Logger, options ...Option) *grpc.Server {
 	if logger == nil {
@@ -91,7 +100,7 @@ func New(logger *zap.Logger, options ...Option) *grpc.Server {
 		keepalive = opt.keepalive
 	}
 
-	serverInterceptor := interceptor.NewServerInterceptor(logger, opt.prometheusHandler != nil, opt.notifyHandler)
+	serverInterceptor := interceptor.NewServerInterceptor(logger, opt.metrics, opt.notifyHandler)
 
 	serverOptions := []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(20 << 20),

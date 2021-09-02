@@ -3,6 +3,7 @@ package interceptor
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 
 	protoV1 "github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/grpc"
@@ -163,19 +165,23 @@ func (g *grpcPayload) Body() string {
 func (g *grpcPayload) t() {}
 
 // NewServerInterceptor create a server interceptor
-func NewServerInterceptor(logger *zap.Logger, enablePrometheus bool, notify NotifyHandler) *ServerInterceptor {
+func NewServerInterceptor(logger *zap.Logger, metrics func(http.Handler), notify NotifyHandler) *ServerInterceptor {
+	if metrics != nil {
+		metrics(promhttp.Handler())
+	}
+
 	return &ServerInterceptor{
-		logger:           logger,
-		enablePrometheus: enablePrometheus,
-		notify:           notify,
+		logger:  logger,
+		metrics: metrics,
+		notify:  notify,
 	}
 }
 
 // ServerInterceptor the server's interceptor
 type ServerInterceptor struct {
-	logger           *zap.Logger
-	enablePrometheus bool
-	notify           NotifyHandler
+	logger  *zap.Logger
+	metrics func(http.Handler)
+	notify  NotifyHandler
 }
 
 // UnaryInterceptor a interceptor for server unary operations
@@ -315,36 +321,23 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 
 			if err == nil {
 				s.logger.Info("server unary interceptor", zap.Any("journal", marshalJournal(journal)))
+
 			} else {
 				s.logger.Error("server unary interceptor", zap.Any("journal", marshalJournal(journal)))
 			}
 		}
 
-		if s.enablePrometheus {
+		if s.metrics != nil && proto.GetExtension(FileDescriptor.Options(info.FullMethod), annotations.E_Http).(*annotations.HttpRule) == nil {
 			method := info.FullMethod
-
-			if http := proto.GetExtension(FileDescriptor.Options(info.FullMethod), annotations.E_Http).(*annotations.HttpRule); http != nil {
-				if x, ok := http.GetPattern().(*annotations.HttpRule_Get); ok {
-					method = "get " + x.Get
-				} else if x, ok := http.GetPattern().(*annotations.HttpRule_Put); ok {
-					method = "put " + x.Put
-				} else if x, ok := http.GetPattern().(*annotations.HttpRule_Post); ok {
-					method = "post " + x.Post
-				} else if x, ok := http.GetPattern().(*annotations.HttpRule_Delete); ok {
-					method = "delete " + x.Delete
-				} else if x, ok := http.GetPattern().(*annotations.HttpRule_Patch); ok {
-					method = "patch " + x.Patch
-				}
-			}
-
 			if alias := proto.GetExtension(FileDescriptor.Options(info.FullMethod), options.E_MetricsAlias).(string); alias != "" {
 				method = alias
 			}
 
 			if err == nil {
-				MetricsRequestCost.WithLabelValues(method).Observe(time.Since(ts).Seconds())
+				requestsCounter.WithLabelValues("backend", method, "true").Inc()
+
 			} else {
-				MetricsError.WithLabelValues(method, status.Code(err).String(), err.Error(), journalID).Observe(time.Since(ts).Seconds())
+				requestsCounter.WithLabelValues("backend", method, "false").Inc()
 			}
 		}
 	}()
