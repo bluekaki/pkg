@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -197,12 +198,9 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, fullMethod st
 					method = alias
 				}
 
-				if err == nil {
-					requestsCounter.WithLabelValues("gateway", method, "true").Inc()
-
-				} else {
-					requestsCounter.WithLabelValues("gateway", method, "false").Inc()
-				}
+				success := strconv.FormatBool(err == nil)
+				requestCounter.WithLabelValues("gateway", method, success).Inc()
+				requestDuration.WithLabelValues("gateway", method, success).Observe(time.Since(ts).Seconds())
 			}
 		}
 	}()
