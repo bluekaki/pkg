@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -334,9 +333,17 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 				method = alias
 			}
 
-			success := strconv.FormatBool(err == nil)
-			requestCounter.WithLabelValues("backend", method, success).Inc()
-			requestDuration.WithLabelValues("backend", method, success).Observe(time.Since(ts).Seconds())
+			if err == nil {
+				grpcRequestSuccessCounter.WithLabelValues(method).Inc()
+				grpcRequestSuccessDurationHistogram.WithLabelValues(method).Observe(time.Since(ts).Seconds())
+
+			} else {
+				s, _ := status.FromError(err)
+				code := s.Code().String()
+
+				grpcRequestErrorCounter.WithLabelValues(method, code).Inc()
+				grpcRequestErrorDurationHistogram.WithLabelValues(method, code).Observe(time.Since(ts).Seconds())
+			}
 		}
 	}()
 

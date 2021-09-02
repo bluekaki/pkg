@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -176,31 +175,39 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, fullMethod st
 			} else {
 				g.logger.Error("gateway unary interceptor", zap.Any("journal", marshalJournal(journal)))
 			}
+		}
 
-			if g.metrics != nil {
-				method := fullMethod
+		if g.metrics != nil {
+			method := fullMethod
 
-				if http := proto.GetExtension(FileDescriptor.Options(fullMethod), annotations.E_Http).(*annotations.HttpRule); http != nil {
-					if x, ok := http.GetPattern().(*annotations.HttpRule_Get); ok {
-						method = "GET " + x.Get
-					} else if x, ok := http.GetPattern().(*annotations.HttpRule_Put); ok {
-						method = "PUT " + x.Put
-					} else if x, ok := http.GetPattern().(*annotations.HttpRule_Post); ok {
-						method = "POST " + x.Post
-					} else if x, ok := http.GetPattern().(*annotations.HttpRule_Delete); ok {
-						method = "DELETE " + x.Delete
-					} else if x, ok := http.GetPattern().(*annotations.HttpRule_Patch); ok {
-						method = "PATCH " + x.Patch
-					}
+			if http := proto.GetExtension(FileDescriptor.Options(fullMethod), annotations.E_Http).(*annotations.HttpRule); http != nil {
+				if x, ok := http.GetPattern().(*annotations.HttpRule_Get); ok {
+					method = "GET " + x.Get
+				} else if x, ok := http.GetPattern().(*annotations.HttpRule_Put); ok {
+					method = "PUT " + x.Put
+				} else if x, ok := http.GetPattern().(*annotations.HttpRule_Post); ok {
+					method = "POST " + x.Post
+				} else if x, ok := http.GetPattern().(*annotations.HttpRule_Delete); ok {
+					method = "DELETE " + x.Delete
+				} else if x, ok := http.GetPattern().(*annotations.HttpRule_Patch); ok {
+					method = "PATCH " + x.Patch
 				}
+			}
 
-				if alias := proto.GetExtension(FileDescriptor.Options(method), options.E_MetricsAlias).(string); alias != "" {
-					method = alias
-				}
+			if alias := proto.GetExtension(FileDescriptor.Options(method), options.E_MetricsAlias).(string); alias != "" {
+				method = alias
+			}
 
-				success := strconv.FormatBool(err == nil)
-				requestCounter.WithLabelValues("gateway", method, success).Inc()
-				requestDuration.WithLabelValues("gateway", method, success).Observe(time.Since(ts).Seconds())
+			if err == nil {
+				httpRequestSuccessCounter.WithLabelValues(method).Inc()
+				httpRequestSuccessDurationHistogram.WithLabelValues(method).Observe(time.Since(ts).Seconds())
+
+			} else {
+				s, _ := status.FromError(err)
+				code := s.Code().String()
+
+				httpRequestErrorCounter.WithLabelValues(method, code).Inc()
+				httpRequestErrorDurationHistogram.WithLabelValues(method, code).Observe(time.Since(ts).Seconds())
 			}
 		}
 	}()
