@@ -5,9 +5,13 @@ import (
 	"encoding/binary"
 )
 
+var (
+	emptyIndex = make([]byte, indexLen)
+)
+
 func latestBlock(indexRaw []byte) (blocks int, minOffset, maxOffset uint64, dataOffset int64) {
-	for k := 0; k < indexCapacity; k += indexSize {
-		index := indexRaw[k : k+indexSize]
+	for k := 0; k < indexSize; k += indexLen {
+		index := indexRaw[k : k+indexLen]
 		if bytes.Equal(index, emptyIndex) {
 			return
 		}
