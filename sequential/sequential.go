@@ -9,7 +9,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -38,7 +37,10 @@ import (
 |----------------------------------|
 */
 
-var ErrClosed = stderr.New("sequential has closed")
+var (
+	ErrClosed   = stderr.New("sequential has closed")
+	ErrNotfound = stderr.New("offset not found")
+)
 
 const (
 	fileExt = ".mox"
@@ -58,12 +60,12 @@ const (
 	dateLayout = "2006/01/02"
 )
 
-type block struct {
-	fileIndex uint64
-	file      *os.File
-	minOffset uint64
-	maxOffset uint64
-	index     []*index
+type Sequential interface {
+	Close()
+	Write(raw []byte) (offset uint64, err error)
+	Get(offset uint64) ([]byte, error)
+
+	string()
 }
 
 type payload struct {
@@ -72,12 +74,14 @@ type payload struct {
 	done   chan struct{}
 }
 
+var _ Sequential = (*sequential)(nil)
+
 type sequential struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 	baseDir string
 	logger  *zap.Logger
-	blocks  []*block
+	blocks  *blocks
 	ch      chan *payload
 
 	meta struct {
@@ -88,22 +92,21 @@ type sequential struct {
 
 		fileIndex uint64
 		file      *os.File
-		index     []*index
 	}
 }
 
-func New(baseDir string, logger *zap.Logger) *sequential {
+func New(baseDir string, logger *zap.Logger) Sequential {
 	if logger == nil {
 		panic("logger required")
 	}
 
 	info, err := os.Stat(baseDir)
 	if err != nil {
-		logger.Fatal(fmt.Sprintf("read dir %s stat err", baseDir), zap.Error(err))
+		logger.Fatal("", zap.Error(errors.Wrapf(err, "read dir %s stat err", baseDir)))
 	}
 
 	if !info.IsDir() {
-		logger.Fatal(baseDir + " should be directory")
+		logger.Fatal("", zap.Error(errors.New(baseDir+" should be directory")))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -112,6 +115,7 @@ func New(baseDir string, logger *zap.Logger) *sequential {
 		cancel:  cancel,
 		baseDir: strings.TrimRight(strings.ReplaceAll(baseDir, "\\", "/"), "/"),
 		logger:  logger,
+		blocks:  newBlocks(),
 		ch:      make(chan *payload, 10),
 	}
 
@@ -127,47 +131,22 @@ func (s *sequential) Close() {
 	default:
 		s.cancel()
 
-		if s.meta.file != nil {
-			s.meta.file.Close()
-		}
-
-		for _, block := range s.blocks {
-			block.file.Close()
-		}
+		s.meta.file.Close()
+		s.blocks.Close()
 	}
 }
 
 func (s *sequential) string() {
 	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 	fmt.Println("fileIndex:", s.meta.fileIndex, "minOffset:", s.meta.minOffset, "maxOffset:", s.meta.maxOffset, "indexOffset:", s.meta.indexOffset, "dataOffset:", s.meta.dataOffset)
-	for i, block := range s.blocks {
-		fmt.Println(i, "fileIndex:", block.fileIndex, "minOffset:", block.minOffset, "maxOffset:", block.maxOffset)
-	}
+	s.blocks.String()
 	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-}
-
-func (s *sequential) appendBlock(block *block) {
-	s.blocks = append(s.blocks, block)
-
-	sort.Slice(s.blocks, func(i, j int) bool {
-		return s.blocks[i].fileIndex < s.blocks[j].fileIndex
-	})
-}
-
-func (s *sequential) popLast() *block {
-	if len(s.blocks) == 0 {
-		return nil
-	}
-
-	last := s.blocks[len(s.blocks)-1]
-	s.blocks = s.blocks[:len(s.blocks)-1]
-	return last
 }
 
 func (s *sequential) rdonly(path string) *os.File {
 	file, err := os.Open(path)
 	if err != nil {
-		s.logger.Fatal(fmt.Sprintf("read file %s err", path), zap.Error(err))
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "read file %s err", path)))
 	}
 
 	return file
@@ -176,7 +155,7 @@ func (s *sequential) rdonly(path string) *os.File {
 func (s *sequential) rdwr(path string) *os.File {
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
-		s.logger.Fatal(fmt.Sprintf("open file %s err", path), zap.Error(err))
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "open file %s err", path)))
 	}
 
 	return file
@@ -197,11 +176,11 @@ func (s *sequential) validate() {
 
 		var indexRaw [indexSize]byte
 		if _, err = file.ReadAt(indexRaw[:], indexOffset); err != nil {
-			s.logger.Fatal(fmt.Sprintf("read index of file %s err", path), zap.Error(err))
+			s.logger.Fatal("", zap.Error(errors.Wrapf(err, "read index of file %s err", path)))
 		}
 
 		minOffset, maxOffset, _, index := latestBlock(indexRaw)
-		s.appendBlock(&block{
+		s.blocks.Append(&block{
 			fileIndex: fileIndex,
 			file:      file,
 			minOffset: minOffset,
@@ -211,17 +190,13 @@ func (s *sequential) validate() {
 		return nil
 	})
 	if err != nil {
-		s.logger.Fatal(fmt.Sprintf("walk directory %s err", s.baseDir), zap.Error(err))
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "walk directory %s err", s.baseDir)))
 	}
 
-	last := s.popLast()
+	last := s.blocks.Last()
 	if last == nil {
 		s.createFile()
 		return
-	}
-
-	if err := last.file.Close(); err != nil { // close reader fd
-		s.logger.Fatal(fmt.Sprintf("close file %s err", last.file.Name()), zap.Error(err))
 	}
 
 	s.meta.minOffset = last.minOffset
@@ -230,13 +205,12 @@ func (s *sequential) validate() {
 	if last.maxOffset > 0 {
 		s.meta.indexOffset = (int64(last.maxOffset-last.minOffset) + 1) * indexLen
 
-		index := last.index[len(last.index)-1]
-		s.meta.dataOffset = index.DataOffset() + int64(index.Length())
+		entry := last.index.Last()
+		s.meta.dataOffset = entry.DataOffset() + int64(entry.Length())
 	}
 
 	s.meta.fileIndex = last.fileIndex
 	s.meta.file = s.rdwr(last.file.Name())
-	s.meta.index = last.index
 }
 
 func (s *sequential) createFile() {
@@ -245,7 +219,6 @@ func (s *sequential) createFile() {
 	s.meta.indexOffset = 0
 	s.meta.dataOffset = 0
 	s.meta.fileIndex++
-	s.meta.index = make([]*index, 0, indexSize/indexLen)
 
 	path := fmt.Sprintf("%s/%d%s", s.baseDir, s.meta.fileIndex, fileExt)
 	s.meta.file = s.rdwr(path)
@@ -254,7 +227,7 @@ func (s *sequential) createFile() {
 	loop := fileSize / (4 << 10)
 	for k := 0; k < loop; k++ {
 		if _, err := s.meta.file.Write(buf); err != nil {
-			s.logger.Fatal(fmt.Sprintf("write zero into file %s err", path), zap.Error(err))
+			s.logger.Fatal("", zap.Error(errors.Wrapf(err, "write zero into file %s err", path)))
 		}
 	}
 
@@ -267,8 +240,14 @@ func (s *sequential) createFile() {
 	s.meta.file.WriteAt(ts, tsNOffset)
 
 	if err := s.meta.file.Sync(); err != nil {
-		s.logger.Fatal(fmt.Sprintf("sync file %s err", path), zap.Error(err))
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "sync file %s err", path)))
 	}
+
+	s.blocks.Append(&block{
+		fileIndex: s.meta.fileIndex,
+		file:      s.rdonly(s.meta.file.Name()),
+		index:     newIndex(),
+	})
 }
 
 func (s *sequential) Write(raw []byte) (offset uint64, err error) {
@@ -321,7 +300,7 @@ func (s *sequential) consumer() {
 }
 
 func (s *sequential) write(raw []byte, offset uint64) {
-	index := make([]byte, 32)
+	index := make([]byte, indexLen)
 	binary.BigEndian.PutUint64(index[:8], offset)
 	binary.BigEndian.PutUint32(index[8:12], uint32(len(raw)))
 
@@ -329,26 +308,27 @@ func (s *sequential) write(raw []byte, offset uint64) {
 	copy(index[12:], digest[:])
 
 	if _, err := s.meta.file.WriteAt([]byte(strconv.FormatUint(s.meta.maxOffset-s.meta.minOffset+1, 10)), capOffset); err != nil {
-		s.logger.Fatal(fmt.Sprintf("write capacity into file %s err", s.meta.file.Name()), zap.Error(err))
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "write capacity into file %s err", s.meta.file.Name())))
 	}
 
 	if _, err := s.meta.file.WriteAt([]byte(time.Now().Format(dateLayout)), tsNOffset); err != nil {
-		s.logger.Fatal(fmt.Sprintf("write tsN into file %s err", s.meta.file.Name()), zap.Error(err))
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "write tsN into file %s err", s.meta.file.Name())))
 	}
 
 	if _, err := s.meta.file.WriteAt(index, indexOffset+s.meta.indexOffset); err != nil {
-		s.logger.Fatal(fmt.Sprintf("write index into file %s err", s.meta.file.Name()), zap.Error(err))
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "write index into file %s err", s.meta.file.Name())))
 	}
 
 	if _, err := s.meta.file.WriteAt(raw, dataOffset+s.meta.dataOffset); err != nil {
-		s.logger.Fatal(fmt.Sprintf("write data into file %s err", s.meta.file.Name()), zap.Error(err))
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "write data into file %s err", s.meta.file.Name())))
 	}
 
 	if err := s.meta.file.Sync(); err != nil {
-		s.logger.Fatal(fmt.Sprintf("sync file %s err", s.meta.file.Name()), zap.Error(err))
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "sync file %s err", s.meta.file.Name())))
 	}
 
-	s.meta.index = append(s.meta.index, newIndex(offset, s.meta.dataOffset, len(raw)))
+	s.blocks.UpdateLast(newEntry(offset, s.meta.dataOffset, len(raw)), s.meta.minOffset, s.meta.maxOffset)
+
 	s.meta.indexOffset += indexLen
 	s.meta.dataOffset += int64(len(raw))
 }
@@ -357,20 +337,12 @@ func (s *sequential) rotateFile(raw []byte) (offset uint64, err error) {
 	offset = s.meta.maxOffset + 1
 
 	if err := s.meta.file.Sync(); err != nil {
-		s.logger.Fatal(fmt.Sprintf("sync file %s err", s.meta.file.Name()), zap.Error(err))
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "sync file %s err", s.meta.file.Name())))
 	}
 
 	if err := s.meta.file.Close(); err != nil { // close writer fd
-		s.logger.Fatal(fmt.Sprintf("close file %s err", s.meta.file.Name()), zap.Error(err))
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "close file %s err", s.meta.file.Name())))
 	}
-
-	s.appendBlock(&block{
-		fileIndex: s.meta.fileIndex,
-		file:      s.rdonly(s.meta.file.Name()),
-		minOffset: s.meta.minOffset,
-		maxOffset: s.meta.maxOffset,
-		index:     s.meta.index,
-	})
 
 	s.createFile()
 	s.meta.minOffset = offset
@@ -378,4 +350,8 @@ func (s *sequential) rotateFile(raw []byte) (offset uint64, err error) {
 
 	s.write(raw, offset)
 	return
+}
+
+func (s *sequential) Get(offset uint64) ([]byte, error) {
+	return s.blocks.Get(offset)
 }

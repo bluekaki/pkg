@@ -43,4 +43,15 @@ func TestXX(t *testing.T) {
 			sequential.string()
 		}
 	}
+
+	if false {
+		for k := uint64(1); k <= 26; k++ {
+			raw, err := sequential.Get(k)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			t.Log(k, len(raw), string(raw[:10]))
+		}
+	}
 }
