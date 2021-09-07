@@ -16,14 +16,15 @@ func TestMain(m *testing.M) {
 
 func TestXX(t *testing.T) {
 	sequential := New("/opt/tmp/sequential", logger)
+	defer sequential.Close()
 	sequential.string()
 
 	if false {
-		sequential.Write([]byte("hello world 001"))
+		t.Log(sequential.Write([]byte("hello world 001")))
 		sequential.string()
-		sequential.Write([]byte("hello world 002"))
+		t.Log(sequential.Write([]byte("hello world 002")))
 		sequential.string()
-		sequential.Write([]byte("hello world 003"))
+		t.Log(sequential.Write([]byte("hello world 003")))
 		sequential.string()
 	}
 
@@ -38,7 +39,7 @@ func TestXX(t *testing.T) {
 		for k := byte('A'); k <= byte('Z'); k++ {
 			filling(k)
 
-			sequential.Write(entry)
+			t.Log(sequential.Write(entry))
 			sequential.string()
 		}
 	}
