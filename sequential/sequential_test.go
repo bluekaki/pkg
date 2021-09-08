@@ -19,7 +19,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestXX(t *testing.T) {
-	sequential := New("/opt/tmp/sequential", logger)
+	sequential := New("/tmp/sequential", logger)
 	defer sequential.Close()
 	sequential.string()
 
@@ -61,7 +61,7 @@ func TestXX(t *testing.T) {
 	}
 
 	if false {
-		path := "/opt/tmp/sequential/1.mox"
+		path := "/tmp/sequential/1.mox"
 		file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
 		if err != nil {
 			logger.Fatal("", zap.Error(errors.Wrapf(err, "open file %s err", path)))
@@ -69,5 +69,12 @@ func TestXX(t *testing.T) {
 		defer file.Close()
 
 		file.WriteAt([]byte{0, 1, 2, 3}, dataOffset+(128<<10)*4)
+	}
+
+	if false {
+		err := Info("/tmp/sequential")
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }

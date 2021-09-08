@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -57,7 +58,7 @@ const (
 	indexLen  = 32
 	indexSize = 256 << 10 // 256Kb
 
-	fileSize = 1 << 20 // 1 << 30 // 1Gb
+	fileSize = 1 << 30 // 1Gb
 	dataSize = fileSize - dataOffset
 
 	dateLayout = "2006/01/02"
@@ -423,4 +424,91 @@ func (s *sequential) Get(offset uint64) ([]byte, error) {
 	default:
 		return s.blocks.Get(offset)
 	}
+}
+
+func Info(baseDir string) error {
+	info, err := os.Stat(baseDir)
+	if err != nil {
+		return errors.Wrapf(err, "read dir %s stat err", baseDir)
+	}
+
+	if !info.IsDir() {
+		return errors.New(baseDir + " should be directory")
+	}
+
+	baseDir = strings.TrimRight(strings.ReplaceAll(baseDir, "\\", "/"), "/")
+
+	var fileIndex []uint64
+	err = filepath.Walk(baseDir, func(path string, info fs.FileInfo, err error) error {
+		if info.IsDir() || filepath.Ext(info.Name()) != fileExt {
+			return nil
+		}
+
+		index, err := strconv.ParseUint(info.Name()[:len(info.Name())-len(fileExt)], 10, 64)
+		if err != nil {
+			return errors.Wrapf(err, "parse file name of %s err", path)
+		}
+
+		fileIndex = append(fileIndex, index)
+		return nil
+	})
+	if err != nil {
+		return errors.Wrapf(err, "walk directory %s err", baseDir)
+	}
+
+	sort.Slice(fileIndex, func(i, j int) bool {
+		return fileIndex[i] < fileIndex[j]
+	})
+
+	for _, index := range fileIndex {
+		path := fmt.Sprintf("%s/%d%s", baseDir, index, fileExt)
+		err = func() error {
+			file, err := os.Open(path)
+			if err != nil {
+				return errors.Wrapf(err, "read file %s err", path)
+			}
+			defer file.Close()
+
+			var ts0 [10]byte
+			if _, err = file.ReadAt(ts0[:], ts0Offset); err != nil {
+				return errors.Wrapf(err, "read ts0 of file %s err", path)
+			}
+
+			var tsN [10]byte
+			if _, err = file.ReadAt(tsN[:], ts0Offset); err != nil {
+				return errors.Wrapf(err, "read tsN of file %s err", path)
+			}
+
+			var indexRaw [indexSize]byte
+			if _, err = file.ReadAt(indexRaw[:], indexOffset); err != nil {
+				return errors.Wrapf(err, "read index of file %s err", path)
+			}
+
+			next := reversedIndex(indexRaw)
+			minOffset, maxOffset, _, index, err := next()
+
+			var capacity, leftIndex, leftData uint64
+			if err == nil {
+				capacity = maxOffset - minOffset + 1
+				leftIndex = (indexSize / indexLen) - capacity
+				leftData = dataSize - uint64(index.Last().DataOffset()) - uint64(index.Last().Length())
+			}
+
+			fmt.Println(
+				path,
+				"Capacity:", capacity,
+				"MinOffset:", minOffset,
+				"MaxOffset:", maxOffset,
+				"LeftIndex:", leftIndex,
+				"LeftData:", fmt.Sprintf("%.2fKb  %.2fMb", float64(leftData)/1024., float64(leftData)/1024./1024.),
+			)
+
+			return nil
+		}()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
