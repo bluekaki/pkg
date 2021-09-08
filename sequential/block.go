@@ -1,9 +1,11 @@
 package sequential
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sort"
+	"sync"
 
 	"github.com/bluekaki/pkg/errors"
 )
@@ -17,16 +19,31 @@ type block struct {
 }
 
 type blocks struct {
-	slice []*block
+	sync.WaitGroup
+	ctx    context.Context
+	cancel context.CancelFunc
+	slice  []*block
 }
 
 func newBlocks() *blocks {
-	return &blocks{slice: make([]*block, 0, 10)}
+	ctx, cancel := context.WithCancel(context.Background())
+	return &blocks{
+		ctx:    ctx,
+		cancel: cancel,
+		slice:  make([]*block, 0, 10),
+	}
 }
 
 func (b *blocks) Close() {
-	for _, block := range b.slice {
-		block.file.Close()
+	select {
+	case <-b.ctx.Done():
+	default:
+		b.cancel()
+
+		b.Wait()
+		for _, block := range b.slice {
+			block.file.Close()
+		}
 	}
 }
 
@@ -88,6 +105,15 @@ func (b *blocks) Get(offset uint64) ([]byte, error) {
 	if entry == nil {
 		panic(fmt.Sprintf("not found offset %d in a sure index of file %s", offset, block.file.Name()))
 	}
+
+	select {
+	case <-b.ctx.Done():
+		return nil, ErrClosed
+	default:
+	}
+
+	b.Add(1)
+	defer b.Done()
 
 	raw := make([]byte, entry.Length())
 	if _, err := block.file.ReadAt(raw, dataOffset+entry.DataOffset()); err != nil {
