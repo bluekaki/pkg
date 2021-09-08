@@ -30,6 +30,15 @@ func newIndex() *index {
 	return &idx
 }
 
+func (i *index) Clone() *index {
+	index := newIndex()
+	for _, entry := range *i {
+		index.AppendEntry(entry)
+	}
+
+	return index
+}
+
 func (i *index) AppendEntry(entry *entry) {
 	*i = append(*i, entry)
 }
@@ -51,12 +60,12 @@ func (i *index) String() string {
 	return fmt.Sprintf("%v", slice)
 }
 
-func (i *index) Get(offset uint64, path string) *entry {
+func (i *index) Get(offset uint64) *entry {
 	index := sort.Search(len(*i), func(j int) bool {
 		return (*i)[j].Offset() >= offset
 	})
 	if index == -1 || index >= len(*i) || (*i)[index].Offset() != offset {
-		panic(fmt.Sprintf("not found offset %d in a sure index of file %s", offset, path))
+		return nil
 	}
 
 	return (*i)[index]

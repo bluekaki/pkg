@@ -1,6 +1,7 @@
 package sequential
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha1"
 	"encoding/binary"
@@ -50,6 +51,8 @@ const (
 	tsNOffset   = 16
 	indexOffset = 26
 	dataOffset  = indexOffset + indexSize
+
+	metaSize = indexOffset
 
 	indexLen  = 32
 	indexSize = 256 << 10 // 256Kb
@@ -174,19 +177,52 @@ func (s *sequential) validate() {
 
 		file := s.rdonly(path)
 
+	redo:
+		var metaRaw [metaSize]byte
+		if _, err = file.ReadAt(metaRaw[:], capOffset); err != nil {
+			s.logger.Fatal("", zap.Error(errors.Wrapf(err, "read meta of file %s err", path)))
+		}
+
 		var indexRaw [indexSize]byte
 		if _, err = file.ReadAt(indexRaw[:], indexOffset); err != nil {
 			s.logger.Fatal("", zap.Error(errors.Wrapf(err, "read index of file %s err", path)))
 		}
 
-		minOffset, maxOffset, _, index := latestBlock(indexRaw)
-		s.blocks.Append(&block{
-			fileIndex: fileIndex,
-			file:      file,
-			minOffset: minOffset,
-			maxOffset: maxOffset,
-			index:     index,
-		})
+		next := reversedIndex(indexRaw)
+		loop := 0
+		for {
+			minOffset, maxOffset, digest0, index, err := next()
+			if err != nil {
+				break
+			}
+
+			idx := index.Last()
+			raw := make([]byte, idx.Length())
+			if _, err = file.ReadAt(raw, dataOffset+idx.DataOffset()); err != nil {
+				s.logger.Fatal("", zap.Error(errors.Wrapf(err, "read offset %d in file %s err", idx.Offset(), path)))
+			}
+
+			digest1 := sha1.Sum(raw)
+			if !bytes.Equal(digest1[:], digest0) {
+				loop++
+				continue
+			}
+
+			if loop > 0 {
+				s.eraseInvalidIndex(minOffset, maxOffset, path)
+				goto redo
+			}
+
+			s.blocks.AppendAndSort(&block{
+				fileIndex: fileIndex,
+				file:      file,
+				minOffset: minOffset,
+				maxOffset: maxOffset,
+				index:     index,
+			})
+			break
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -211,6 +247,33 @@ func (s *sequential) validate() {
 
 	s.meta.fileIndex = last.fileIndex
 	s.meta.file = s.rdwr(last.file.Name())
+}
+
+func (s *sequential) eraseInvalidIndex(minOffset, maxOffset uint64, path string) {
+	offset := int64((maxOffset - minOffset + 1) * indexLen)
+	empty := make([]byte, indexSize-offset)
+
+	file := s.rdwr(path)
+
+	if _, err := file.WriteAt(encodeCapacity(minOffset, maxOffset), capOffset); err != nil {
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "write capacity into file %s err", path)))
+	}
+
+	if _, err := file.WriteAt([]byte(time.Now().Format(dateLayout)), tsNOffset); err != nil {
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "write tsN into file %s err", path)))
+	}
+
+	if _, err := file.WriteAt(empty, indexOffset+offset); err != nil {
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "write empty index into file %s err", path)))
+	}
+
+	if err := file.Sync(); err != nil {
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "sync file %s err", path)))
+	}
+
+	if err := file.Close(); err != nil {
+		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "close file %s err", path)))
+	}
 }
 
 func (s *sequential) createFile() {
@@ -307,7 +370,7 @@ func (s *sequential) write(raw []byte, offset uint64) {
 	digest := sha1.Sum(raw)
 	copy(index[12:], digest[:])
 
-	if _, err := s.meta.file.WriteAt([]byte(strconv.FormatUint(s.meta.maxOffset-s.meta.minOffset+1, 10)), capOffset); err != nil {
+	if _, err := s.meta.file.WriteAt(encodeCapacity(s.meta.minOffset, s.meta.maxOffset), capOffset); err != nil {
 		s.logger.Fatal("", zap.Error(errors.Wrapf(err, "write capacity into file %s err", s.meta.file.Name())))
 	}
 
@@ -353,5 +416,11 @@ func (s *sequential) rotateFile(raw []byte) (offset uint64, err error) {
 }
 
 func (s *sequential) Get(offset uint64) ([]byte, error) {
-	return s.blocks.Get(offset)
+	select {
+	case <-s.ctx.Done():
+		return nil, ErrClosed
+
+	default:
+		return s.blocks.Get(offset)
+	}
 }

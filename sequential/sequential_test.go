@@ -1,9 +1,13 @@
 package sequential
 
 import (
+	"os"
 	"testing"
 
+	"github.com/bluekaki/pkg/errors"
 	"github.com/bluekaki/pkg/zaplog"
+
+	"go.uber.org/zap"
 )
 
 var logger, _ = zaplog.NewJSONLogger()
@@ -48,10 +52,22 @@ func TestXX(t *testing.T) {
 		for k := uint64(1); k <= 26; k++ {
 			raw, err := sequential.Get(k)
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				continue
 			}
 
 			t.Log(k, len(raw), string(raw[:10]))
 		}
+	}
+
+	if false {
+		path := "/opt/tmp/sequential/1.mox"
+		file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
+		if err != nil {
+			logger.Fatal("", zap.Error(errors.Wrapf(err, "open file %s err", path)))
+		}
+		defer file.Close()
+
+		file.WriteAt([]byte{0, 1, 2, 3}, dataOffset+(128<<10)*4)
 	}
 }

@@ -36,11 +36,15 @@ func (b *blocks) String() {
 	}
 }
 
-func (b *blocks) Append(block *block) {
+func (b *blocks) AppendAndSort(block *block) {
 	b.slice = append(b.slice, block)
 	sort.Slice(b.slice, func(i, j int) bool {
 		return b.slice[i].fileIndex < b.slice[j].fileIndex
 	})
+}
+
+func (b *blocks) Append(block *block) {
+	b.slice = append(b.slice, block)
 }
 
 func (b *blocks) Last() *block {
@@ -78,10 +82,16 @@ func (b *blocks) Get(offset uint64) ([]byte, error) {
 		return nil, ErrNotfound
 	}
 
-	entry := slice[index].index.Get(offset, slice[index].file.Name()) // filename used by panic
+	block := slice[index]
+
+	entry := block.index.Get(offset)
+	if entry == nil {
+		panic(fmt.Sprintf("not found offset %d in a sure index of file %s", offset, block.file.Name()))
+	}
+
 	raw := make([]byte, entry.Length())
-	if _, err := slice[index].file.ReadAt(raw, dataOffset+entry.DataOffset()); err != nil {
-		return nil, errors.Wrapf(err, "read offset %d in file %s err", offset, slice[index].file.Name())
+	if _, err := block.file.ReadAt(raw, dataOffset+entry.DataOffset()); err != nil {
+		return nil, errors.Wrapf(err, "read offset %d in file %s err", offset, block.file.Name())
 	}
 
 	return raw, nil
