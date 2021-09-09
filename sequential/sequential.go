@@ -13,7 +13,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/bluekaki/pkg/errors"
@@ -41,13 +40,13 @@ import (
 */
 
 var (
+	ErrOversize = fmt.Errorf("payload size exceeds the limit of %d", dataSize)
 	ErrClosed   = stderr.New("sequential has closed")
 	ErrNotfound = stderr.New("offset not found")
 )
 
 const (
-	fileExt      = ".mox"
-	emptyFileExt = ".emp"
+	fileExt = ".mox"
 
 	capOffset   = 0
 	ts0Offset   = 5
@@ -66,6 +65,7 @@ const (
 	dateLayout = "2006/01/02"
 )
 
+// Sequential write files sequentially
 type Sequential interface {
 	Close()
 	Write(raw []byte) (offset uint64, err error)
@@ -99,32 +99,9 @@ type sequential struct {
 		fileIndex uint64
 		file      *os.File
 	}
-
-	threshold struct {
-		sync.Map
-
-		indexP75 int64
-		dataP75  int64
-		p75Flag  bool
-
-		indexP80 int64
-		dataP80  int64
-		p80Flag  bool
-
-		indexP85 int64
-		dataP85  int64
-		p85Flag  bool
-
-		indexP90 int64
-		dataP90  int64
-		p90Flag  bool
-
-		indexP95 int64
-		dataP95  int64
-		p95Flag  bool
-	}
 }
 
+// New write files sequentially
 func New(baseDir string, logger *zap.Logger) Sequential {
 	if logger == nil {
 		panic("logger required")
@@ -150,7 +127,6 @@ func New(baseDir string, logger *zap.Logger) Sequential {
 	}
 
 	sequential.validate()
-	sequential.resetThreshold()
 	go sequential.consumer()
 
 	return sequential
@@ -190,31 +166,6 @@ func (s *sequential) rdwr(path string) *os.File {
 	}
 
 	return file
-}
-
-func (s *sequential) resetThreshold() {
-	indexSize := indexSize
-	dataSize := dataSize
-
-	s.threshold.indexP75 = int64(float32(indexSize) * 0.75)
-	s.threshold.dataP75 = int64(float32(dataSize) * 0.75)
-	s.threshold.p75Flag = false
-
-	s.threshold.indexP80 = int64(float32(indexSize) * 0.80)
-	s.threshold.dataP80 = int64(float32(dataSize) * 0.80)
-	s.threshold.p80Flag = false
-
-	s.threshold.indexP85 = int64(float32(indexSize) * 0.85)
-	s.threshold.dataP85 = int64(float32(dataSize) * 0.85)
-	s.threshold.p85Flag = false
-
-	s.threshold.indexP90 = int64(float32(indexSize) * 0.90)
-	s.threshold.dataP90 = int64(float32(dataSize) * 0.90)
-	s.threshold.p90Flag = false
-
-	s.threshold.indexP95 = int64(float32(indexSize) * 0.95)
-	s.threshold.dataP95 = int64(float32(dataSize) * 0.95)
-	s.threshold.p95Flag = false
 }
 
 func (s *sequential) validate() {
@@ -336,14 +287,7 @@ func (s *sequential) createEmptyFile(path string) (file *os.File, err error) {
 		}
 	}()
 
-	if _, err = os.Stat(path); err == nil { // exists
-		return
-	}
-
-	file, err = os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		return nil, errors.Wrapf(err, "create file %s err", path)
-	}
+	file = s.rdwr(path)
 
 	delimiter := []byte{'~'}
 	ts := []byte(time.Now().Format(dateLayout))
@@ -382,38 +326,13 @@ func (s *sequential) createFile() {
 	s.meta.dataOffset = 0
 	s.meta.fileIndex++
 
-	emptyPath := fmt.Sprintf("%s/%d%s", s.baseDir, s.meta.fileIndex, emptyFileExt)
 	path := fmt.Sprintf("%s/%d%s", s.baseDir, s.meta.fileIndex, fileExt)
-
-	_, err := os.Stat(emptyPath)
-	_, ok := s.threshold.Load(emptyPath)
-	check := func() {
-		_, err = os.Stat(emptyPath)
-		_, ok = s.threshold.Load(emptyPath)
+	file, err := s.createEmptyFile(path)
+	if err != nil {
+		s.logger.Fatal("", zap.Error(err))
 	}
+	s.meta.file = file
 
-	if err == nil || ok { // empty file exists
-		for {
-			if check(); err == nil && !ok {
-				break
-			}
-			time.Sleep(time.Millisecond * 100)
-		}
-
-		if err = os.Rename(emptyPath, path); err != nil {
-			s.logger.Fatal("", zap.Error(errors.Wrapf(err, "rename %s to %s err", emptyPath, path)))
-		}
-		s.meta.file = s.rdwr(path)
-
-	} else {
-		file, err := s.createEmptyFile(path)
-		if err != nil {
-			s.logger.Fatal("", zap.Error(err))
-		}
-		s.meta.file = file
-	}
-
-	s.resetThreshold()
 	s.blocks.Append(&block{
 		fileIndex: s.meta.fileIndex,
 		file:      s.rdonly(s.meta.file.Name()),
@@ -421,9 +340,10 @@ func (s *sequential) createFile() {
 	})
 }
 
+// Write if err occurs ErrOversize and ErrClosed will be returned
 func (s *sequential) Write(raw []byte) (offset uint64, err error) {
 	if len(raw) > dataSize {
-		return 0, errors.Errorf("payload size exceeds the limit of %d", dataSize)
+		return 0, ErrOversize
 	}
 
 	payload := &payload{
@@ -502,48 +422,6 @@ func (s *sequential) write(raw []byte, offset uint64) {
 
 	s.meta.indexOffset += indexLen
 	s.meta.dataOffset += int64(len(raw))
-
-	emptyPath := fmt.Sprintf("%s/%d%s", s.baseDir, s.meta.fileIndex+1, emptyFileExt)
-	switch {
-	case !s.threshold.p75Flag && (s.meta.indexOffset >= s.threshold.indexP75 || s.meta.dataOffset >= s.threshold.dataP75):
-		s.threshold.p75Flag = true
-		s.prepareCreateEmptyFile(emptyPath)
-
-	case !s.threshold.p80Flag && (s.meta.indexOffset >= s.threshold.indexP80 || s.meta.dataOffset >= s.threshold.dataP80):
-		s.threshold.p80Flag = true
-		s.prepareCreateEmptyFile(emptyPath)
-
-	case !s.threshold.p85Flag && (s.meta.indexOffset >= s.threshold.indexP85 || s.meta.dataOffset >= s.threshold.dataP85):
-		s.threshold.p85Flag = true
-		s.prepareCreateEmptyFile(emptyPath)
-
-	case !s.threshold.p90Flag && (s.meta.indexOffset >= s.threshold.indexP90 || s.meta.dataOffset >= s.threshold.dataP90):
-		s.threshold.p90Flag = true
-		s.prepareCreateEmptyFile(emptyPath)
-
-	case !s.threshold.p95Flag && (s.meta.indexOffset >= s.threshold.indexP95 || s.meta.dataOffset >= s.threshold.dataP95):
-		s.threshold.p95Flag = true
-		s.prepareCreateEmptyFile(emptyPath)
-	}
-}
-
-func (s *sequential) prepareCreateEmptyFile(path string) {
-	if _, ok := s.threshold.Load(path); ok { // creating empty file
-		return
-	}
-
-	s.threshold.Store(path, struct{}{})
-	go func(path string) {
-		defer s.threshold.Delete(path)
-
-		if _, err := os.Stat(path); err == nil { // exists
-			return
-		}
-
-		if file, err := s.createEmptyFile(path); err == nil {
-			file.Close()
-		}
-	}(path)
 }
 
 func (s *sequential) rotateFile(raw []byte) (offset uint64, err error) {
@@ -565,6 +443,8 @@ func (s *sequential) rotateFile(raw []byte) (offset uint64, err error) {
 	return
 }
 
+// Get if err occurs ErrNotfound and ErrClosed will be returned;
+// notice: if read the underlayer file err, this truth err will be returned.
 func (s *sequential) Get(offset uint64) ([]byte, error) {
 	select {
 	case <-s.ctx.Done():
@@ -575,6 +455,7 @@ func (s *sequential) Get(offset uint64) ([]byte, error) {
 	}
 }
 
+// Info show offset and available capacity of each file(.mox) in this directory
 func Info(baseDir string) error {
 	info, err := os.Stat(baseDir)
 	if err != nil {
@@ -657,60 +538,6 @@ func Info(baseDir string) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func EmptyFiles(baseDir string, num uint16) error {
-	info, err := os.Stat(baseDir)
-	if err != nil {
-		return errors.Wrapf(err, "read dir %s stat err", baseDir)
-	}
-
-	if !info.IsDir() {
-		return errors.New(baseDir + " should be directory")
-	}
-
-	baseDir = strings.TrimRight(strings.ReplaceAll(baseDir, "\\", "/"), "/")
-
-	var fileIndex []uint64
-	err = filepath.Walk(baseDir, func(path string, info fs.FileInfo, err error) error {
-		if info.IsDir() || (filepath.Ext(info.Name()) != fileExt && filepath.Ext(info.Name()) != emptyFileExt) {
-			return nil
-		}
-
-		index, err := strconv.ParseUint(info.Name()[:len(info.Name())-len(fileExt)], 10, 64)
-		if err != nil {
-			return errors.Wrapf(err, "parse file name of %s err", path)
-		}
-
-		fileIndex = append(fileIndex, index)
-		return nil
-	})
-	if err != nil {
-		return errors.Wrapf(err, "walk directory %s err", baseDir)
-	}
-
-	sort.Slice(fileIndex, func(i, j int) bool {
-		return fileIndex[i] > fileIndex[j]
-	})
-
-	if len(fileIndex) == 0 {
-		fileIndex = []uint64{0}
-	}
-
-	sequential := new(sequential)
-	upperBound := uint64(num)
-	for k := uint64(1); k <= upperBound; k++ {
-		path := fmt.Sprintf("%s/%d%s", baseDir, fileIndex[0]+k, emptyFileExt)
-		fmt.Println("creating empty file", "[", k, "of", upperBound, "]", path)
-
-		file, err := sequential.createEmptyFile(path)
-		if err != nil {
-			return err
-		}
-		file.Close()
 	}
 
 	return nil

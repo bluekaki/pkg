@@ -1,7 +1,11 @@
 package sequential
 
 import (
+	"bytes"
+	"crypto/sha1"
+	"fmt"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/bluekaki/pkg/errors"
@@ -18,8 +22,10 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func TestXX(t *testing.T) {
-	sequential := New("/opt/tmp/sequential", logger)
+func TestManual(t *testing.T) {
+	const baseDir = "/tmp"
+
+	sequential := New(baseDir, logger)
 	defer sequential.Close()
 	sequential.string()
 
@@ -61,7 +67,7 @@ func TestXX(t *testing.T) {
 	}
 
 	if false {
-		path := "/opt/tmp/sequential/1.mox"
+		path := baseDir + "/1.mox"
 		file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
 		if err != nil {
 			logger.Fatal("", zap.Error(errors.Wrapf(err, "open file %s err", path)))
@@ -72,15 +78,87 @@ func TestXX(t *testing.T) {
 	}
 
 	if false {
-		err := Info("/opt/tmp/sequential")
+		err := Info(baseDir)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
+}
 
-	if false {
-		if err := EmptyFiles("/opt/tmp/sequential", 4); err != nil {
-			logger.Fatal("create empty file err", zap.Error(err))
+func TestSequential(t *testing.T) {
+	const total = 50 * 10000
+	raw := make([]byte, 128<<10)
+
+	const baseDir = "/data/sequential"
+
+	digestSlice := make([][]byte, total+1)
+	for k := uint64(1); k <= total; k++ {
+		copy(raw, []byte(fmt.Sprintf("%08d", k)))
+
+		digest := sha1.Sum(raw)
+		digestSlice[k] = digest[:]
+
+		if k%1000 == 0 {
+			logger.Info("init digest", zap.Uint64("k", k))
 		}
 	}
+	logger.Info("init digest over")
+
+	sequential := New(baseDir, logger)
+	defer sequential.Close()
+
+	for k := uint64(1); k <= total; k++ {
+		copy(raw, []byte(fmt.Sprintf("%08d", k)))
+
+		offset, err := sequential.Write(raw)
+		if err != nil {
+			logger.Fatal(fmt.Sprintf("write into sequential %d err", k), zap.Error(err))
+		}
+
+		if offset != k {
+			logger.Fatal("write into sequential return un-expected offset", zap.Uint64("k", k), zap.Uint64("offset", offset))
+		}
+
+		if k%1000 == 0 {
+			logger.Info("write into sequential", zap.Uint64("k", k))
+		}
+	}
+	logger.Info("write into sequential over")
+
+	workers := 10
+	ch := make(chan uint64, workers)
+	wg := new(sync.WaitGroup)
+
+	wg.Add(workers)
+	for k := 0; k < workers; k++ {
+		go func() {
+			defer wg.Done()
+
+			for offset := range ch {
+				raw, err := sequential.Get(offset)
+				if err != nil {
+					logger.Fatal(fmt.Sprintf("get offset %d from sequential err", offset), zap.Error(err))
+				}
+
+				digest := sha1.Sum(raw)
+				if !bytes.Equal(digest[:], digestSlice[offset]) {
+					logger.Fatal("digest not match", zap.Uint64("offset", offset))
+				}
+
+				if offset%1000 == 0 {
+					logger.Info("get from sequential", zap.Uint64("offset", offset))
+				}
+			}
+		}()
+	}
+
+	for k := uint64(1); k <= total; k++ {
+		ch <- k
+	}
+	close(ch)
+
+	wg.Wait()
+	logger.Info("over")
+
+	Info(baseDir)
 }
