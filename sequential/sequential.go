@@ -344,25 +344,29 @@ func (s *sequential) createEmptyFile(path string) (file *os.File, err error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "create file %s err", path)
 	}
-	if err = file.Sync(); err != nil {
-		return nil, errors.Wrapf(err, "create file %s err", path)
-	}
-
-	buf := make([]byte, 4<<10)
-	loop := fileSize / (4 << 10)
-	for k := 0; k < loop; k++ {
-		if _, err = file.Write(buf); err != nil {
-			return nil, errors.Wrapf(err, "write zero into file %s err", path)
-		}
-	}
 
 	delimiter := []byte{'~'}
 	ts := []byte(time.Now().Format(dateLayout))
 
-	file.WriteAt(delimiter, ts0Offset-1)
-	file.WriteAt(ts, ts0Offset)
-	file.WriteAt(delimiter, tsNOffset-1)
-	file.WriteAt(ts, tsNOffset)
+	if _, err = file.WriteAt(delimiter, ts0Offset-1); err != nil {
+		return nil, errors.Wrapf(err, "write ts0 delimiter into file %s err", path)
+	}
+
+	if _, err = file.WriteAt(ts, ts0Offset); err != nil {
+		return nil, errors.Wrapf(err, "write ts0 into file %s err", path)
+	}
+
+	if _, err = file.WriteAt(delimiter, tsNOffset-1); err != nil {
+		return nil, errors.Wrapf(err, "write tsN delimiter into file %s err", path)
+	}
+
+	if _, err = file.WriteAt(ts, tsNOffset); err != nil {
+		return nil, errors.Wrapf(err, "write tsN into file %s err", path)
+	}
+
+	if _, err = file.WriteAt([]byte{0}, fileSize-1); err != nil {
+		return nil, errors.Wrapf(err, "write last zero byte into file %s err", path)
+	}
 
 	if err = file.Sync(); err != nil {
 		return nil, errors.Wrapf(err, "sync file %s err", path)
@@ -653,6 +657,60 @@ func Info(baseDir string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func EmptyFiles(baseDir string, num uint16) error {
+	info, err := os.Stat(baseDir)
+	if err != nil {
+		return errors.Wrapf(err, "read dir %s stat err", baseDir)
+	}
+
+	if !info.IsDir() {
+		return errors.New(baseDir + " should be directory")
+	}
+
+	baseDir = strings.TrimRight(strings.ReplaceAll(baseDir, "\\", "/"), "/")
+
+	var fileIndex []uint64
+	err = filepath.Walk(baseDir, func(path string, info fs.FileInfo, err error) error {
+		if info.IsDir() || (filepath.Ext(info.Name()) != fileExt && filepath.Ext(info.Name()) != emptyFileExt) {
+			return nil
+		}
+
+		index, err := strconv.ParseUint(info.Name()[:len(info.Name())-len(fileExt)], 10, 64)
+		if err != nil {
+			return errors.Wrapf(err, "parse file name of %s err", path)
+		}
+
+		fileIndex = append(fileIndex, index)
+		return nil
+	})
+	if err != nil {
+		return errors.Wrapf(err, "walk directory %s err", baseDir)
+	}
+
+	sort.Slice(fileIndex, func(i, j int) bool {
+		return fileIndex[i] > fileIndex[j]
+	})
+
+	if len(fileIndex) == 0 {
+		fileIndex = []uint64{0}
+	}
+
+	sequential := new(sequential)
+	upperBound := uint64(num)
+	for k := uint64(1); k <= upperBound; k++ {
+		path := fmt.Sprintf("%s/%d%s", baseDir, fileIndex[0]+k, emptyFileExt)
+		fmt.Println("creating empty file", "[", k, "of", upperBound, "]", path)
+
+		file, err := sequential.createEmptyFile(path)
+		if err != nil {
+			return err
+		}
+		file.Close()
 	}
 
 	return nil

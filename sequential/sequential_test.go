@@ -32,7 +32,7 @@ func TestXX(t *testing.T) {
 		sequential.string()
 	}
 
-	if true {
+	if false {
 		entry := make([]byte, 128<<10)
 		filling := func(char byte) {
 			for i := range entry {
@@ -72,9 +72,15 @@ func TestXX(t *testing.T) {
 	}
 
 	if false {
-		err := Info("/tmp/sequential")
+		err := Info("/opt/tmp/sequential")
 		if err != nil {
 			t.Fatal(err)
+		}
+	}
+
+	if false {
+		if err := EmptyFiles("/opt/tmp/sequential", 4); err != nil {
+			logger.Fatal("create empty file err", zap.Error(err))
 		}
 	}
 }
