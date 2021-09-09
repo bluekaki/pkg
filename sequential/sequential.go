@@ -60,7 +60,7 @@ const (
 	indexLen  = 32
 	indexSize = 256 << 10 // 256Kb
 
-	fileSize = 1 << 20 // 1 << 30 // 1Gb
+	fileSize = 1 << 30 // 1Gb
 	dataSize = fileSize - dataOffset
 
 	dateLayout = "2006/01/02"
@@ -336,9 +336,16 @@ func (s *sequential) createEmptyFile(path string) (file *os.File, err error) {
 		}
 	}()
 
+	if _, err = os.Stat(path); err == nil { // exists
+		return
+	}
+
 	file, err = os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
-		return nil, errors.Wrapf(err, "open file %s err", path)
+		return nil, errors.Wrapf(err, "create file %s err", path)
+	}
+	if err = file.Sync(); err != nil {
+		return nil, errors.Wrapf(err, "create file %s err", path)
 	}
 
 	buf := make([]byte, 4<<10)
@@ -374,12 +381,16 @@ func (s *sequential) createFile() {
 	emptyPath := fmt.Sprintf("%s/%d%s", s.baseDir, s.meta.fileIndex, emptyFileExt)
 	path := fmt.Sprintf("%s/%d%s", s.baseDir, s.meta.fileIndex, fileExt)
 
-	fmt.Println(">>createFile>>", emptyPath, path)
+	_, err := os.Stat(emptyPath)
+	_, ok := s.threshold.Load(emptyPath)
+	check := func() {
+		_, err = os.Stat(emptyPath)
+		_, ok = s.threshold.Load(emptyPath)
+	}
 
-	if _, err := os.Stat(emptyPath); err == nil { // empty file exists
-		fmt.Println(">>createFile>>  into ", emptyPath)
+	if err == nil || ok { // empty file exists
 		for {
-			if _, ok := s.threshold.Load(emptyPath); !ok {
+			if check(); err == nil && !ok {
 				break
 			}
 			time.Sleep(time.Millisecond * 100)
@@ -391,8 +402,6 @@ func (s *sequential) createFile() {
 		s.meta.file = s.rdwr(path)
 
 	} else {
-		fmt.Println(">>createFile>>  into ", path, err)
-
 		file, err := s.createEmptyFile(path)
 		if err != nil {
 			s.logger.Fatal("", zap.Error(err))
@@ -523,12 +532,10 @@ func (s *sequential) prepareCreateEmptyFile(path string) {
 	go func(path string) {
 		defer s.threshold.Delete(path)
 
-		if _, err := os.Stat(path); err != nil && !os.IsNotExist(err) {
-			s.logger.Warn("prepareCreateEmptyFile err", zap.Error(err))
+		if _, err := os.Stat(path); err == nil { // exists
 			return
 		}
 
-		fmt.Println("XXXX", path)
 		if file, err := s.createEmptyFile(path); err == nil {
 			file.Close()
 		}
