@@ -16,15 +16,20 @@ import (
 var _ Value = (*value)(nil)
 
 type value struct {
+	Id  string
 	Val int
 }
 
 func (v *value) ID() string {
-	return strconv.Itoa(int(v.Val))
+	if v.Id == "" {
+		return strconv.Itoa(int(v.Val))
+	}
+
+	return v.Id
 }
 
 func (v *value) String() string {
-	return strconv.Itoa(int(v.Val))
+	return v.Id + "-" + strconv.Itoa(int(v.Val))
 }
 
 func (v *value) Compare(val Value) stringutil.Diff {
@@ -53,7 +58,7 @@ func randSeed() int64 {
 func mustContains(values []Value, target Value) {
 	found := values[0].Compare(target) == stringutil.Equal
 	for i := 1; i < len(values); i++ {
-		if values[i].Compare(values[i-1]) != stringutil.Greater {
+		if values[i].Compare(values[i-1]) == stringutil.Less {
 			panic("not in asc")
 		}
 
@@ -74,7 +79,7 @@ func mustNotContains(values []Value, target Value) {
 
 	found := values[0].Compare(target) == stringutil.Equal
 	for i := 1; i < len(values); i++ {
-		if values[i].Compare(values[i-1]) != stringutil.Greater {
+		if values[i].Compare(values[i-1]) == stringutil.Less {
 			panic("not in asc")
 		}
 
@@ -88,7 +93,7 @@ func mustNotContains(values []Value, target Value) {
 	}
 }
 
-func TestInsert(t *testing.T) {
+func TestSingleInsert(t *testing.T) {
 	for k := 0; k < 1000000; k++ {
 		seed := randSeed()
 		rand.Seed(seed)
@@ -106,16 +111,21 @@ func TestInsert(t *testing.T) {
 			if tree.Exists(val) {
 				t.Fatal("already exists")
 			}
+			if tree.ExistsByID(val) {
+				t.Fatal("already exists")
+			}
 
 			if !tree.Add(val) {
 				t.Fatal("insert nothing")
 			}
-
 			if tree.Add(val) {
 				t.Fatal("duplicated")
 			}
 
 			if !tree.Exists(val) {
+				t.Fatal("not found")
+			}
+			if !tree.ExistsByID(val) {
 				t.Fatal("not found")
 			}
 
@@ -130,7 +140,60 @@ func TestInsert(t *testing.T) {
 	}
 }
 
-func TestDelete(t *testing.T) {
+func TestMultiInsert(t *testing.T) {
+	for k := 0; k < 1000000; k++ {
+		seed := randSeed()
+		rand.Seed(seed)
+		fmt.Println(">>>>", seed)
+
+		values := rand.Perm(1000)
+		for i := range values[:500] {
+			values[i] = -values[i]
+		}
+
+		tree := New()
+		size := tree.Size()
+		for _, v := range values {
+			for index, prefix := range []string{"X", "Y"} {
+				val := &value{Id: fmt.Sprintf("%s%d", prefix, v), Val: v}
+				if index == 0 && tree.Exists(val) {
+					t.Fatal("already exists")
+				}
+				if index == 1 && !tree.Exists(val) {
+					t.Fatal("not exists")
+				}
+
+				if tree.ExistsByID(val) {
+					t.Fatal("already exists")
+				}
+
+				if !tree.Add(val) {
+					t.Fatal("insert nothing")
+				}
+				if tree.Add(val) {
+					t.Fatal("duplicated")
+				}
+
+				if !tree.Exists(val) {
+					t.Fatal("not found")
+				}
+				if !tree.ExistsByID(val) {
+					t.Fatal("not found")
+				}
+
+				if tree.Size()-size != 1 {
+					t.Fatal("size not match")
+				}
+				size = tree.Size()
+
+				mustContains(tree.Asc(), val)
+			}
+		}
+		fmt.Println(k)
+	}
+}
+
+func TestSingleDelete(t *testing.T) {
 	for k := 0; k < 1000000; k++ {
 		seed := randSeed()
 		rand.Seed(seed)
@@ -143,7 +206,73 @@ func TestDelete(t *testing.T) {
 
 		tree := New()
 		for _, v := range values {
-			tree.Add(&value{Val: v})
+			for _, prefix := range []string{"X", "Y"} {
+				tree.Add(&value{Id: fmt.Sprintf("%s%d", prefix, v), Val: v})
+			}
+		}
+
+		size := tree.Size()
+		for _, v := range values {
+			for index, prefix := range []string{"X", "Y"} {
+				val := &value{Id: fmt.Sprintf("%s%d", prefix, v), Val: v}
+				if !tree.Exists(val) {
+					t.Fatal("not found")
+				}
+				if !tree.ExistsByID(val) {
+					t.Fatal("not found")
+				}
+
+				if !tree.DeleteByID(val) {
+					t.Fatal("delete nothing")
+				}
+				if tree.DeleteByID(val) {
+					t.Fatal("duplicated")
+				}
+
+				if index == 0 && !tree.Exists(val) {
+					t.Fatal("delete nothing")
+				}
+				if index == 1 && tree.Exists(val) {
+					t.Fatal("delete nothing")
+				}
+
+				if tree.ExistsByID(val) {
+					t.Fatal("delete nothing")
+				}
+
+				if size-tree.Size() != 1 {
+					t.Fatal("size not match")
+				}
+				size = tree.Size()
+
+				if index == 0 {
+					mustContains(tree.Asc(), val)
+
+				} else {
+					mustNotContains(tree.Asc(), val)
+				}
+			}
+		}
+		fmt.Println(k)
+	}
+}
+
+func TestMultiDelete(t *testing.T) {
+	for k := 0; k < 1000000; k++ {
+		seed := randSeed()
+		rand.Seed(seed)
+		fmt.Println(">>>>", seed)
+
+		values := rand.Perm(1000)
+		for i := range values[:500] {
+			values[i] = -values[i]
+		}
+
+		tree := New()
+		for _, v := range values {
+			for _, prefix := range []string{"X", "Y"} {
+				tree.Add(&value{Id: fmt.Sprintf("%s%d", prefix, v), Val: v})
+			}
 		}
 
 		size := tree.Size()
@@ -156,7 +285,6 @@ func TestDelete(t *testing.T) {
 			if !tree.Delete(val) {
 				t.Fatal("delete nothing")
 			}
-
 			if tree.Delete(val) {
 				t.Fatal("duplicated")
 			}
@@ -164,8 +292,11 @@ func TestDelete(t *testing.T) {
 			if tree.Exists(val) {
 				t.Fatal("delete nothing")
 			}
+			if tree.ExistsByID(val) {
+				t.Fatal("delete nothing")
+			}
 
-			if size-tree.Size() != 1 {
+			if size-tree.Size() != 2 {
 				t.Fatal("size not match")
 			}
 			size = tree.Size()

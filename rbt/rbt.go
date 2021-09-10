@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/bluekaki/pkg/errors"
+	"github.com/bluekaki/pkg/stringutil"
 )
 
 var _ RBTree = (*rbTree)(nil)
@@ -14,12 +15,13 @@ var _ RBTree = (*rbTree)(nil)
 type RBTree interface {
 	// Add overwrite if id repeated
 	Add(val Value) bool
-	// Delete by id
 	Delete(Value) bool
-	// Exists by id
+	DeleteByID(Value) bool
 	Exists(Value) bool
-	// Search by id
-	Search(Value) Value
+	ExistsByID(Value) bool
+	Search(val Value) []Value
+	SearchByID(Value) Value
+	Range(min, max Value) []Value
 	Size() uint32
 	Empty() bool
 	Maximum() []Value
@@ -172,7 +174,10 @@ func (t *rbTree) Maximum() []Value {
 	}
 
 	root := t.maximum(t.root)
-	return root.values
+	values := make([]Value, len(root.values))
+	copy(values, root.values)
+
+	return values
 }
 
 func (t *rbTree) PopMaximum() []Value {
@@ -187,9 +192,10 @@ func (t *rbTree) PopMaximum() []Value {
 	values := make([]Value, len(root.values))
 	copy(values, root.values)
 
-	for _, val := range values {
-		t.delete(val)
-	}
+	t.size -= uint32(len(root.values))
+	root.values = nil
+	t.rebalance(root)
+
 	return values
 }
 
@@ -202,7 +208,10 @@ func (t *rbTree) Minimum() []Value {
 	}
 
 	root := t.minimum(t.root)
-	return root.values
+	values := make([]Value, len(root.values))
+	copy(values, root.values)
+
+	return values
 }
 
 func (t *rbTree) PopMinimum() []Value {
@@ -217,13 +226,26 @@ func (t *rbTree) PopMinimum() []Value {
 	values := make([]Value, len(root.values))
 	copy(values, root.values)
 
-	for _, val := range values {
-		t.delete(val)
-	}
+	t.size -= uint32(len(root.values))
+	root.values = nil
+	t.rebalance(root)
+
 	return values
 }
 
 func (t *rbTree) Exists(val Value) (ok bool) {
+	if val == nil {
+		return
+	}
+
+	t.RLock()
+	defer t.RUnlock()
+
+	x := t.lookup(val)
+	return x != nil
+}
+
+func (t *rbTree) ExistsByID(val Value) (ok bool) {
 	if val == nil {
 		return
 	}
@@ -244,7 +266,26 @@ func (t *rbTree) Exists(val Value) (ok bool) {
 	return
 }
 
-func (t *rbTree) Search(val Value) Value {
+func (t *rbTree) Search(val Value) []Value {
+	if val == nil {
+		return nil
+	}
+
+	t.RLock()
+	defer t.RUnlock()
+
+	x := t.lookup(val)
+	if x == nil {
+		return nil
+	}
+
+	values := make([]Value, len(x.values))
+	copy(values, x.values)
+
+	return values
+}
+
+func (t *rbTree) SearchByID(val Value) Value {
 	if val == nil {
 		return nil
 	}
@@ -263,6 +304,60 @@ func (t *rbTree) Search(val Value) Value {
 		}
 	}
 	return nil
+}
+
+func (t *rbTree) Range(min, max Value) (values []Value) {
+	if min == nil && max == nil {
+		return t.Asc()
+	}
+
+	if min != nil && max != nil && min.Compare(max) == stringutil.Greater {
+		return nil
+	}
+
+	t.RLock()
+	defer t.RUnlock()
+
+	if min == nil { // max not nil
+		x := t.minimum(t.root)
+		switch x.values[0].Compare(max) {
+		case stringutil.Greater:
+			return nil
+
+		case stringutil.Equal:
+			values = make([]Value, len(x.values))
+			copy(values, x.values)
+			return
+		}
+
+		root := x.P
+		for root != nil && root.R != nil {
+			if diff := root.values[0].Compare(max); diff == stringutil.Less || diff == stringutil.Equal {
+
+			}
+		}
+	}
+
+	if max == nil { // min not nil
+		y := t.maximum(t.root)
+		if y.values[0].Compare(min) == stringutil.Less {
+			return nil
+		}
+
+	}
+
+	// x := t.lookup(min)
+	// if x == nil {
+	// 	x = t.minimum(t.root)
+	// }
+
+	// for _, v := range x.values {
+	// 	if v.ID() == min.ID() {
+	// 		values = append(values, v)
+	// 	}
+	// }
+
+	return
 }
 
 func (t *rbTree) Marshal() []byte {

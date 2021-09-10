@@ -12,13 +12,25 @@ func (t *rbTree) Delete(val Value) (ok bool) {
 	t.Lock()
 	defer t.Unlock()
 
-	return t.delete(val)
+	x := t.lookup(val)
+	if x == nil {
+		return
+	}
+
+	t.size -= uint32(len(x.values))
+	x.values = nil
+
+	t.rebalance(x)
+	return true
 }
 
-func (t *rbTree) delete(val Value) (ok bool) {
+func (t *rbTree) DeleteByID(val Value) (ok bool) {
 	if val == nil {
 		return
 	}
+
+	t.Lock()
+	defer t.Unlock()
 
 	x := t.lookup(val)
 	if x == nil {
@@ -34,7 +46,12 @@ func (t *rbTree) delete(val Value) (ok bool) {
 		return
 	}
 
-del:
+	t.rebalance(x)
+	return true
+}
+
+func (t *rbTree) rebalance(x *node) {
+redo:
 	switch {
 	case x.L == nil && x.R == nil:
 		if x.Root() {
@@ -61,14 +78,14 @@ del:
 			x = s
 		}
 
-		goto del
+		goto redo
 
 	default:
 		s := t.minimum(x.R)
 		x.values = s.values
 		x = s
 
-		goto del
+		goto redo
 	}
 
 loop:
@@ -166,6 +183,10 @@ loop:
 }
 
 func (t *rbTree) lookup(val Value) *node {
+	if val == nil {
+		return nil
+	}
+
 	root := t.root
 	for root != nil {
 		switch val.Compare(root.values[0]) {
