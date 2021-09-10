@@ -85,7 +85,9 @@ func TestManual(t *testing.T) {
 	}
 }
 
-func TestSequential(t *testing.T) {
+func BenchmarkSequential(b *testing.B) {
+	b.SetParallelism(1)
+
 	const total = 50 * 10000
 	raw := make([]byte, 128<<10)
 
