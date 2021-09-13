@@ -105,10 +105,10 @@ func (t *bpTree) delete(val Value) (ok bool) {
 
 	for {
 		// internal node and half
-		if cur != t.root && !cur.overHalf() {
+		if cur != t.root && !cur.overHalf(t.meta.HT) {
 			switch {
 			case parent.cIndex == 0:
-				if sR = parent.children[parent.cIndex+1]; sR.overHalf() {
+				if sR = parent.children[parent.cIndex+1]; sR.overHalf(t.meta.HT) {
 					rotate2Left()
 
 				} else {
@@ -116,7 +116,7 @@ func (t *bpTree) delete(val Value) (ok bool) {
 				}
 
 			case parent.cIndex == len(parent.values):
-				if sL = parent.children[parent.cIndex-1]; sL.overHalf() {
+				if sL = parent.children[parent.cIndex-1]; sL.overHalf(t.meta.HT) {
 					rotate2Right()
 
 				} else {
@@ -127,10 +127,10 @@ func (t *bpTree) delete(val Value) (ok bool) {
 				sL = parent.children[parent.cIndex-1]
 				sR = parent.children[parent.cIndex+1]
 
-				if sL.overHalf() {
+				if sL.overHalf(t.meta.HT) {
 					rotate2Right()
 
-				} else if sR.overHalf() {
+				} else if sR.overHalf(t.meta.HT) {
 					rotate2Left()
 
 				} else {
@@ -140,7 +140,7 @@ func (t *bpTree) delete(val Value) (ok bool) {
 			continue
 		}
 
-		index, bingo := search(cur, val)
+		index, bingo := t.search(cur, val)
 		if !bingo {
 			if cur.leaf() {
 				// not exists
@@ -176,7 +176,7 @@ func (t *bpTree) delete(val Value) (ok bool) {
 		{ // leaf
 			cur.values = append(cur.values[:index], cur.values[index+1:]...)
 			if toReplaced.target != nil {
-				index, _ = search(toReplaced.target, toReplaced.val)
+				index, _ = t.search(toReplaced.target, toReplaced.val)
 				toReplaced.target.values[index] = val
 			}
 

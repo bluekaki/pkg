@@ -16,7 +16,6 @@ func (t *bpTree) Add(val Value) (ok bool) {
 
 	if t.root == nil {
 		t.root = &node{
-			id:     ID(),
 			values: []Value{val},
 		}
 
@@ -25,8 +24,8 @@ func (t *bpTree) Add(val Value) (ok bool) {
 		return
 	}
 
-	if t.root.full() {
-		x, y, mid := split(t.root)
+	if t.root.full(t.meta.N) {
+		x, y, mid := t.split(t.root)
 
 		t.root.values = []Value{mid}
 		t.root.children = []*node{x, y}
@@ -35,14 +34,14 @@ func (t *bpTree) Add(val Value) (ok bool) {
 	cur := t.root
 	for {
 		if !cur.leaf() { // node
-			index, duplicated := search(cur, val)
+			index, duplicated := t.search(cur, val)
 			if duplicated {
 				cur.values[index] = val
 				return
 			}
 
-			if cur.children[index].full() {
-				x, y, mid := split(cur.children[index])
+			if cur.children[index].full(t.meta.N) {
+				x, y, mid := t.split(cur.children[index])
 
 				cur.values = append(cur.values, cur.values[0])
 				copy(cur.values[index+1:], cur.values[index:])
@@ -60,7 +59,7 @@ func (t *bpTree) Add(val Value) (ok bool) {
 		}
 
 		{ // leaf
-			index, duplicated := search(cur, val)
+			index, duplicated := t.search(cur, val)
 			if duplicated {
 				cur.values[index] = val
 				return
@@ -77,7 +76,7 @@ func (t *bpTree) Add(val Value) (ok bool) {
 	}
 }
 
-func search(cur *node, val Value) (index int, duplicated bool) {
+func (t *bpTree) search(cur *node, val Value) (index int, duplicated bool) {
 	switch cur.values[0].Compare(val) {
 	case stringutil.Equal:
 		return 0, true
@@ -105,37 +104,35 @@ func search(cur *node, val Value) (index int, duplicated bool) {
 	return
 }
 
-func split(cur *node) (x, y *node, mid Value) {
-	xV := make([]Value, len(cur.values[:_Mid]))
-	copy(xV, cur.values[:_Mid])
+func (t *bpTree) split(cur *node) (x, y *node, mid Value) {
+	xV := make([]Value, len(cur.values[:t.meta.Mid]))
+	copy(xV, cur.values[:t.meta.Mid])
 
 	var xC []*node
 	if len(cur.children) > 0 {
-		xC = make([]*node, len(cur.children[:_T]))
-		copy(xC, cur.children[:_T])
+		xC = make([]*node, len(cur.children[:t.meta.HT]))
+		copy(xC, cur.children[:t.meta.HT])
 	}
 
 	x = &node{
-		id:       ID(),
 		values:   xV,
 		children: xC,
 	}
 
-	yV := make([]Value, len(cur.values[_Mid+1:]))
-	copy(yV, cur.values[_Mid+1:])
+	yV := make([]Value, len(cur.values[t.meta.Mid+1:]))
+	copy(yV, cur.values[t.meta.Mid+1:])
 
 	var yC []*node
 	if len(cur.children) > 0 {
-		yC = make([]*node, len(cur.children[_T:]))
-		copy(yC, cur.children[_T:])
+		yC = make([]*node, len(cur.children[t.meta.HT:]))
+		copy(yC, cur.children[t.meta.HT:])
 	}
 
 	y = &node{
-		id:       ID(),
 		values:   yV,
 		children: yC,
 	}
 
-	mid = cur.values[_Mid]
+	mid = cur.values[t.meta.Mid]
 	return
 }

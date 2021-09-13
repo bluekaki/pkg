@@ -8,44 +8,38 @@ import (
 	"sync"
 )
 
-var (
-	_N   = 199 // the max values in one node
-	_Mid = _N / 2
-	_T   = (_N + 1) / 2 // (half order)the half children in one node
+func New(orderT uint16) *bpTree {
+	if orderT%2 != 0 {
+		panic("t must be even number")
+	}
 
-	once sync.Once
-)
+	if orderT < 4 { // t ≥4
+		panic("t must be ≥4")
+	}
 
-// SetOrder t should be odd number
-func SetOrder(t uint16) {
-	once.Do(func() {
-		if t%2 != 0 {
-			panic("t must be even number")
-		}
+	bpt := new(bpTree)
+	bpt.meta.N = int(orderT - 1)
+	bpt.meta.Mid = int(orderT-1) / 2
+	bpt.meta.HT = int(orderT) / 2
 
-		if t < 4 { // t ≥4
-			panic("t must be ≥4")
-		}
-
-		_N = int(t - 1)
-		_Mid = _N / 2
-		_T = int(t) / 2
-	})
-}
-
-func New() *bpTree {
-	return new(bpTree)
+	return bpt
 }
 
 type bpTree struct {
 	sync.RWMutex
 	size uint32
 	root *node
+
+	meta struct {
+		N   int // the max values in one node
+		Mid int // N / 2
+		HT  int // (N + 1) / 2  (half order)the half children in one node
+	}
 }
 
 func (t *bpTree) String() string {
-	// t.RLock()
-	// defer t.RUnlock()
+	t.RLock()
+	defer t.RUnlock()
 
 	stack := list.New()
 	if t.root != nil {
@@ -70,7 +64,7 @@ func output(stack *list.List, node *node, level int, isTail bool) {
 		}
 
 		if e < len(node.values) {
-			stack.PushBack(fmt.Sprintf("%s%s(%d)\n", strings.Repeat("    ", level), node.values[e].String(), node.id))
+			stack.PushBack(fmt.Sprintf("%s%s\n", strings.Repeat("    ", level), node.values[e].String()))
 		}
 	}
 }
@@ -87,13 +81,6 @@ func (t *bpTree) Size() uint32 {
 	defer t.RUnlock()
 
 	return t.size
-}
-
-var id int
-
-func ID() int {
-	id++
-	return id
 }
 
 func (t *bpTree) Asc() (values []Value) {
@@ -117,8 +104,8 @@ func (t *bpTree) Asc() (values []Value) {
 		stack.Remove(element)
 
 		node := element.Value.(*item)
-		if node.node != t.root && len(node.values) < (_T-1) {
-			panic(fmt.Sprintf("illegal %v %v", node.id, t.String()))
+		if node.node != t.root && len(node.values) < (t.meta.HT-1) {
+			panic(fmt.Sprintf("illegal %s", t.String()))
 		}
 
 		if node.leaf() {

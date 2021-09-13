@@ -37,9 +37,6 @@ func randSeed() int64 {
 }
 
 func TestMain(m *testing.M) {
-	SetOrder(6)
-	fmt.Println("_N:", _N, "_Mid:", _Mid, "_T:", _T)
-
 	m.Run()
 }
 
@@ -82,7 +79,7 @@ func mustNotContains(values []Value, target Value) {
 }
 
 func TestXXX(t *testing.T) {
-	tree := New()
+	tree := New(6)
 	for k := 0; k < 20; k++ {
 		tree.Add(value(k))
 		fmt.Println(tree)
@@ -100,7 +97,7 @@ func TestInsert(t *testing.T) {
 			values[i] = -values[i]
 		}
 
-		tree := New()
+		tree := New(6)
 		size := tree.Size()
 		for _, v := range values {
 			val := value(v)
@@ -134,7 +131,7 @@ func TestDelete(t *testing.T) {
 			values[i] = -values[i]
 		}
 
-		tree := New()
+		tree := New(6)
 		for _, v := range values {
 			tree.Add(value(v))
 		}

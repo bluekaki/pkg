@@ -11,17 +11,16 @@ type Value interface {
 }
 
 type node struct {
-	id       int
 	values   []Value
 	children []*node
 }
 
-func (n *node) full() bool {
-	return len(n.values) == _N
+func (n *node) full(N int) bool {
+	return len(n.values) == N
 }
 
-func (n *node) overHalf() bool {
-	return len(n.values) >= _T
+func (n *node) overHalf(HT int) bool {
+	return len(n.values) >= HT
 }
 
 func (n *node) leaf() bool {
