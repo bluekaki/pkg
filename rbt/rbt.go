@@ -458,7 +458,7 @@ func (t *rbTree) ToJSON() []byte {
 		slice[i] = json.RawMessage(v.ToJSON())
 	}
 
-	raw, _ := json.Marshal(slice)
+	raw, _ := json.MarshalIndent(slice, "", " ")
 	return raw
 }
 
