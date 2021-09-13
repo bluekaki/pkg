@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/bluekaki/pkg/errors"
+	"github.com/bluekaki/pkg/stringutil"
 )
 
 var _ RBTree = (*rbTree)(nil)
@@ -20,6 +21,8 @@ type RBTree interface {
 	ExistsByID(Value) bool
 	Search(val Value) []Value
 	SearchByID(Value) Value
+	// Range do not by id
+	Range(min, max Value) []Value
 	Size() uint32
 	Empty() bool
 	Maximum() []Value
@@ -302,6 +305,119 @@ func (t *rbTree) SearchByID(val Value) Value {
 		}
 	}
 	return nil
+}
+
+func (t *rbTree) Range(min, max Value) (values []Value) {
+	if min == nil && max == nil {
+		return t.Asc()
+	}
+
+	if min != nil && max != nil && min.Compare(max) == stringutil.Greater {
+		return nil
+	}
+
+	t.RLock()
+	defer t.RUnlock()
+
+	if t.size == 0 {
+		return nil
+	}
+
+	padding := func() {
+		stack := list.New()
+		root := t.root
+		for root != nil || stack.Len() != 0 {
+			for root != nil {
+				stack.PushBack(root)
+				root = root.L
+			}
+
+			if stack.Len() != 0 {
+				v := stack.Back()
+				root = v.Value.(*node)
+
+				maxLe := max == nil
+				if !maxLe {
+					diff := root.values[0].Compare(max)
+					maxLe = (diff == stringutil.Less || diff == stringutil.Equal)
+				}
+				if !maxLe {
+					return
+				}
+
+				minGe := min == nil
+				if !minGe {
+					diff := root.values[0].Compare(min)
+					minGe = (diff == stringutil.Greater || diff == stringutil.Equal)
+				}
+				if minGe {
+					values = append(values, root.values...) // visit
+				}
+
+				root = root.R
+				stack.Remove(v)
+			}
+		}
+	}
+
+	if min != nil && max != nil {
+		x := t.minimum(t.root)
+		switch x.values[0].Compare(max) {
+		case stringutil.Greater:
+			return
+
+		case stringutil.Equal:
+			values = make([]Value, len(x.values))
+			copy(values, x.values)
+			return
+		}
+
+		y := t.maximum(t.root)
+		switch y.values[0].Compare(min) {
+		case stringutil.Less:
+			return
+
+		case stringutil.Equal:
+			values = make([]Value, len(y.values))
+			copy(values, y.values)
+			return
+		}
+
+		padding()
+		return
+	}
+
+	if min == nil { // max not nil
+		x := t.minimum(t.root)
+		switch x.values[0].Compare(max) {
+		case stringutil.Greater:
+
+		case stringutil.Equal:
+			values = make([]Value, len(x.values))
+			copy(values, x.values)
+
+		default:
+			padding()
+		}
+		return
+	}
+
+	if max == nil { // min not nil
+		y := t.maximum(t.root)
+		switch y.values[0].Compare(min) {
+		case stringutil.Less:
+
+		case stringutil.Equal:
+			values = make([]Value, len(y.values))
+			copy(values, y.values)
+
+		default:
+			padding()
+		}
+		return
+	}
+
+	return
 }
 
 func (t *rbTree) Marshal() []byte {

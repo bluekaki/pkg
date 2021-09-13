@@ -334,3 +334,38 @@ func TestToJSON(t *testing.T) {
 	}
 	fmt.Println("11", rbt)
 }
+
+func TestRange(t *testing.T) {
+	tree := New()
+	for k := 0; k < 10; k++ {
+		val := &value{Val: k}
+		if !tree.Add(val) {
+			t.Fatal("insert nothing")
+		}
+	}
+	fmt.Println(tree)
+
+	fmt.Println("nil-nil", tree.Range(nil, nil))
+	fmt.Println("nil- -1", tree.Range(nil, &value{Val: -1}))
+	fmt.Println("nil-0", tree.Range(nil, &value{Val: 0}))
+	fmt.Println("nil-1", tree.Range(nil, &value{Val: 1}))
+	fmt.Println("0-4", tree.Range(&value{Val: 0}, &value{Val: 4}))
+	fmt.Println("4-9", tree.Range(&value{Val: 4}, &value{Val: 9}))
+	fmt.Println("6-nil", tree.Range(&value{Val: 6}, nil))
+	fmt.Println("9-nil", tree.Range(&value{Val: 9}, nil))
+	fmt.Println("10-nil", tree.Range(&value{Val: 10}, nil))
+
+	fmt.Println("-3- -1", tree.Range(&value{Val: -3}, &value{Val: -1}))
+	fmt.Println("-3-0", tree.Range(&value{Val: -3}, &value{Val: 0}))
+	fmt.Println("9-12", tree.Range(&value{Val: 9}, &value{Val: 12}))
+	fmt.Println("10-12", tree.Range(&value{Val: 10}, &value{Val: 12}))
+
+	fmt.Println(tree.PopMinimum())
+	fmt.Println(tree.Size(), tree)
+
+	fmt.Println(tree.PopMaximum())
+	fmt.Println(tree.Size(), tree)
+
+	fmt.Println(tree.Asc())
+	fmt.Println(tree.Desc())
+}
