@@ -37,7 +37,7 @@ func randSeed() int64 {
 }
 
 func TestMain(m *testing.M) {
-	SetN(5)
+	SetOrder(6)
 	fmt.Println("_N:", _N, "_Mid:", _Mid, "_T:", _T)
 
 	m.Run()
@@ -78,6 +78,14 @@ func mustNotContains(values []Value, target Value) {
 
 	if found {
 		panic(fmt.Sprintf("%v should not exist", target))
+	}
+}
+
+func TestXXX(t *testing.T) {
+	tree := New()
+	for k := 0; k < 20; k++ {
+		tree.Add(value(k))
+		fmt.Println(tree)
 	}
 }
 

@@ -11,25 +11,25 @@ import (
 var (
 	_N   = 199 // the max values in one node
 	_Mid = _N / 2
-	_T   = (_N + 1) / 2 // the half children in one node
+	_T   = (_N + 1) / 2 // (half order)the half children in one node
 
 	once sync.Once
 )
 
-// SetN N should be odd number
-func SetN(n uint16) {
+// SetOrder t should be odd number
+func SetOrder(t uint16) {
 	once.Do(func() {
-		if n%2 == 0 {
-			panic("n must be odd number")
+		if t%2 != 0 {
+			panic("t must be even number")
 		}
 
-		if n < 3 { // t ≥2; 2t-1 = n;
-			panic("n must be ≥3")
+		if t < 4 { // t ≥4
+			panic("t must be ≥4")
 		}
 
-		_N = int(n)
+		_N = int(t - 1)
 		_Mid = _N / 2
-		_T = (_N + 1) / 2
+		_T = int(t) / 2
 	})
 }
 
@@ -118,8 +118,7 @@ func (t *bpTree) Asc() (values []Value) {
 
 		node := element.Value.(*item)
 		if node.node != t.root && len(node.values) < (_T-1) {
-			fmt.Println(">>", node.id, t.String())
-			panic("-----illegal------")
+			panic(fmt.Sprintf("illegal %v %v", node.id, t.String()))
 		}
 
 		if node.leaf() {
