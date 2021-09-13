@@ -20,7 +20,7 @@ func (t *rbTree) Delete(val Value) (ok bool) {
 	t.size -= uint32(len(x.values))
 	x.values = nil
 
-	t.rebalance(x)
+	t.delete(x)
 	return true
 }
 
@@ -46,11 +46,11 @@ func (t *rbTree) DeleteByID(val Value) (ok bool) {
 		return
 	}
 
-	t.rebalance(x)
+	t.delete(x)
 	return true
 }
 
-func (t *rbTree) rebalance(x *node) {
+func (t *rbTree) delete(x *node) {
 redo:
 	switch {
 	case x.L == nil && x.R == nil:

@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/bluekaki/pkg/errors"
-	"github.com/bluekaki/pkg/stringutil"
 )
 
 var _ RBTree = (*rbTree)(nil)
@@ -21,7 +20,6 @@ type RBTree interface {
 	ExistsByID(Value) bool
 	Search(val Value) []Value
 	SearchByID(Value) Value
-	Range(min, max Value) []Value
 	Size() uint32
 	Empty() bool
 	Maximum() []Value
@@ -194,7 +192,7 @@ func (t *rbTree) PopMaximum() []Value {
 
 	t.size -= uint32(len(root.values))
 	root.values = nil
-	t.rebalance(root)
+	t.delete(root)
 
 	return values
 }
@@ -228,7 +226,7 @@ func (t *rbTree) PopMinimum() []Value {
 
 	t.size -= uint32(len(root.values))
 	root.values = nil
-	t.rebalance(root)
+	t.delete(root)
 
 	return values
 }
@@ -304,60 +302,6 @@ func (t *rbTree) SearchByID(val Value) Value {
 		}
 	}
 	return nil
-}
-
-func (t *rbTree) Range(min, max Value) (values []Value) {
-	if min == nil && max == nil {
-		return t.Asc()
-	}
-
-	if min != nil && max != nil && min.Compare(max) == stringutil.Greater {
-		return nil
-	}
-
-	t.RLock()
-	defer t.RUnlock()
-
-	if min == nil { // max not nil
-		x := t.minimum(t.root)
-		switch x.values[0].Compare(max) {
-		case stringutil.Greater:
-			return nil
-
-		case stringutil.Equal:
-			values = make([]Value, len(x.values))
-			copy(values, x.values)
-			return
-		}
-
-		root := x.P
-		for root != nil && root.R != nil {
-			if diff := root.values[0].Compare(max); diff == stringutil.Less || diff == stringutil.Equal {
-
-			}
-		}
-	}
-
-	if max == nil { // min not nil
-		y := t.maximum(t.root)
-		if y.values[0].Compare(min) == stringutil.Less {
-			return nil
-		}
-
-	}
-
-	// x := t.lookup(min)
-	// if x == nil {
-	// 	x = t.minimum(t.root)
-	// }
-
-	// for _, v := range x.values {
-	// 	if v.ID() == min.ID() {
-	// 		values = append(values, v)
-	// 	}
-	// }
-
-	return
 }
 
 func (t *rbTree) Marshal() []byte {
