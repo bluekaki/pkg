@@ -3,6 +3,7 @@ package bpt
 import (
 	crand "crypto/rand"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -10,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/bluekaki/pkg/stringutil"
+	"github.com/bluekaki/pkg/zaplog"
 )
 
 type value int
@@ -30,14 +32,27 @@ func (x value) Compare(v Value) stringutil.Diff {
 	}
 }
 
+func (v value) ToJSON() []byte {
+	raw, _ := json.Marshal(v)
+	return raw
+}
+
 func randSeed() int64 {
 	buf := make([]byte, 8)
 	io.ReadFull(crand.Reader, buf[:7])
 	return int64(binary.BigEndian.Uint64(buf))
 }
 
+var logger, _ = zaplog.NewJSONLogger()
+
 func TestMain(m *testing.M) {
+	defer logger.Sync()
+
 	m.Run()
+}
+
+func NewTree(t uint16) *bpTree {
+	return New(t, "/data/bpt", logger, nil)
 }
 
 func mustContains(values []Value, target Value) {
@@ -79,10 +94,16 @@ func mustNotContains(values []Value, target Value) {
 }
 
 func TestXXX(t *testing.T) {
-	tree := New(6)
+	tree := NewTree(6)
 	for k := 0; k < 20; k++ {
 		tree.Add(value(k))
 		fmt.Println(tree)
+	}
+	fmt.Println("---------------------------------------------------------------")
+
+	for k := 0; k < 20; k++ {
+		tree.Delete(value(k))
+		fmt.Println(k, tree)
 	}
 }
 
@@ -97,7 +118,7 @@ func TestInsert(t *testing.T) {
 			values[i] = -values[i]
 		}
 
-		tree := New(6)
+		tree := NewTree(6)
 		size := tree.Size()
 		for _, v := range values {
 			val := value(v)
@@ -131,7 +152,7 @@ func TestDelete(t *testing.T) {
 			values[i] = -values[i]
 		}
 
-		tree := New(6)
+		tree := NewTree(6)
 		for _, v := range values {
 			tree.Add(value(v))
 		}

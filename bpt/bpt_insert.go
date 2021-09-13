@@ -16,6 +16,7 @@ func (t *bpTree) Add(val Value) (ok bool) {
 
 	if t.root == nil {
 		t.root = &node{
+			index:  rootIndex,
 			values: []Value{val},
 		}
 
@@ -115,6 +116,7 @@ func (t *bpTree) split(cur *node) (x, y *node, mid Value) {
 	}
 
 	x = &node{
+		index:    t.nextIndex(),
 		values:   xV,
 		children: xC,
 	}
@@ -129,6 +131,7 @@ func (t *bpTree) split(cur *node) (x, y *node, mid Value) {
 	}
 
 	y = &node{
+		index:    t.nextIndex(),
 		values:   yV,
 		children: yC,
 	}

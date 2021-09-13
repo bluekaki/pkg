@@ -3,38 +3,120 @@ package bpt
 import (
 	"bytes"
 	"container/list"
+	"context"
 	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/bluekaki/pkg/errors"
+
+	"go.uber.org/zap"
 )
 
-func New(orderT uint16) *bpTree {
+const (
+	fileExt = ".bok"
+
+	rootIndex = 0
+)
+
+type bpTree struct {
+	sync.RWMutex
+	ctx        context.Context
+	cancel     context.CancelFunc
+	logger     *zap.Logger
+	size       uint64
+	root       *node
+	json2Value Json2Value
+
+	meta struct {
+		baseDir string
+		index   uint64
+		N       int // the max values in one node
+		Mid     int // N / 2
+		HT      int // (N + 1) / 2  (half order)the half children in one node
+	}
+}
+
+func New(orderT uint16, baseDir string, logger *zap.Logger, json2Value Json2Value) *bpTree {
+	if logger == nil {
+		panic("logger required")
+	}
+	if json2Value == nil {
+		panic("json2Value required")
+	}
+
 	if orderT%2 != 0 {
-		panic("t must be even number")
+		logger.Fatal("", zap.Error(errors.New("t must be even number")))
 	}
 
 	if orderT < 4 { // t ≥4
-		panic("t must be ≥4")
+		logger.Fatal("", zap.Error(errors.New("t must be ≥4")))
 	}
 
-	bpt := new(bpTree)
+	info, err := os.Stat(baseDir)
+	if err != nil {
+		logger.Fatal("", zap.Error(errors.Wrapf(err, "read dir %s stat err", baseDir)))
+	}
+
+	if !info.IsDir() {
+		logger.Fatal("", zap.Error(errors.Errorf("%s should be directory", baseDir)))
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	bpt := &bpTree{
+		ctx:        ctx,
+		cancel:     cancel,
+		logger:     logger,
+		json2Value: json2Value,
+	}
+	bpt.meta.baseDir = strings.TrimRight(strings.ReplaceAll(baseDir, "\\", "/"), "/")
 	bpt.meta.N = int(orderT - 1)
 	bpt.meta.Mid = int(orderT-1) / 2
 	bpt.meta.HT = int(orderT) / 2
 
+	bpt.init()
 	return bpt
 }
 
-type bpTree struct {
-	sync.RWMutex
-	size uint32
-	root *node
+func (t *bpTree) Close() {
+	select {
+	case <-t.ctx.Done():
+	default:
+		t.cancel()
 
-	meta struct {
-		N   int // the max values in one node
-		Mid int // N / 2
-		HT  int // (N + 1) / 2  (half order)the half children in one node
+		// TODO ...
 	}
+}
+
+func (t *bpTree) init() {
+	err := filepath.Walk(t.meta.baseDir, func(path string, info fs.FileInfo, err error) error {
+		if info.IsDir() || filepath.Ext(info.Name()) != fileExt {
+			return nil
+		}
+
+		fileIndex, err := strconv.ParseUint(info.Name()[:len(info.Name())-len(fileExt)], 10, 64)
+		if err != nil {
+			t.logger.Fatal("", zap.Error(errors.Wrapf(err, "parse file name of %s err", path)))
+		}
+
+		if fileIndex > t.meta.index {
+			t.meta.index = fileIndex
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.logger.Fatal("", zap.Error(errors.Wrapf(err, "walk directory %s err", t.meta.baseDir)))
+	}
+}
+
+func (t *bpTree) nextIndex() uint64 {
+	t.meta.index++
+	return t.meta.index
 }
 
 func (t *bpTree) String() string {
@@ -64,7 +146,7 @@ func output(stack *list.List, node *node, level int, isTail bool) {
 		}
 
 		if e < len(node.values) {
-			stack.PushBack(fmt.Sprintf("%s%s\n", strings.Repeat("    ", level), node.values[e].String()))
+			stack.PushBack(fmt.Sprintf("%s%s(%d)\n", strings.Repeat("    ", level), node.values[e].String(), node.index))
 		}
 	}
 }
@@ -76,7 +158,7 @@ func (t *bpTree) Empty() bool {
 	return t.size == 0
 }
 
-func (t *bpTree) Size() uint32 {
+func (t *bpTree) Size() uint64 {
 	t.RLock()
 	defer t.RUnlock()
 
@@ -105,7 +187,7 @@ func (t *bpTree) Asc() (values []Value) {
 
 		node := element.Value.(*item)
 		if node.node != t.root && len(node.values) < (t.meta.HT-1) {
-			panic(fmt.Sprintf("illegal %s", t.String()))
+			t.logger.Fatal("", zap.Error(errors.Errorf("illegal %d %s", node.node.index, t.String())))
 		}
 
 		if node.leaf() {
