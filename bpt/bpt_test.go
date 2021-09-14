@@ -3,7 +3,6 @@ package bpt
 import (
 	crand "crypto/rand"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -33,8 +32,7 @@ func (x value) Compare(v Value) stringutil.Diff {
 }
 
 func (v value) ToJSON() []byte {
-	raw, _ := json.Marshal(v)
-	return raw
+	return []byte(strconv.Itoa(int(v)))
 }
 
 func randSeed() int64 {
@@ -52,7 +50,10 @@ func TestMain(m *testing.M) {
 }
 
 func NewTree(t uint16) *bpTree {
-	return New(t, "/data/bpt", logger, nil)
+	return New(t, "/data/bpt", logger, func(raw []byte) Value {
+		v, _ := strconv.ParseInt(string(raw), 10, 64)
+		return value(v)
+	})
 }
 
 func mustContains(values []Value, target Value) {
@@ -95,16 +96,17 @@ func mustNotContains(values []Value, target Value) {
 
 func TestXXX(t *testing.T) {
 	tree := NewTree(6)
-	for k := 0; k < 20; k++ {
+	for k := 0; k < 13; k++ {
 		tree.Add(value(k))
 		fmt.Println(tree)
 	}
 	fmt.Println("---------------------------------------------------------------")
+	fmt.Println(tree.Asc())
 
-	for k := 0; k < 20; k++ {
-		tree.Delete(value(k))
-		fmt.Println(k, tree)
-	}
+	// for k := 0; k < 13; k++ {
+	// 	tree.Delete(value(k))
+	// 	fmt.Println(k, tree)
+	// }
 }
 
 func TestInsert(t *testing.T) {

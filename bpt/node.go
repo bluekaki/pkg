@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"hash/crc64"
 	"os"
 
 	"github.com/bluekaki/pkg/errors"
@@ -14,6 +13,7 @@ import (
 )
 
 type Json2Value func([]byte) Value
+type loadSnapshots func(index uint64) *node
 
 type Value interface {
 	String() string
@@ -74,7 +74,7 @@ func (n *node) takeSnapshots(baseDir string, logger *zap.Logger) {
 	binary.BigEndian.PutUint32(length, uint32(len(raw)))
 
 	crc := make([]byte, 8)
-	binary.BigEndian.PutUint64(crc, crc64.Checksum(raw, crc64.MakeTable(crc64.ECMA)))
+	binary.BigEndian.PutUint64(crc, caclCrc(raw))
 
 	path := fmt.Sprintf("%s/%d%s", baseDir, n.index, fileExt)
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
@@ -102,34 +102,55 @@ func (n *node) takeSnapshots(baseDir string, logger *zap.Logger) {
 
 func (n *node) shouldLoadSnapshots() bool {
 	return len(n.values) == 0
-
 }
 
-func loadSnapshots(index uint64, baseDir string, logger *zap.Logger, json2Value Json2Value) *node {
-	path := fmt.Sprintf("%s/%d%s", baseDir, index, fileExt)
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		logger.Fatal("", zap.Error(errors.Wrapf(err, "read file %s err", path)))
-	}
+func loadSnapshotsBuilder(baseDir string, logger *zap.Logger, json2Value Json2Value) func(index uint64) *node {
+	return func(index uint64) *node {
+		path := fmt.Sprintf("%s/%d%s", baseDir, index, fileExt)
+		file, err := os.Open(path)
+		if err != nil {
+			logger.Fatal("", zap.Error(errors.Wrapf(err, "open file %s err", path)))
+		}
+		defer file.Close()
 
-	snapshot := new(nodeSnapshot)
-	if err = json.Unmarshal(raw, snapshot); err != nil {
-		logger.Fatal("", zap.Error(errors.Wrapf(err, "unmarshal file %s err", path)))
-	}
+		length := make([]byte, 4)
+		if _, err = file.Read(length); err != nil {
+			logger.Fatal("", zap.Error(errors.Wrapf(err, "read length from file %s err", path)))
+		}
 
-	n := &node{
-		index:    index,
-		values:   make([]Value, len(snapshot.Values)),
-		children: make([]*node, len(snapshot.Children)),
-	}
+		raw := make([]byte, binary.BigEndian.Uint32(length))
+		if _, err = file.Read(raw); err != nil {
+			logger.Fatal("", zap.Error(errors.Wrapf(err, "read raw from file %s err", path)))
+		}
 
-	for index, value := range snapshot.Values {
-		n.values[index] = json2Value([]byte(value))
-	}
+		crc := make([]byte, 8)
+		if _, err = file.Read(crc); err != nil {
+			logger.Fatal("", zap.Error(errors.Wrapf(err, "read crc from file %s err", path)))
+		}
 
-	for index, child := range snapshot.Children {
-		n.children[index] = &node{index: child}
-	}
+		if binary.BigEndian.Uint64(crc) != caclCrc(raw) {
+			logger.Fatal("", zap.Error(errors.Errorf("crc not match in file %s", path)))
+		}
 
-	return n
+		snapshot := new(nodeSnapshot)
+		if err = json.Unmarshal(raw, snapshot); err != nil {
+			logger.Fatal("", zap.Error(errors.Wrapf(err, "unmarshal file %s err", path)))
+		}
+
+		n := &node{
+			index:    index,
+			values:   make([]Value, len(snapshot.Values)),
+			children: make([]*node, len(snapshot.Children)),
+		}
+
+		for index, value := range snapshot.Values {
+			n.values[index] = json2Value([]byte(value))
+		}
+
+		for index, child := range snapshot.Children {
+			n.children[index] = &node{index: child}
+		}
+
+		return n
+	}
 }

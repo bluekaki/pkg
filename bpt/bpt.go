@@ -18,19 +18,21 @@ import (
 )
 
 const (
-	fileExt = ".bok"
+	fileExt = ".bpt"
 
 	rootIndex = 0
 )
 
 type bpTree struct {
 	sync.RWMutex
-	ctx        context.Context
-	cancel     context.CancelFunc
-	logger     *zap.Logger
-	size       uint64
-	root       *node
-	json2Value Json2Value
+	ctx    context.Context
+	cancel context.CancelFunc
+	logger *zap.Logger
+	size   uint64
+	root   *node
+
+	json2Value    Json2Value
+	loadSnapshots loadSnapshots
 
 	meta struct {
 		baseDir string
@@ -61,19 +63,21 @@ func New(orderT uint16, baseDir string, logger *zap.Logger, json2Value Json2Valu
 	if err != nil {
 		logger.Fatal("", zap.Error(errors.Wrapf(err, "read dir %s stat err", baseDir)))
 	}
-
 	if !info.IsDir() {
 		logger.Fatal("", zap.Error(errors.Errorf("%s should be directory", baseDir)))
 	}
 
+	baseDir = strings.TrimRight(strings.ReplaceAll(baseDir, "\\", "/"), "/")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	bpt := &bpTree{
-		ctx:        ctx,
-		cancel:     cancel,
-		logger:     logger,
-		json2Value: json2Value,
+		ctx:           ctx,
+		cancel:        cancel,
+		logger:        logger,
+		json2Value:    json2Value,
+		loadSnapshots: loadSnapshotsBuilder(baseDir, logger, json2Value),
 	}
-	bpt.meta.baseDir = strings.TrimRight(strings.ReplaceAll(baseDir, "\\", "/"), "/")
+	bpt.meta.baseDir = baseDir
 	bpt.meta.N = int(orderT - 1)
 	bpt.meta.Mid = int(orderT-1) / 2
 	bpt.meta.HT = int(orderT) / 2
@@ -124,8 +128,8 @@ func (t *bpTree) String() string {
 	defer t.RUnlock()
 
 	stack := list.New()
-	if t.root != nil {
-		output(stack, t.root, 0, true)
+	if fileExists(rootIndex, t.meta.baseDir) {
+		output(stack, t.loadSnapshots(rootIndex), 0, t.loadSnapshots)
 	}
 
 	buf := bytes.NewBufferString(fmt.Sprintf("BTree %d\n", t.size))
@@ -139,10 +143,10 @@ func (t *bpTree) String() string {
 	return buf.String()
 }
 
-func output(stack *list.List, node *node, level int, isTail bool) {
+func output(stack *list.List, node *node, level int, load loadSnapshots) {
 	for e := 0; e < len(node.values)+1; e++ {
 		if e < len(node.children) {
-			output(stack, node.children[e], level+1, true)
+			output(stack, load(node.children[e].index), level+1, load)
 		}
 
 		if e < len(node.values) {
@@ -169,7 +173,7 @@ func (t *bpTree) Asc() (values []Value) {
 	t.RLock()
 	defer t.RUnlock()
 
-	if t.root == nil {
+	if !fileExists(rootIndex, t.meta.baseDir) {
 		return
 	}
 
@@ -179,7 +183,7 @@ func (t *bpTree) Asc() (values []Value) {
 	}
 
 	stack := list.New()
-	stack.PushBack(&item{node: t.root})
+	stack.PushBack(&item{node: t.loadSnapshots(rootIndex)})
 
 	for stack.Len() > 0 {
 		element := stack.Back()
@@ -196,7 +200,7 @@ func (t *bpTree) Asc() (values []Value) {
 		}
 
 		if node.cur <= len(node.values) {
-			child := &item{node: node.children[node.cur]}
+			child := &item{node: t.loadSnapshots(node.children[node.cur].index)}
 
 			if node.cur > 0 {
 				values = append(values, node.values[node.cur-1])

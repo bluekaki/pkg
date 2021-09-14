@@ -14,35 +14,42 @@ func (t *bpTree) Add(val Value) (ok bool) {
 	t.Lock()
 	defer t.Unlock()
 
-	if t.root == nil {
-		t.root = &node{
+	if !fileExists(rootIndex, t.meta.baseDir) {
+		(&node{
 			index:  rootIndex,
 			values: []Value{val},
-		}
+		}).takeSnapshots(t.meta.baseDir, t.logger)
 
 		t.size++
-		ok = true
-		return
+		return true
 	}
 
-	if t.root.full(t.meta.N) {
-		x, y, mid := t.split(t.root)
+	root := t.loadSnapshots(rootIndex)
+	if root.full(t.meta.N) {
+		x, y, mid := t.split(root)
+		x.takeSnapshots(t.meta.baseDir, t.logger)
+		y.takeSnapshots(t.meta.baseDir, t.logger)
 
-		t.root.values = []Value{mid}
-		t.root.children = []*node{x, y}
+		root.values = []Value{mid}
+		root.children = []*node{x, y}
+		root.takeSnapshots(t.meta.baseDir, t.logger)
 	}
 
-	cur := t.root
+	cur := root
 	for {
 		if !cur.leaf() { // node
 			index, duplicated := t.search(cur, val)
 			if duplicated {
 				cur.values[index] = val
+				cur.takeSnapshots(t.meta.baseDir, t.logger)
 				return
 			}
 
-			if cur.children[index].full(t.meta.N) {
-				x, y, mid := t.split(cur.children[index])
+			if child := t.loadSnapshots(cur.children[index].index); child.full(t.meta.N) {
+				x, y, mid := t.split(child)
+				child.delete(t.meta.baseDir, t.logger)
+				x.takeSnapshots(t.meta.baseDir, t.logger)
+				y.takeSnapshots(t.meta.baseDir, t.logger)
 
 				cur.values = append(cur.values, cur.values[0])
 				copy(cur.values[index+1:], cur.values[index:])
@@ -53,8 +60,10 @@ func (t *bpTree) Add(val Value) (ok bool) {
 				cur.children[index] = x
 				cur.children[index+1] = y
 
+				cur.takeSnapshots(t.meta.baseDir, t.logger)
+
 			} else {
-				cur = cur.children[index]
+				cur = t.loadSnapshots(cur.children[index].index)
 			}
 			continue
 		}
@@ -63,16 +72,17 @@ func (t *bpTree) Add(val Value) (ok bool) {
 			index, duplicated := t.search(cur, val)
 			if duplicated {
 				cur.values[index] = val
+				cur.takeSnapshots(t.meta.baseDir, t.logger)
 				return
 			}
 
 			cur.values = append(cur.values, cur.values[0])
 			copy(cur.values[index+1:], cur.values[index:])
 			cur.values[index] = val
+			cur.takeSnapshots(t.meta.baseDir, t.logger)
 
 			t.size++
-			ok = true
-			return
+			return true
 		}
 	}
 }
