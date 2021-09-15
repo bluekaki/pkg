@@ -237,15 +237,15 @@ func annotator(ctx context.Context, req *http.Request) metadata.MD {
 
 	// TODO delete the legacy code
 	mixAuth := req.Header.Get("Mix-Authorization")
-	proxyAuth := req.Header.Get(interceptor.ProxyAuthorization)
-	if mixAuth != "" {
-		proxyAuth = mixAuth
-	}
+	// proxyAuth := req.Header.Get(interceptor.ProxyAuthorization)
+	// if mixAuth != "" {
+	// 	proxyAuth = mixAuth
+	// }
 
 	return metadata.Pairs(
 		interceptor.JournalID, journalID,
 		interceptor.Authorization, req.Header.Get(interceptor.Authorization),
-		interceptor.ProxyAuthorization, proxyAuth,
+		interceptor.ProxyAuthorization, mixAuth,
 		interceptor.Date, req.Header.Get(interceptor.Date),
 		interceptor.Method, req.Method,
 		interceptor.URI, req.RequestURI,
