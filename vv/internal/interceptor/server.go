@@ -32,7 +32,7 @@ const (
 	// Authorization used by auth, both gateway and grpc
 	Authorization = "authorization"
 	// ProxyAuthorization used by signature, both gateway and grpc
-	ProxyAuthorization = "proxy-authorization"
+	ProxyAuthorization = "authorization-proxy"
 	// Date GMT format
 	Date = "date"
 	// Method http.XXXMethod
