@@ -150,3 +150,14 @@ func marshalJournal(journal *journal.Journal) interface{} {
 	}
 	return json.RawMessage(raw)
 }
+
+func QueryEscapePath(path string) string {
+	slice := strings.Split(path, "/")
+	for i, val := range slice {
+		if len(val) != len([]rune(val)) {
+			slice[i] = url.QueryEscape(val)
+		}
+	}
+
+	return strings.Join(slice, "/")
+}
