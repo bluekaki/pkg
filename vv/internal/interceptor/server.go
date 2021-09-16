@@ -190,7 +190,7 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 
 	fullMethod := strings.Split(info.FullMethod, "/")
 	serviceName := fullMethod[1]
-	methodName := fullMethod[2]
+	// methodName := fullMethod[2]
 
 	doJournal := false
 	if proto.GetExtension(FileDescriptor.Options(info.FullMethod), options.E_Journal).(bool) {
@@ -402,7 +402,7 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 			journalID: journalID,
 			service:   serviceName,
 			date:      meta.Get(Date)[0],
-			method:    methodName,
+			method:    "GRPC",
 			uri:       info.FullMethod,
 			body: func() string {
 				if req == nil {
