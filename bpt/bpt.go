@@ -23,16 +23,26 @@ const (
 	rootIndex = 0
 )
 
+type BPTree interface {
+	Close()
+	Empty() bool
+	Size() uint64
+	Asc() (values []Value)
+	Add(val Value) (ok bool)
+	Delete(val Value) (ok bool)
+}
+
 type bpTree struct {
 	sync.RWMutex
 	ctx    context.Context
 	cancel context.CancelFunc
 	logger *zap.Logger
 	size   uint64
-	root   *node
 
-	json2Value    Json2Value
-	loadSnapshots loadSnapshots
+	json2Value       Json2Value
+	deleteNode       deleteNode
+	nodeTakeSnapshot nodeTakeSnapshot
+	loadSnapshots    loadSnapshots
 
 	meta struct {
 		baseDir string
@@ -43,7 +53,7 @@ type bpTree struct {
 	}
 }
 
-func New(orderT uint16, baseDir string, logger *zap.Logger, json2Value Json2Value) *bpTree {
+func New(orderT uint16, baseDir string, logger *zap.Logger, json2Value Json2Value) BPTree {
 	if logger == nil {
 		panic("logger required")
 	}
@@ -71,11 +81,13 @@ func New(orderT uint16, baseDir string, logger *zap.Logger, json2Value Json2Valu
 
 	ctx, cancel := context.WithCancel(context.Background())
 	bpt := &bpTree{
-		ctx:           ctx,
-		cancel:        cancel,
-		logger:        logger,
-		json2Value:    json2Value,
-		loadSnapshots: loadSnapshotsBuilder(baseDir, logger, json2Value),
+		ctx:              ctx,
+		cancel:           cancel,
+		logger:           logger,
+		json2Value:       json2Value,
+		deleteNode:       deleteNodeBuilder(baseDir, logger),
+		nodeTakeSnapshot: nodeTakeSnapshotBuilder(baseDir, logger),
+		loadSnapshots:    loadSnapshotsBuilder(baseDir, logger, json2Value),
 	}
 	bpt.meta.baseDir = baseDir
 	bpt.meta.N = int(orderT - 1)
@@ -110,6 +122,8 @@ func (t *bpTree) init() {
 		if fileIndex > t.meta.index {
 			t.meta.index = fileIndex
 		}
+
+		t.size += uint64(len(t.loadSnapshots(fileIndex).values))
 
 		return nil
 	})
@@ -190,7 +204,7 @@ func (t *bpTree) Asc() (values []Value) {
 		stack.Remove(element)
 
 		node := element.Value.(*item)
-		if node.node != t.root && len(node.values) < (t.meta.HT-1) {
+		if node.node.index != rootIndex && len(node.values) < (t.meta.HT-1) {
 			t.logger.Fatal("", zap.Error(errors.Errorf("illegal %d %s", node.node.index, t.String())))
 		}
 

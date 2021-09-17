@@ -14,6 +14,8 @@ import (
 
 type Json2Value func([]byte) Value
 type loadSnapshots func(index uint64) *node
+type deleteNode func(*node)
+type nodeTakeSnapshot func(*node)
 
 type Value interface {
 	String() string
@@ -44,59 +46,63 @@ func (n *node) leaf() bool {
 	return len(n.children) == 0
 }
 
-func (n *node) delete(baseDir string, logger *zap.Logger) {
-	path := fmt.Sprintf("%s/%d%s", baseDir, n.index, fileExt)
-	if err := os.Remove(path); err != nil {
-		logger.Fatal("", zap.Error(errors.Wrapf(err, "delete file %s err", path)))
+func deleteNodeBuilder(baseDir string, logger *zap.Logger) deleteNode {
+	return func(n *node) {
+		path := fmt.Sprintf("%s/%d%s", baseDir, n.index, fileExt)
+		if err := os.Remove(path); err != nil {
+			logger.Fatal("", zap.Error(errors.Wrapf(err, "delete file %s err", path)))
+		}
 	}
 }
 
-func (n *node) takeSnapshots(baseDir string, logger *zap.Logger) {
-	snapshot := &nodeSnapshot{
-		Values:   make([]json.RawMessage, len(n.values)),
-		Children: make([]uint64, len(n.children)),
-	}
+func nodeTakeSnapshotBuilder(baseDir string, logger *zap.Logger) nodeTakeSnapshot {
+	return func(n *node) {
+		snapshot := &nodeSnapshot{
+			Values:   make([]json.RawMessage, len(n.values)),
+			Children: make([]uint64, len(n.children)),
+		}
 
-	for index, value := range n.values {
-		snapshot.Values[index] = json.RawMessage(value.ToJSON())
-	}
+		for index, value := range n.values {
+			snapshot.Values[index] = json.RawMessage(value.ToJSON())
+		}
 
-	for index, child := range n.children {
-		snapshot.Children[index] = child.index
-	}
+		for index, child := range n.children {
+			snapshot.Children[index] = child.index
+		}
 
-	raw, err := json.Marshal(snapshot)
-	if err != nil {
-		logger.Fatal("", zap.Error(errors.Wrapf(err, "marshal node %d to json err", n.index)))
-	}
+		raw, err := json.Marshal(snapshot)
+		if err != nil {
+			logger.Fatal("", zap.Error(errors.Wrapf(err, "marshal node %d to json err", n.index)))
+		}
 
-	length := make([]byte, 4)
-	binary.BigEndian.PutUint32(length, uint32(len(raw)))
+		length := make([]byte, 4)
+		binary.BigEndian.PutUint32(length, uint32(len(raw)))
 
-	crc := make([]byte, 8)
-	binary.BigEndian.PutUint64(crc, caclCrc(raw))
+		crc := make([]byte, 8)
+		binary.BigEndian.PutUint64(crc, caclCrc(raw))
 
-	path := fmt.Sprintf("%s/%d%s", baseDir, n.index, fileExt)
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
-	if err != nil {
-		logger.Fatal("", zap.Error(errors.Wrapf(err, "open file %s err", path)))
-	}
+		path := fmt.Sprintf("%s/%d%s", baseDir, n.index, fileExt)
+		file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
+		if err != nil {
+			logger.Fatal("", zap.Error(errors.Wrapf(err, "open file %s err", path)))
+		}
 
-	if _, err = file.Write(length); err != nil {
-		logger.Fatal("", zap.Error(errors.Wrapf(err, "write lenght into file %s err", path)))
-	}
-	if _, err = file.Write(raw); err != nil {
-		logger.Fatal("", zap.Error(errors.Wrapf(err, "write raw into file %s err", path)))
-	}
-	if _, err = file.Write(crc); err != nil {
-		logger.Fatal("", zap.Error(errors.Wrapf(err, "write crc into file %s err", path)))
-	}
+		if _, err = file.Write(length); err != nil {
+			logger.Fatal("", zap.Error(errors.Wrapf(err, "write lenght into file %s err", path)))
+		}
+		if _, err = file.Write(raw); err != nil {
+			logger.Fatal("", zap.Error(errors.Wrapf(err, "write raw into file %s err", path)))
+		}
+		if _, err = file.Write(crc); err != nil {
+			logger.Fatal("", zap.Error(errors.Wrapf(err, "write crc into file %s err", path)))
+		}
 
-	if err = file.Sync(); err != nil {
-		logger.Fatal("", zap.Error(errors.Wrapf(err, "sync file %s err", path)))
-	}
-	if err = file.Close(); err != nil {
-		logger.Fatal("", zap.Error(errors.Wrapf(err, "close file %s err", path)))
+		if err = file.Sync(); err != nil {
+			logger.Fatal("", zap.Error(errors.Wrapf(err, "sync file %s err", path)))
+		}
+		if err = file.Close(); err != nil {
+			logger.Fatal("", zap.Error(errors.Wrapf(err, "close file %s err", path)))
+		}
 	}
 }
 
@@ -104,7 +110,7 @@ func (n *node) shouldLoadSnapshots() bool {
 	return len(n.values) == 0
 }
 
-func loadSnapshotsBuilder(baseDir string, logger *zap.Logger, json2Value Json2Value) func(index uint64) *node {
+func loadSnapshotsBuilder(baseDir string, logger *zap.Logger, json2Value Json2Value) loadSnapshots {
 	return func(index uint64) *node {
 		path := fmt.Sprintf("%s/%d%s", baseDir, index, fileExt)
 		file, err := os.Open(path)

@@ -49,7 +49,7 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func NewTree(t uint16) *bpTree {
+func NewTree(t uint16) BPTree {
 	return New(t, "/data/bpt", logger, func(raw []byte) Value {
 		v, _ := strconv.ParseInt(string(raw), 10, 64)
 		return value(v)
@@ -94,21 +94,6 @@ func mustNotContains(values []Value, target Value) {
 	}
 }
 
-func TestXXX(t *testing.T) {
-	tree := NewTree(6)
-	for k := 0; k < 13; k++ {
-		tree.Add(value(k))
-		fmt.Println(tree)
-	}
-	fmt.Println("---------------------------------------------------------------")
-	fmt.Println(tree.Asc())
-
-	// for k := 0; k < 13; k++ {
-	// 	tree.Delete(value(k))
-	// 	fmt.Println(k, tree)
-	// }
-}
-
 func TestInsert(t *testing.T) {
 	for k := 0; k < 1000000; k++ {
 		seed := randSeed()
@@ -120,7 +105,7 @@ func TestInsert(t *testing.T) {
 			values[i] = -values[i]
 		}
 
-		tree := NewTree(6)
+		tree := NewTree(10)
 		size := tree.Size()
 		for _, v := range values {
 			val := value(v)
@@ -135,7 +120,7 @@ func TestInsert(t *testing.T) {
 			if tree.Size()-size != 1 {
 				t.Fatal("size not match")
 			}
-			size = tree.size
+			size = tree.Size()
 
 			mustContains(tree.Asc(), val)
 		}
@@ -154,10 +139,14 @@ func TestDelete(t *testing.T) {
 			values[i] = -values[i]
 		}
 
-		tree := NewTree(6)
+		tree := NewTree(10)
 		for _, v := range values {
 			tree.Add(value(v))
 		}
+
+		rand.Shuffle(len(values), func(i, j int) {
+			values[i], values[j] = values[j], values[i]
+		})
 
 		size := tree.Size()
 		for _, v := range values {
@@ -173,7 +162,7 @@ func TestDelete(t *testing.T) {
 			if size-tree.Size() != 1 {
 				t.Fatal("size not match")
 			}
-			size = tree.size
+			size = tree.Size()
 
 			mustNotContains(tree.Asc(), val)
 		}

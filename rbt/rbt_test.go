@@ -211,6 +211,10 @@ func TestSingleDelete(t *testing.T) {
 			}
 		}
 
+		rand.Shuffle(len(values), func(i, j int) {
+			values[i], values[j] = values[j], values[i]
+		})
+
 		size := tree.Size()
 		for _, v := range values {
 			for index, prefix := range []string{"X", "Y"} {
@@ -274,6 +278,10 @@ func TestMultiDelete(t *testing.T) {
 				tree.Add(&value{Id: fmt.Sprintf("%s%d", prefix, v), Val: v})
 			}
 		}
+
+		rand.Shuffle(len(values), func(i, j int) {
+			values[i], values[j] = values[j], values[i]
+		})
 
 		size := tree.Size()
 		for _, v := range values {

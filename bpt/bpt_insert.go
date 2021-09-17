@@ -14,11 +14,11 @@ func (t *bpTree) Add(val Value) (ok bool) {
 	t.Lock()
 	defer t.Unlock()
 
-	if !fileExists(rootIndex, t.meta.baseDir) {
-		(&node{
+	if t.size == 0 || !fileExists(rootIndex, t.meta.baseDir) {
+		t.nodeTakeSnapshot(&node{
 			index:  rootIndex,
 			values: []Value{val},
-		}).takeSnapshots(t.meta.baseDir, t.logger)
+		})
 
 		t.size++
 		return true
@@ -27,12 +27,12 @@ func (t *bpTree) Add(val Value) (ok bool) {
 	root := t.loadSnapshots(rootIndex)
 	if root.full(t.meta.N) {
 		x, y, mid := t.split(root)
-		x.takeSnapshots(t.meta.baseDir, t.logger)
-		y.takeSnapshots(t.meta.baseDir, t.logger)
+		t.nodeTakeSnapshot(x)
+		t.nodeTakeSnapshot(y)
 
 		root.values = []Value{mid}
 		root.children = []*node{x, y}
-		root.takeSnapshots(t.meta.baseDir, t.logger)
+		t.nodeTakeSnapshot(root)
 	}
 
 	cur := root
@@ -41,15 +41,15 @@ func (t *bpTree) Add(val Value) (ok bool) {
 			index, duplicated := t.search(cur, val)
 			if duplicated {
 				cur.values[index] = val
-				cur.takeSnapshots(t.meta.baseDir, t.logger)
+				t.nodeTakeSnapshot(cur)
 				return
 			}
 
 			if child := t.loadSnapshots(cur.children[index].index); child.full(t.meta.N) {
 				x, y, mid := t.split(child)
-				child.delete(t.meta.baseDir, t.logger)
-				x.takeSnapshots(t.meta.baseDir, t.logger)
-				y.takeSnapshots(t.meta.baseDir, t.logger)
+				t.deleteNode(child)
+				t.nodeTakeSnapshot(x)
+				t.nodeTakeSnapshot(y)
 
 				cur.values = append(cur.values, cur.values[0])
 				copy(cur.values[index+1:], cur.values[index:])
@@ -60,7 +60,7 @@ func (t *bpTree) Add(val Value) (ok bool) {
 				cur.children[index] = x
 				cur.children[index+1] = y
 
-				cur.takeSnapshots(t.meta.baseDir, t.logger)
+				t.nodeTakeSnapshot(cur)
 
 			} else {
 				cur = t.loadSnapshots(cur.children[index].index)
@@ -72,14 +72,14 @@ func (t *bpTree) Add(val Value) (ok bool) {
 			index, duplicated := t.search(cur, val)
 			if duplicated {
 				cur.values[index] = val
-				cur.takeSnapshots(t.meta.baseDir, t.logger)
+				t.nodeTakeSnapshot(cur)
 				return
 			}
 
 			cur.values = append(cur.values, cur.values[0])
 			copy(cur.values[index+1:], cur.values[index:])
 			cur.values[index] = val
-			cur.takeSnapshots(t.meta.baseDir, t.logger)
+			t.nodeTakeSnapshot(cur)
 
 			t.size++
 			return true

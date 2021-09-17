@@ -21,7 +21,8 @@ func (t *bpTree) delete(val Value) (ok bool) {
 	}
 
 	var (
-		cur = t.root
+		root = t.loadSnapshots(rootIndex)
+		cur  = root
 
 		parent = &struct {
 			*node
@@ -48,6 +49,10 @@ func (t *bpTree) delete(val Value) (ok bool) {
 			cur.children = append(cur.children, sR.children[0])
 			sR.children = sR.children[1:]
 		}
+
+		t.nodeTakeSnapshot(cur)
+		t.nodeTakeSnapshot(parent.node)
+		t.nodeTakeSnapshot(sR)
 	}
 
 	merge2Left := func() {
@@ -57,12 +62,20 @@ func (t *bpTree) delete(val Value) (ok bool) {
 
 		cur.values = append(append(cur.values, parent.values[parent.cIndex]), sR.values...)
 		cur.children = append(cur.children, sR.children...)
+		t.deleteNode(sR)
 
 		if len(parent.values) == 1 {
-			t.root = cur
+			t.deleteNode(parent.node)
+			t.deleteNode(cur)
+			cur.index = rootIndex
+			t.nodeTakeSnapshot(cur)
+
 		} else {
+			t.nodeTakeSnapshot(cur)
+
 			parent.values = append(parent.values[:parent.cIndex], parent.values[parent.cIndex+1:]...)
 			parent.children = append(parent.children[:parent.cIndex+1], parent.children[parent.cIndex+2:]...)
+			t.nodeTakeSnapshot(parent.node)
 		}
 	}
 
@@ -85,6 +98,10 @@ func (t *bpTree) delete(val Value) (ok bool) {
 
 			sL.children = sL.children[:len(sL.children)-1]
 		}
+
+		t.nodeTakeSnapshot(cur)
+		t.nodeTakeSnapshot(parent.node)
+		t.nodeTakeSnapshot(sL)
 	}
 
 	merge2Right := func() {
@@ -94,21 +111,29 @@ func (t *bpTree) delete(val Value) (ok bool) {
 
 		cur.values = append(append(sL.values, parent.values[parent.cIndex-1]), cur.values...)
 		cur.children = append(sL.children, cur.children...)
+		t.deleteNode(sL)
 
 		if len(parent.values) == 1 {
-			t.root = cur
+			t.deleteNode(parent.node)
+			t.deleteNode(cur)
+			cur.index = rootIndex
+			t.nodeTakeSnapshot(cur)
+
 		} else {
+			t.nodeTakeSnapshot(cur)
+
 			parent.values = append(parent.values[:parent.cIndex-1], parent.values[parent.cIndex:]...)
 			parent.children = append(parent.children[:parent.cIndex-1], parent.children[parent.cIndex:]...)
+			t.nodeTakeSnapshot(parent.node)
 		}
 	}
 
 	for {
 		// internal node and half
-		if cur != t.root && !cur.overHalf(t.meta.HT) {
+		if cur != root && !cur.overHalf(t.meta.HT) {
 			switch {
 			case parent.cIndex == 0:
-				if sR = parent.children[parent.cIndex+1]; sR.overHalf(t.meta.HT) {
+				if sR = t.loadSnapshots(parent.children[parent.cIndex+1].index); sR.overHalf(t.meta.HT) {
 					rotate2Left()
 
 				} else {
@@ -116,7 +141,7 @@ func (t *bpTree) delete(val Value) (ok bool) {
 				}
 
 			case parent.cIndex == len(parent.values):
-				if sL = parent.children[parent.cIndex-1]; sL.overHalf(t.meta.HT) {
+				if sL = t.loadSnapshots(parent.children[parent.cIndex-1].index); sL.overHalf(t.meta.HT) {
 					rotate2Right()
 
 				} else {
@@ -124,8 +149,8 @@ func (t *bpTree) delete(val Value) (ok bool) {
 				}
 
 			default:
-				sL = parent.children[parent.cIndex-1]
-				sR = parent.children[parent.cIndex+1]
+				sL = t.loadSnapshots(parent.children[parent.cIndex-1].index)
+				sR = t.loadSnapshots(parent.children[parent.cIndex+1].index)
 
 				if sL.overHalf(t.meta.HT) {
 					rotate2Right()
@@ -148,13 +173,13 @@ func (t *bpTree) delete(val Value) (ok bool) {
 			}
 			parent.node, parent.cIndex = cur, index
 
-			cur = cur.children[index]
+			cur = t.loadSnapshots(cur.children[index].index)
 			continue
 		}
 
 		if !cur.leaf() { // node
 			if toReplaced.target == nil {
-				x := cur.children[index]
+				x := t.loadSnapshots(cur.children[index].index)
 
 				toReplaced.target = cur
 				toReplaced.val = val
@@ -164,7 +189,7 @@ func (t *bpTree) delete(val Value) (ok bool) {
 				cur = x
 
 			} else {
-				y := cur.children[index+1]
+				y := t.loadSnapshots(cur.children[index+1].index)
 
 				parent.node, parent.cIndex = cur, index+1
 				val = y.values[len(y.values)-1]
@@ -175,13 +200,16 @@ func (t *bpTree) delete(val Value) (ok bool) {
 
 		{ // leaf
 			cur.values = append(cur.values[:index], cur.values[index+1:]...)
+			t.nodeTakeSnapshot(cur)
+
 			if toReplaced.target != nil {
 				index, _ = t.search(toReplaced.target, toReplaced.val)
 				toReplaced.target.values[index] = val
+				t.nodeTakeSnapshot(toReplaced.target)
 			}
 
 			if t.size--; t.size == 0 {
-				t.root = nil
+				t.deleteNode(&node{index: rootIndex})
 			}
 			ok = true
 			return
