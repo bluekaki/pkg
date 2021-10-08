@@ -82,6 +82,25 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, fullMethod st
 		doJournal = true
 	}
 
+	method := fullMethod
+	if http := proto.GetExtension(FileDescriptor.Options(fullMethod), annotations.E_Http).(*annotations.HttpRule); http != nil {
+		if x, ok := http.GetPattern().(*annotations.HttpRule_Get); ok {
+			method = "GET " + x.Get
+		} else if x, ok := http.GetPattern().(*annotations.HttpRule_Put); ok {
+			method = "PUT " + x.Put
+		} else if x, ok := http.GetPattern().(*annotations.HttpRule_Post); ok {
+			method = "POST " + x.Post
+		} else if x, ok := http.GetPattern().(*annotations.HttpRule_Delete); ok {
+			method = "DELETE " + x.Delete
+		} else if x, ok := http.GetPattern().(*annotations.HttpRule_Patch); ok {
+			method = "PATCH " + x.Patch
+		}
+	}
+
+	if alias := proto.GetExtension(FileDescriptor.Options(method), options.E_MetricsAlias).(string); alias != "" {
+		method = alias
+	}
+
 	defer func() { // double recover for safety
 		if p := recover(); p != nil {
 			err = errors.Panic(p)
@@ -97,6 +116,10 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, fullMethod st
 			g.logger.Error(fmt.Sprintf("%s %s", journalID, errVerbose))
 		}
 	}()
+
+	if g.metrics != nil {
+		httpRequestGauge.WithLabelValues(method).Inc()
+	}
 
 	defer func() {
 		if p := recover(); p != nil {
@@ -178,25 +201,7 @@ func (g *GatewayInterceptor) UnaryInterceptor(ctx context.Context, fullMethod st
 		}
 
 		if g.metrics != nil {
-			method := fullMethod
-
-			if http := proto.GetExtension(FileDescriptor.Options(fullMethod), annotations.E_Http).(*annotations.HttpRule); http != nil {
-				if x, ok := http.GetPattern().(*annotations.HttpRule_Get); ok {
-					method = "GET " + x.Get
-				} else if x, ok := http.GetPattern().(*annotations.HttpRule_Put); ok {
-					method = "PUT " + x.Put
-				} else if x, ok := http.GetPattern().(*annotations.HttpRule_Post); ok {
-					method = "POST " + x.Post
-				} else if x, ok := http.GetPattern().(*annotations.HttpRule_Delete); ok {
-					method = "DELETE " + x.Delete
-				} else if x, ok := http.GetPattern().(*annotations.HttpRule_Patch); ok {
-					method = "PATCH " + x.Patch
-				}
-			}
-
-			if alias := proto.GetExtension(FileDescriptor.Options(method), options.E_MetricsAlias).(string); alias != "" {
-				method = alias
-			}
+			httpRequestGauge.WithLabelValues(method).Dec()
 
 			if err == nil {
 				httpRequestSuccessCounter.WithLabelValues(method).Inc()

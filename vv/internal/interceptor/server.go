@@ -192,6 +192,11 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 	serviceName := fullMethod[1]
 	// methodName := fullMethod[2]
 
+	method := info.FullMethod
+	if alias := proto.GetExtension(FileDescriptor.Options(info.FullMethod), options.E_MetricsAlias).(string); alias != "" {
+		method = alias
+	}
+
 	doJournal := false
 	if proto.GetExtension(FileDescriptor.Options(info.FullMethod), options.E_Journal).(bool) {
 		doJournal = true
@@ -222,6 +227,10 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 			s.logger.Error(fmt.Sprintf("%s %s", journalID, errVerbose))
 		}
 	}()
+
+	if s.metrics != nil {
+		grpcRequestGauge.WithLabelValues(method).Inc()
+	}
 
 	defer func() {
 		grpc.SetHeader(ctx, metadata.Pairs(runtime.MetadataHeaderPrefix+JournalID, journalID))
@@ -328,10 +337,7 @@ func (s *ServerInterceptor) UnaryInterceptor(ctx context.Context, req interface{
 		}
 
 		if s.metrics != nil && proto.GetExtension(FileDescriptor.Options(info.FullMethod), annotations.E_Http).(*annotations.HttpRule) == nil {
-			method := info.FullMethod
-			if alias := proto.GetExtension(FileDescriptor.Options(info.FullMethod), options.E_MetricsAlias).(string); alias != "" {
-				method = alias
-			}
+			grpcRequestGauge.WithLabelValues(method).Dec()
 
 			if err == nil {
 				grpcRequestSuccessCounter.WithLabelValues(method).Inc()

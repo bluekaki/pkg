@@ -18,6 +18,8 @@ func init() {
 	prometheus.MustRegister(grpcRequestSuccessDurationHistogram)
 	prometheus.MustRegister(httpRequestErrorDurationHistogram)
 	prometheus.MustRegister(grpcRequestErrorDurationHistogram)
+	prometheus.MustRegister(httpRequestGauge)
+	prometheus.MustRegister(grpcRequestGauge)
 }
 
 var httpRequestSuccessCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -71,3 +73,15 @@ var grpcRequestErrorDurationHistogram = prometheus.NewHistogramVec(prometheus.Hi
 	Name:      "grpc_request_error_duration_seconds",
 	Buckets:   []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1},
 }, []string{"method", "code"})
+
+var httpRequestGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	Namespace: namespace,
+	Subsystem: subsystem,
+	Name:      "http_request_gauge",
+}, []string{"method"})
+
+var grpcRequestGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	Namespace: namespace,
+	Subsystem: subsystem,
+	Name:      "grpc_request_gauge",
+}, []string{"method"})
