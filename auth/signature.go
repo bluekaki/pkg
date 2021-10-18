@@ -188,18 +188,9 @@ func NewSignature(opts ...Option) (Signature, error) {
 		return nil, errors.New("hash algorithm required")
 	}
 
-	if len(opt.secrets) == 0 {
-		return nil, errors.New("secrets required")
-	}
-
-	for identifier, secret := range opt.secrets {
-		if len(identifier) != IdentifierLen {
-			return nil, errors.Errorf("identifier length must be %d", IdentifierLen)
-		}
-
-		if secret == "" {
-			return nil, errors.New("secret can't be empty")
-		}
+	secrets, err := verifySecrets(opt.secrets)
+	if err != nil {
+		return nil, err
 	}
 
 	ttl := opt.ttl
@@ -211,7 +202,7 @@ func NewSignature(opts ...Option) (Signature, error) {
 		authorizationLen: opt.authorizationLen,
 		hash:             opt.hash,
 		ttlSeconds:       float64(ttl / time.Second),
-		secrets:          opt.secrets,
+		secrets:          secrets,
 	}, nil
 }
 
@@ -224,18 +215,9 @@ func (s *signature) getSecret(identifier Identifier) (Secret, bool) {
 }
 
 func (s *signature) ResetSecrets(secrets map[Identifier]Secret) error {
-	if len(secrets) == 0 {
-		return errors.New("secrets required")
-	}
-
-	for identifier, secret := range secrets {
-		if len(identifier) != IdentifierLen {
-			return errors.Errorf("identifier length must be %d", IdentifierLen)
-		}
-
-		if secret == "" {
-			return errors.New("secret can't be empty")
-		}
+	secrets, err := verifySecrets(secrets)
+	if err != nil {
+		return err
 	}
 
 	s.mux.Lock()
@@ -340,4 +322,30 @@ func (s *signature) Verify(authorization, date string, method Method, uri string
 
 	ok = authorization[IdentifierLen+1:] == digest
 	return
+}
+
+func verifySecrets(secrets map[Identifier]Secret) (map[Identifier]Secret, error) {
+	if len(secrets) == 0 {
+		return nil, errors.New("secrets required")
+	}
+
+	clone := make(map[Identifier]Secret, len(secrets))
+	for identifier, secret := range secrets {
+		identifier = strings.TrimSpace(identifier)
+		if len(identifier) != len([]rune(identifier)) {
+			return nil, errors.New("identifier must be ascii")
+		}
+
+		if len(identifier) != IdentifierLen {
+			return nil, errors.Errorf("identifier length must be %d", IdentifierLen)
+		}
+
+		if secret = strings.TrimSpace(secret); secret == "" {
+			return nil, errors.New("secret can not be empty")
+		}
+
+		clone[identifier] = secret
+	}
+
+	return clone, nil
 }
