@@ -1,5 +1,9 @@
 package interceptor
 
+import (
+	"google.golang.org/grpc/metadata"
+)
+
 const (
 	// JournalID a random id used by log journal
 	JournalID = "journal-id"
@@ -38,4 +42,13 @@ var gwHeader = struct {
 }{
 	key:   "grpc-gateway",
 	value: "bluekaki/pkg/vv",
+}
+
+func forwardedByGrpcGateway(meta metadata.MD) bool {
+	values := meta.Get(gwHeader.key)
+	if len(values) == 0 {
+		return false
+	}
+
+	return values[0] == gwHeader.value
 }
