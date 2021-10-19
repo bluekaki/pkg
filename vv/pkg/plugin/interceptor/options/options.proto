@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package interceptor;
+
+option go_package = "./;options";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.MethodOptions { optional Handler method = 74500; }
+
+extend google.protobuf.ServiceOptions { optional Handler service = 74501; }
+
+message Handler {
+  optional string authorization = 1;       // sso
+  optional string authorization_proxy = 2; // signature
+  optional string whitelisting = 3;        // ip
+}
