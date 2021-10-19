@@ -15,6 +15,10 @@ var jsonMarshal = &jsonpb.Marshaler{
 	EmitDefaults: true,
 }
 
+var jsonUnmarshaler = &jsonpb.Unmarshaler{
+	AllowUnknownFields: true,
+}
+
 // ProtoMessage2JSON marshal protobuf message to json message
 func ProtoMessage2JSON(message proto.Message) (json.RawMessage, error) {
 	if message == nil {
@@ -28,4 +32,13 @@ func ProtoMessage2JSON(message proto.Message) (json.RawMessage, error) {
 	}
 
 	return json.RawMessage(buf.Bytes()), nil
+}
+
+// JSON2ProtoMessage unmarshal json to protobuf message
+func JSON2ProtoMessage(raw []byte, message proto.Message) error {
+	if err := jsonUnmarshaler.Unmarshal(bytes.NewReader(raw), message); err != nil {
+		return errors.Wrap(err, "unmarshal json to protobuf message err")
+	}
+
+	return nil
 }
