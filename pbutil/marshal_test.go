@@ -32,4 +32,14 @@ func TestMarshal(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(string(raw))
+
+	resp := new(HelloRequest)
+	if err = JSON2ProtoMessage(raw, resp); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("%+v", resp)
+
+	t.Log(ParseTimestamp(resp.Timestamp, time.Local))
+	t.Log(ParseDuration(resp.Duration))
 }
