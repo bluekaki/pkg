@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bluekaki/pkg/vv/options"
+	"github.com/bluekaki/pkg/vv/pkg/plugin/protoc-gen-message-validator/options"
 
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/types/pluginpb"
 )
 
-const version = "1.0.4"
+const version = "1.1.5"
 
 func main() {
 	showVersion := flag.Bool("version", false, "print the version and exit")
@@ -64,7 +64,7 @@ func generateFile(gen *protogen.Plugin, file *protogen.File) {
 }
 
 func generateMessage(structName, prefix string, message *protogen.Message, g *protogen.GeneratedFile) {
-	g.P("func (", prefix, "*", structName, ") Valid() error {")
+	g.P("func (", prefix, "*", structName, ") Validate() error {")
 
 	for _, field := range message.Fields {
 		desc := field.Desc
@@ -93,66 +93,62 @@ func generateMessage(structName, prefix string, message *protogen.Message, g *pr
 			}
 		}
 
-		if proto.GetExtension(desc.Options(), options.E_Require).(bool) {
-			generateRequire(structName, prefix, field, g)
-		}
+		if fieldValidator, ok := proto.GetExtension(desc.Options(), options.E_Field).(*options.FieldValidator); ok {
+			if fieldValidator.Require != nil && *fieldValidator.Require {
+				generateRequire(structName, prefix, field, g)
+			}
 
-		if condition := proto.GetExtension(desc.Options(), options.E_Eq).(string); condition != "" {
-			generateEQNE(structName, prefix, field, "==", condition, g)
-		}
+			if fieldValidator.Eq != nil && *fieldValidator.Eq != "" {
+				generateEQNE(structName, prefix, field, "==", *fieldValidator.Eq, g)
+			}
 
-		if condition := proto.GetExtension(desc.Options(), options.E_Ne).(string); condition != "" {
-			generateEQNE(structName, prefix, field, "!=", condition, g)
-		}
+			if fieldValidator.Ne != nil && *fieldValidator.Ne != "" {
+				generateEQNE(structName, prefix, field, "!=", *fieldValidator.Ne, g)
+			}
 
-		if proto.HasExtension(desc.Options(), options.E_Lt) {
-			condition := proto.GetExtension(desc.Options(), options.E_Lt).(uint32)
-			generateLT_LE_GT_GE(structName, prefix, field, "<", strconv.FormatUint(uint64(condition), 10), g)
-		}
+			if fieldValidator.Lt != nil {
+				generateLT_LE_GT_GE(structName, prefix, field, "<", strconv.FormatUint(uint64(*fieldValidator.Lt), 10), g)
+			}
 
-		if proto.HasExtension(desc.Options(), options.E_Le) {
-			condition := proto.GetExtension(desc.Options(), options.E_Le).(uint32)
-			generateLT_LE_GT_GE(structName, prefix, field, "<=", strconv.FormatUint(uint64(condition), 10), g)
-		}
+			if fieldValidator.Le != nil {
+				generateLT_LE_GT_GE(structName, prefix, field, "<=", strconv.FormatUint(uint64(*fieldValidator.Le), 10), g)
+			}
 
-		if proto.HasExtension(desc.Options(), options.E_Gt) {
-			condition := proto.GetExtension(desc.Options(), options.E_Gt).(uint32)
-			generateLT_LE_GT_GE(structName, prefix, field, ">", strconv.FormatUint(uint64(condition), 10), g)
-		}
+			if fieldValidator.Gt != nil {
+				generateLT_LE_GT_GE(structName, prefix, field, ">", strconv.FormatUint(uint64(*fieldValidator.Gt), 10), g)
+			}
 
-		if proto.HasExtension(desc.Options(), options.E_Ge) {
-			condition := proto.GetExtension(desc.Options(), options.E_Ge).(uint32)
-			generateLT_LE_GT_GE(structName, prefix, field, ">=", strconv.FormatUint(uint64(condition), 10), g)
-		}
+			if fieldValidator.Ge != nil {
+				generateLT_LE_GT_GE(structName, prefix, field, ">=", strconv.FormatUint(uint64(*fieldValidator.Ge), 10), g)
+			}
 
-		if proto.HasExtension(desc.Options(), options.E_MinCap) {
-			condition := proto.GetExtension(desc.Options(), options.E_MinCap).(uint32)
-			generateCAP_Min_Max(structName, prefix, field, ">=", strconv.FormatUint(uint64(condition), 10), g)
-		}
+			if fieldValidator.MinCap != nil {
+				generateCAP_Min_Max(structName, prefix, field, ">=", strconv.FormatUint(uint64(*fieldValidator.MinCap), 10), g)
+			}
 
-		if proto.HasExtension(desc.Options(), options.E_MaxCap) {
-			condition := proto.GetExtension(desc.Options(), options.E_MaxCap).(uint32)
-			generateCAP_Min_Max(structName, prefix, field, "<=", strconv.FormatUint(uint64(condition), 10), g)
-		}
+			if fieldValidator.MaxCap != nil {
+				generateCAP_Min_Max(structName, prefix, field, "<=", strconv.FormatUint(uint64(*fieldValidator.MaxCap), 10), g)
+			}
 
-		if proto.GetExtension(desc.Options(), options.E_CstDatetime).(bool) {
-			generateCSTDatetime(structName, prefix, field, g)
-		}
+			if fieldValidator.CstDatetime != nil && *fieldValidator.CstDatetime {
+				generateCSTDatetime(structName, prefix, field, g)
+			}
 
-		if proto.GetExtension(desc.Options(), options.E_CstMinute).(bool) {
-			generateCSTMinute(structName, prefix, field, g)
-		}
+			if fieldValidator.CstMinute != nil && *fieldValidator.CstMinute {
+				generateCSTMinute(structName, prefix, field, g)
+			}
 
-		if proto.GetExtension(desc.Options(), options.E_CstDay).(bool) {
-			generateCSTDay(structName, prefix, field, g)
-		}
+			if fieldValidator.CstDay != nil && *fieldValidator.CstDay {
+				generateCSTDay(structName, prefix, field, g)
+			}
 
-		if proto.GetExtension(desc.Options(), options.E_CnMobile).(bool) {
-			generateCNMobile(structName, prefix, field, g)
-		}
+			if fieldValidator.CnMobile != nil && *fieldValidator.CnMobile {
+				generateCNMobile(structName, prefix, field, g)
+			}
 
-		if proto.GetExtension(desc.Options(), options.E_Duration).(bool) {
-			generateDuration(structName, prefix, field, g)
+			if fieldValidator.Duration != nil && *fieldValidator.Duration {
+				generateDuration(structName, prefix, field, g)
+			}
 		}
 	}
 
@@ -164,36 +160,38 @@ func generateMessage(structName, prefix string, message *protogen.Message, g *pr
 	for _, field := range message.Fields {
 		desc := field.Desc
 
-		if proto.GetExtension(desc.Options(), options.E_CstDatetime).(bool) {
-			g.P()
-			g.P("func (", prefix, "*", structName, ") Parse", field.GoName, "() time.Time {")
-			g.P("ts, _ := ", timePackage.Ident("ParseInLocation"), `("2006-01-02 15:04:05",`, prefix, ".", field.GoName, ", time.Local)")
-			g.P("return ts")
-			g.P("}")
-		}
+		if fieldValidator, ok := proto.GetExtension(desc.Options(), options.E_Field).(*options.FieldValidator); ok {
+			if fieldValidator.CstDatetime != nil && *fieldValidator.CstDatetime {
+				g.P()
+				g.P("func (", prefix, "*", structName, ") Parse", field.GoName, "() time.Time {")
+				g.P("ts, _ := ", timePackage.Ident("ParseInLocation"), `("2006-01-02 15:04:05",`, prefix, ".", field.GoName, ", time.Local)")
+				g.P("return ts")
+				g.P("}")
+			}
 
-		if proto.GetExtension(desc.Options(), options.E_CstMinute).(bool) {
-			g.P()
-			g.P("func (", prefix, "*", structName, ") Parse", field.GoName, "() time.Time {")
-			g.P("ts, _ := ", timePackage.Ident("ParseInLocation"), `("2006-01-02 15:04",`, prefix, ".", field.GoName, ", time.Local)")
-			g.P("return ts")
-			g.P("}")
-		}
+			if fieldValidator.CstMinute != nil && *fieldValidator.CstMinute {
+				g.P()
+				g.P("func (", prefix, "*", structName, ") Parse", field.GoName, "() time.Time {")
+				g.P("ts, _ := ", timePackage.Ident("ParseInLocation"), `("2006-01-02 15:04",`, prefix, ".", field.GoName, ", time.Local)")
+				g.P("return ts")
+				g.P("}")
+			}
 
-		if proto.GetExtension(desc.Options(), options.E_CstDay).(bool) {
-			g.P()
-			g.P("func (", prefix, "*", structName, ") Parse", field.GoName, "() time.Time {")
-			g.P("ts, _ := ", timePackage.Ident("ParseInLocation"), `("2006-01-02",`, prefix, ".", field.GoName, ", time.Local)")
-			g.P("return ts")
-			g.P("}")
-		}
+			if fieldValidator.CstDay != nil && *fieldValidator.CstDay {
+				g.P()
+				g.P("func (", prefix, "*", structName, ") Parse", field.GoName, "() time.Time {")
+				g.P("ts, _ := ", timePackage.Ident("ParseInLocation"), `("2006-01-02",`, prefix, ".", field.GoName, ", time.Local)")
+				g.P("return ts")
+				g.P("}")
+			}
 
-		if proto.GetExtension(desc.Options(), options.E_Duration).(bool) {
-			g.P()
-			g.P("func (", prefix, "*", structName, ") Parse", field.GoName, "() time.Duration {")
-			g.P("ts, _ := ", timePackage.Ident("ParseDuration"), "(", prefix, ".", field.GoName, ")")
-			g.P("return ts")
-			g.P("}")
+			if fieldValidator.Duration != nil && *fieldValidator.Duration {
+				g.P()
+				g.P("func (", prefix, "*", structName, ") Parse", field.GoName, "() time.Duration {")
+				g.P("ts, _ := ", timePackage.Ident("ParseDuration"), "(", prefix, ".", field.GoName, ")")
+				g.P("return ts")
+				g.P("}")
+			}
 		}
 	}
 }

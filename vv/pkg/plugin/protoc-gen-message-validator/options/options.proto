@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package validator;
+
+option go_package = "./;options";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FieldOptions { optional FieldValidator field = 74600; }
+
+message FieldValidator {
+  optional bool require = 1;
+  optional string eq = 2;          // equal to
+  optional string ne = 3;          // not equal to
+  optional uint32 lt = 4;          // less then
+  optional uint32 le = 5;          // less than or equal to
+  optional uint32 gt = 6;          // greater than
+  optional uint32 ge = 7;          // greater than or equal to
+  optional uint32 max_cap = 8;     // capacity by slice/map/bytes
+  optional uint32 min_cap = 9;     // capacity by slice/map/bytes
+  optional bool cst_datetime = 10; // 2006-01-02 15:04:05
+  optional bool cst_minute = 11;   // 2006-01-02 15:04
+  optional bool cn_mobile = 12;    // 10000000000
+  optional bool cst_day = 13;      // 2006-01-02
+  optional bool duration = 14;     // 7s
+}
