@@ -3,7 +3,6 @@ package gateway
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -36,6 +35,10 @@ var (
 
 func init() {
 	runtime.DefaultContextTimeout = time.Second * 30
+}
+
+func RegisteWhitelistingValidator(name string, handler adapter.WhitelistingHandler) {
+	interceptor.RegisteWhitelistingValidator(name, handler)
 }
 
 // Option how setup client
@@ -138,7 +141,7 @@ func New(logger *zap.Logger, notify adapter.NotifyHandler, register RegisterEndp
 		grpc.WithBlock(),
 		grpc.WithMaxMsgSize(20 << 20),
 		grpc.WithKeepaliveParams(*kacp),
-		grpc.WithUnaryInterceptor(interceptor.UnaryClientInterceptor(logger, notify, opt.metrics, opt.projectName)),
+		grpc.WithUnaryInterceptor(interceptor.GatewayUnaryClientInterceptor(logger, notify, opt.metrics, opt.projectName)),
 		grpc.WithDefaultServiceConfig(configs.ServiceConfig),
 	}
 
@@ -151,7 +154,7 @@ func New(logger *zap.Logger, notify adapter.NotifyHandler, register RegisterEndp
 	if err := register(mux, dialOptions); err != nil {
 		panic(err)
 	}
-	interceptor.ResloveFileDescriptor()
+	interceptor.ResloveFileDescriptor(true)
 
 	return mux
 }
@@ -172,7 +175,7 @@ func annotator(ctx context.Context, req *http.Request) metadata.MD {
 		interceptor.Date, req.Header.Get(interceptor.Date),
 		interceptor.Method, req.Method,
 		interceptor.URI, req.RequestURI,
-		interceptor.Body, base64.StdEncoding.EncodeToString(body), // encode
+		interceptor.Body, string(body),
 		interceptor.XForwardedFor, req.Header.Get(interceptor.XForwardedFor),
 		interceptor.XForwardedHost, req.Header.Get(interceptor.XForwardedHost),
 	)

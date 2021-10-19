@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/bluekaki/pkg/errors"
@@ -21,7 +22,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-func UnaryClientInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, metrics func(http.Handler), projectName string) grpc.UnaryClientInterceptor {
+func GatewayUnaryClientInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, metrics func(http.Handler), projectName string) grpc.UnaryClientInterceptor {
 	if metrics != nil {
 		metrics(promhttp.Handler())
 	}
@@ -168,7 +169,48 @@ func UnaryClientInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, me
 			}
 		}()
 
-		fmt.Println(ts, journalID, doJournal, method) // TODO delete this
-		return nil
+		serviceName := strings.Split(fullMethod, "/")[1]
+
+		var whitelistingValidator adapter.WhitelistingHandler
+		if serviceHandler, ok := getServiceHandler(serviceName); ok && serviceHandler.Whitelisting != nil && *serviceHandler.Whitelisting != "" {
+			whitelistingValidator, _ = getWhitelistingHandler(*serviceHandler.Whitelisting)
+		}
+		if methodHandler, ok := getMethodHandler(fullMethod); ok && methodHandler.Whitelisting != nil && *methodHandler.Whitelisting != "" {
+			whitelistingValidator, _ = getWhitelistingHandler(*methodHandler.Whitelisting)
+		}
+
+		if whitelistingValidator != nil {
+			ok, err := whitelistingValidator(meta.Get(XForwardedFor)[0])
+			if err != nil {
+				notify(&adapter.AlertMessage{
+					ProjectName:  projectName,
+					JournalID:    journalID,
+					ErrorVerbose: fmt.Sprintf("%+v", err),
+					Timestamp:    time.Now(),
+				})
+
+				s := status.New(codes.Aborted, codes.Aborted.String())
+				s, _ = s.WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", err)})
+				return s.Err()
+			}
+			if !ok {
+				return status.Error(codes.Aborted, "ip does not allow access")
+			}
+		}
+
+		err = invoker(metadata.NewOutgoingContext(ctx, meta), fullMethod, req, reply, cc, opts...)
+		if err != nil {
+			s, _ := status.FromError(err)
+			if s.Code() == codes.Unavailable {
+				notify(&adapter.AlertMessage{
+					ProjectName:  projectName,
+					JournalID:    journalID,
+					ErrorVerbose: s.Proto().String(),
+					Timestamp:    time.Now(),
+				})
+			}
+		}
+
+		return
 	}
 }

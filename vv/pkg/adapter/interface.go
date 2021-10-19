@@ -26,3 +26,20 @@ type Validator interface {
 }
 
 type NotifyHandler func(msg *AlertMessage)
+
+// Payload rest or grpc payload
+type Payload interface {
+	JournalID() string
+	ForwardedByGrpcGateway() bool
+	Service() string
+	Date() string
+	Method() string
+	URI() string
+	Body() string
+}
+
+type UserinfoHandler func(authorization string, payload Payload) (userinfo interface{}, err error)
+
+type SignatureHandler func(proxyAuthorization string, payload Payload) (identifier string, ok bool, err error)
+
+type WhitelistingHandler func(xForwardedFor string) (ok bool, err error)
