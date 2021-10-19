@@ -93,7 +93,7 @@ func generateMessage(structName, prefix string, message *protogen.Message, g *pr
 			}
 		}
 
-		if fieldValidator, ok := proto.GetExtension(desc.Options(), options.E_Field).(*options.FieldValidator); ok {
+		if fieldValidator, _ := proto.GetExtension(desc.Options(), options.E_Field).(*options.FieldValidator); fieldValidator != nil {
 			if fieldValidator.Require != nil && *fieldValidator.Require {
 				generateRequire(structName, prefix, field, g)
 			}
@@ -160,7 +160,7 @@ func generateMessage(structName, prefix string, message *protogen.Message, g *pr
 	for _, field := range message.Fields {
 		desc := field.Desc
 
-		if fieldValidator, ok := proto.GetExtension(desc.Options(), options.E_Field).(*options.FieldValidator); ok {
+		if fieldValidator, _ := proto.GetExtension(desc.Options(), options.E_Field).(*options.FieldValidator); fieldValidator != nil {
 			if fieldValidator.CstDatetime != nil && *fieldValidator.CstDatetime {
 				g.P()
 				g.P("func (", prefix, "*", structName, ") Parse", field.GoName, "() time.Time {")

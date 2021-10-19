@@ -31,3 +31,11 @@ var toLoggedMetadata = map[string]bool{
 	XForwardedFor:      true,
 	XForwardedHost:     true,
 }
+
+var gwHeader = struct {
+	key   string
+	value string
+}{
+	key:   "grpc-gateway",
+	value: "bluekaki/pkg/vv",
+}

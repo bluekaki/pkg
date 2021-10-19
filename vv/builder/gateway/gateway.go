@@ -1,4 +1,4 @@
-package chain
+package gateway
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/bluekaki/pkg/id"
@@ -45,6 +46,7 @@ type option struct {
 	keepalive   *keepalive.ClientParameters
 	dialTimeout time.Duration
 	metrics     func(http.Handler)
+	projectName string
 }
 
 // WithCredential setup credential for tls
@@ -75,13 +77,24 @@ func WithPrometheus(metrics func(http.Handler)) Option {
 	}
 }
 
+func WithProjectName(name string) Option {
+	return func(opt *option) {
+		opt.projectName = strings.TrimSpace(name)
+	}
+}
+
+type RegisterEndpoint func(mux *runtime.ServeMux, opts []grpc.DialOption) error
+
 // New create grpc-gateway server mux, and grpc dial options.
-func New(logger *zap.Logger, notify adapter.NotifyHandler, options ...Option) (*runtime.ServeMux, []grpc.DialOption) {
+func New(logger *zap.Logger, notify adapter.NotifyHandler, register RegisterEndpoint, options ...Option) *runtime.ServeMux {
 	if logger == nil {
 		panic("logger required")
 	}
 	if notify == nil {
 		panic("notify required")
+	}
+	if register == nil {
+		panic("register required")
 	}
 
 	opt := new(option)
@@ -125,7 +138,7 @@ func New(logger *zap.Logger, notify adapter.NotifyHandler, options ...Option) (*
 		grpc.WithBlock(),
 		grpc.WithMaxMsgSize(20 << 20),
 		grpc.WithKeepaliveParams(*kacp),
-		grpc.WithUnaryInterceptor(interceptor.UnaryClientInterceptor(logger, notify)),
+		grpc.WithUnaryInterceptor(interceptor.UnaryClientInterceptor(logger, notify, opt.metrics, opt.projectName)),
 		grpc.WithDefaultServiceConfig(configs.ServiceConfig),
 	}
 
@@ -135,7 +148,12 @@ func New(logger *zap.Logger, notify adapter.NotifyHandler, options ...Option) (*
 		dialOptions = append(dialOptions, grpc.WithTransportCredentials(opt.credential))
 	}
 
-	return mux, dialOptions
+	if err := register(mux, dialOptions); err != nil {
+		panic(err)
+	}
+	interceptor.ResloveFileDescriptor()
+
+	return mux
 }
 
 func annotator(ctx context.Context, req *http.Request) metadata.MD {
