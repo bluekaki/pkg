@@ -22,7 +22,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-func GatewayUnaryClientInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, metrics func(http.Handler), projectName string) grpc.UnaryClientInterceptor {
+func UnaryGatewayInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, metrics func(http.Handler), projectName string) grpc.UnaryClientInterceptor {
 	if metrics != nil {
 		metrics(promhttp.Handler())
 	}

@@ -12,12 +12,14 @@ type Code interface {
 }
 
 type BzError interface {
+	error
 	Code
-	Error() errors.Error
+	StackErr() errors.Error
 }
 
 type AlertError interface {
-	BzError
+	error
+	BzError() BzError
 	AlertMessage() *AlertMessage
 }
 

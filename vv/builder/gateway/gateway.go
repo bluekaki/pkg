@@ -14,6 +14,7 @@ import (
 	"github.com/bluekaki/pkg/vv/pkg/adapter"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/rs/cors"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -88,8 +89,7 @@ func WithProjectName(name string) Option {
 
 type RegisterEndpoint func(mux *runtime.ServeMux, opts []grpc.DialOption) error
 
-// New create grpc-gateway server mux, and grpc dial options.
-func New(logger *zap.Logger, notify adapter.NotifyHandler, register RegisterEndpoint, options ...Option) *runtime.ServeMux {
+func NewCorsHandler(logger *zap.Logger, notify adapter.NotifyHandler, register RegisterEndpoint, options ...Option) http.Handler {
 	if logger == nil {
 		panic("logger required")
 	}
@@ -139,9 +139,9 @@ func New(logger *zap.Logger, notify adapter.NotifyHandler, register RegisterEndp
 		grpc.WithResolvers(dns.NewBuilder()),
 		grpc.WithTimeout(dialTimeout),
 		grpc.WithBlock(),
-		grpc.WithMaxMsgSize(20 << 20),
+		grpc.WithMaxMsgSize(30 << 20),
 		grpc.WithKeepaliveParams(*kacp),
-		grpc.WithUnaryInterceptor(interceptor.GatewayUnaryClientInterceptor(logger, notify, opt.metrics, opt.projectName)),
+		grpc.WithUnaryInterceptor(interceptor.UnaryGatewayInterceptor(logger, notify, opt.metrics, opt.projectName)),
 		grpc.WithDefaultServiceConfig(configs.ServiceConfig),
 	}
 
@@ -156,7 +156,7 @@ func New(logger *zap.Logger, notify adapter.NotifyHandler, register RegisterEndp
 	}
 	interceptor.ResloveFileDescriptor(true)
 
-	return mux
+	return cors.AllowAll().Handler(mux)
 }
 
 func annotator(ctx context.Context, req *http.Request) metadata.MD {
