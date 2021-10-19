@@ -6,11 +6,23 @@ option go_package = "./;options";
 
 import "google/protobuf/descriptor.proto";
 
-extend google.protobuf.MethodOptions { optional Handler method = 74500; }
+extend google.protobuf.MethodOptions {
+  optional MethodHandler method_handler = 74500;
+}
 
-extend google.protobuf.ServiceOptions { optional Handler service = 74501; }
+extend google.protobuf.ServiceOptions {
+  optional ServiceHandler service_handler = 74501;
+}
 
-message Handler {
+message MethodHandler {
+  optional string authorization = 1;       // sso
+  optional string authorization_proxy = 2; // signature
+  optional string whitelisting = 3;        // ip
+  optional bool journal = 4;
+  optional string metrics_alias = 5;
+}
+
+message ServiceHandler {
   optional string authorization = 1;       // sso
   optional string authorization_proxy = 2; // signature
   optional string whitelisting = 3;        // ip
