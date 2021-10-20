@@ -19,7 +19,7 @@ var (
 	ErrNotGrpcContext = stderr.New("ctx does not contain metadata")
 
 	// ErrNoJournalIDInContext no jouranl_id in ctx
-	ErrNoJournalIDInContext = stderr.New("not found jouranl_id in ctx")
+	ErrNoJournalIDInContext = stderr.New("not found journal_id in ctx")
 )
 
 // JournalID get journal id from context

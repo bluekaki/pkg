@@ -40,7 +40,7 @@ type restPayload struct {
 	date      string
 	method    string
 	uri       string
-	body      string
+	body      []byte
 }
 
 func (r *restPayload) JournalID() string {
@@ -67,7 +67,7 @@ func (r *restPayload) URI() string {
 	return r.uri
 }
 
-func (r *restPayload) Body() string {
+func (r *restPayload) Body() []byte {
 	return r.body
 }
 
@@ -77,7 +77,7 @@ type grpcPayload struct {
 	date      string
 	method    string
 	uri       string
-	body      string
+	body      []byte
 }
 
 func (g *grpcPayload) JournalID() string {
@@ -104,7 +104,7 @@ func (g *grpcPayload) URI() string {
 	return g.uri
 }
 
-func (g *grpcPayload) Body() string {
+func (g *grpcPayload) Body() []byte {
 	return g.body
 }
 
@@ -159,6 +159,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 
 		defer func() {
 			grpc.SetHeader(ctx, metadata.Pairs(runtime.MetadataHeaderPrefix+JournalID, journalID))
+			grpc.SetHeader(ctx, metadata.Pairs(JournalID, journalID))
 
 			if p := recover(); p != nil {
 				errVerbose := fmt.Sprintf("got panic => error: %+v", errors.Panic(p))
@@ -325,7 +326,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 				date:      meta.Get(Date)[0],
 				method:    meta.Get(Method)[0],
 				uri:       meta.Get(URI)[0],
-				body:      meta.Get(Body)[0],
+				body:      []byte(meta.Get(Body)[0]),
 			}
 
 		} else {
@@ -335,13 +336,13 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 				date:      meta.Get(Date)[0],
 				method:    "GRPC",
 				uri:       info.FullMethod,
-				body: func() string {
+				body: func() []byte {
 					if req == nil {
-						return ""
+						return nil
 					}
 
 					raw, _ := pbutil.ProtoMessage2JSON(req.(protoV1.Message))
-					return string(raw)
+					return []byte(raw)
 				}(),
 			}
 		}

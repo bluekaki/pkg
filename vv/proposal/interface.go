@@ -29,6 +29,8 @@ type Validator interface {
 
 type NotifyHandler func(msg *AlertMessage)
 
+type Signer func(fullMethod string, jsonRaw []byte) (authorizationProxy, date string, err error)
+
 // Payload rest or grpc payload
 type Payload interface {
 	JournalID() string
@@ -37,11 +39,11 @@ type Payload interface {
 	Date() string
 	Method() string
 	URI() string
-	Body() string
+	Body() []byte
 }
 
 type UserinfoHandler func(authorization string, payload Payload) (userinfo interface{}, err error)
 
-type SignatureHandler func(proxyAuthorization string, payload Payload) (identifier string, ok bool, err error)
+type SignatureHandler func(authorizationProxy string, payload Payload) (identifier string, ok bool, err error)
 
 type WhitelistingHandler func(xForwardedFor string) (ok bool, err error)

@@ -78,7 +78,7 @@ func init() {
 	}
 
 	server.RegisteAuthorizationProxyValidator("dummy_sign", func(proxyAuthorization string, payload proposal.Payload) (identifier string, ok bool, err error) {
-		identifier, ok, err = signature.Verify(proxyAuthorization, payload.Date(), auth.ToMethod(payload.Method()), payload.URI(), []byte(payload.Body()))
+		identifier, ok, err = signature.Verify(proxyAuthorization, payload.Date(), auth.ToMethod(payload.Method()), payload.URI(), payload.Body())
 		return
 	})
 }
