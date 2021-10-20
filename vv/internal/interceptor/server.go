@@ -174,10 +174,12 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 				err = s.Err()
 			}
 
+			var httpStatusError *runtime.HTTPStatusError // wrap http code
 			if err != nil {
-				switch err.(type) { // TODO status.New(codes.Code(bzErr.BzCode()), bzErr.Desc())
+				switch err.(type) {
 				case proposal.BzError:
 					bzErr := err.(proposal.BzError)
+					httpStatusError = &runtime.HTTPStatusError{HTTPStatus: int(bzErr.HTTPCode())}
 					s, _ := status.New(codes.Code(bzErr.BzCode()), bzErr.Desc()).WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", bzErr.StackErr())})
 					err = s.Err()
 
@@ -189,6 +191,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 					notify(alert)
 
 					bzErr := alertErr.BzError()
+					httpStatusError = &runtime.HTTPStatusError{HTTPStatus: int(bzErr.HTTPCode())}
 					s, _ := status.New(codes.Code(bzErr.BzCode()), bzErr.Desc()).WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", bzErr.StackErr())})
 					err = s.Err()
 				}
@@ -270,6 +273,10 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 					grpcRequestErrorCounter.WithLabelValues(method, code).Inc()
 					grpcRequestErrorDurationHistogram.WithLabelValues(method, code).Observe(time.Since(ts).Seconds())
 				}
+			}
+
+			if httpStatusError != nil {
+				httpStatusError.Err = err
 			}
 		}()
 

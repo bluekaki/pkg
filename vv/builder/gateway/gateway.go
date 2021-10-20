@@ -119,7 +119,7 @@ func NewCorsHandler(logger *zap.Logger, notify proposal.NotifyHandler, register 
 		runtime.WithIncomingHeaderMatcher(runtime.DefaultHeaderMatcher),
 		runtime.WithOutgoingHeaderMatcher(runtime.DefaultHeaderMatcher),
 		runtime.WithMetadata(annotator),
-		runtime.WithErrorHandler(runtime.DefaultHTTPErrorHandler), // TODO convert http code
+		runtime.WithErrorHandler(runtime.DefaultHTTPErrorHandler),
 		runtime.WithStreamErrorHandler(runtime.DefaultStreamErrorHandler),
 		runtime.WithRoutingErrorHandler(runtime.DefaultRoutingErrorHandler),
 		runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.HTTPBodyMarshaler{
