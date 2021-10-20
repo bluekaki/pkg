@@ -9,7 +9,7 @@ import (
 
 	"github.com/bluekaki/pkg/errors"
 	"github.com/bluekaki/pkg/vv/internal/pb"
-	"github.com/bluekaki/pkg/vv/pkg/adapter"
+	"github.com/bluekaki/pkg/vv/proposal"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
@@ -22,7 +22,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-func UnaryGatewayInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, metrics func(http.Handler), projectName string) grpc.UnaryClientInterceptor {
+func UnaryGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, metrics func(http.Handler), projectName string) grpc.UnaryClientInterceptor {
 	if metrics != nil {
 		metrics(promhttp.Handler())
 	}
@@ -64,7 +64,7 @@ func UnaryGatewayInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, m
 		defer func() { // double recover for safety
 			if p := recover(); p != nil {
 				errVerbose := fmt.Sprintf("got double panic => error: %+v", errors.Panic(p))
-				notify(&adapter.AlertMessage{
+				notify(&proposal.AlertMessage{
 					ProjectName:  projectName,
 					JournalID:    journalID,
 					ErrorVerbose: errVerbose,
@@ -79,7 +79,7 @@ func UnaryGatewayInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, m
 		defer func() {
 			if p := recover(); p != nil {
 				errVerbose := fmt.Sprintf("got panic => error: %+v", errors.Panic(p))
-				notify(&adapter.AlertMessage{
+				notify(&proposal.AlertMessage{
 					ProjectName:  projectName,
 					JournalID:    journalID,
 					ErrorVerbose: errVerbose,
@@ -171,7 +171,7 @@ func UnaryGatewayInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, m
 
 		serviceName := strings.Split(fullMethod, "/")[1]
 
-		var whitelistingValidator adapter.WhitelistingHandler
+		var whitelistingValidator proposal.WhitelistingHandler
 		if serviceHandler, ok := getServiceHandler(serviceName); ok && serviceHandler.Whitelisting != nil && *serviceHandler.Whitelisting != "" {
 			whitelistingValidator, _ = getWhitelistingHandler(*serviceHandler.Whitelisting)
 		}
@@ -182,17 +182,19 @@ func UnaryGatewayInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, m
 		if whitelistingValidator != nil {
 			ok, err := whitelistingValidator(meta.Get(XForwardedFor)[0])
 			if err != nil {
-				notify(&adapter.AlertMessage{
+				errorVerbose := fmt.Sprintf("%+v", err)
+				notify(&proposal.AlertMessage{
 					ProjectName:  projectName,
 					JournalID:    journalID,
-					ErrorVerbose: fmt.Sprintf("%+v", err),
+					ErrorVerbose: errorVerbose,
 					Timestamp:    time.Now(),
 				})
 
 				s := status.New(codes.Aborted, codes.Aborted.String())
-				s, _ = s.WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", err)})
+				s, _ = s.WithDetails(&pb.Stack{Verbose: errorVerbose})
 				return s.Err()
 			}
+
 			if !ok {
 				return status.Error(codes.Aborted, "ip does not allow access")
 			}
@@ -202,7 +204,7 @@ func UnaryGatewayInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, m
 		if err != nil {
 			s, _ := status.FromError(err)
 			if s.Code() == codes.Unavailable {
-				notify(&adapter.AlertMessage{
+				notify(&proposal.AlertMessage{
 					ProjectName:  projectName,
 					JournalID:    journalID,
 					ErrorVerbose: s.Proto().String(),

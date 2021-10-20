@@ -11,7 +11,7 @@ import (
 	"github.com/bluekaki/pkg/id"
 	"github.com/bluekaki/pkg/vv/internal/configs"
 	"github.com/bluekaki/pkg/vv/internal/interceptor"
-	"github.com/bluekaki/pkg/vv/pkg/adapter"
+	"github.com/bluekaki/pkg/vv/proposal"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/rs/cors"
@@ -38,7 +38,7 @@ func init() {
 	runtime.DefaultContextTimeout = time.Second * 30
 }
 
-func RegisteWhitelistingValidator(name string, handler adapter.WhitelistingHandler) {
+func RegisteWhitelistingValidator(name string, handler proposal.WhitelistingHandler) {
 	interceptor.RegisteWhitelistingValidator(name, handler)
 }
 
@@ -89,7 +89,7 @@ func WithProjectName(name string) Option {
 
 type RegisterEndpoint func(mux *runtime.ServeMux, opts []grpc.DialOption) error
 
-func NewCorsHandler(logger *zap.Logger, notify adapter.NotifyHandler, register RegisterEndpoint, options ...Option) http.Handler {
+func NewCorsHandler(logger *zap.Logger, notify proposal.NotifyHandler, register RegisterEndpoint, options ...Option) http.Handler {
 	if logger == nil {
 		panic("logger required")
 	}
@@ -139,7 +139,7 @@ func NewCorsHandler(logger *zap.Logger, notify adapter.NotifyHandler, register R
 		grpc.WithResolvers(dns.NewBuilder()),
 		grpc.WithTimeout(dialTimeout),
 		grpc.WithBlock(),
-		grpc.WithMaxMsgSize(30 << 20),
+		grpc.WithMaxMsgSize(configs.MaxMsgSize),
 		grpc.WithKeepaliveParams(*kacp),
 		grpc.WithUnaryInterceptor(interceptor.UnaryGatewayInterceptor(logger, notify, opt.metrics, opt.projectName)),
 		grpc.WithDefaultServiceConfig(configs.ServiceConfig),

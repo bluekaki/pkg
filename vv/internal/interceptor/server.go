@@ -11,7 +11,7 @@ import (
 	"github.com/bluekaki/pkg/id"
 	"github.com/bluekaki/pkg/pbutil"
 	"github.com/bluekaki/pkg/vv/internal/pb"
-	"github.com/bluekaki/pkg/vv/pkg/adapter"
+	"github.com/bluekaki/pkg/vv/proposal"
 
 	protoV1 "github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -31,8 +31,8 @@ type SessionUserinfo struct{}
 // SignatureIdentifier mark identifier in context
 type SignatureIdentifier struct{}
 
-var _ adapter.Payload = (*restPayload)(nil)
-var _ adapter.Payload = (*grpcPayload)(nil)
+var _ proposal.Payload = (*restPayload)(nil)
+var _ proposal.Payload = (*grpcPayload)(nil)
 
 type restPayload struct {
 	journalID string
@@ -108,7 +108,7 @@ func (g *grpcPayload) Body() string {
 	return g.body
 }
 
-func UnaryServerInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, metrics func(http.Handler), projectName string) grpc.UnaryServerInterceptor {
+func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, metrics func(http.Handler), projectName string) grpc.UnaryServerInterceptor {
 	if metrics != nil {
 		metrics(promhttp.Handler())
 	}
@@ -145,7 +145,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, me
 		defer func() { // double recover for safety
 			if p := recover(); p != nil {
 				errVerbose := fmt.Sprintf("got double panic => error: %+v", errors.Panic(p))
-				notify(&adapter.AlertMessage{
+				notify(&proposal.AlertMessage{
 					ProjectName:  projectName,
 					JournalID:    journalID,
 					ErrorVerbose: errVerbose,
@@ -162,7 +162,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, me
 
 			if p := recover(); p != nil {
 				errVerbose := fmt.Sprintf("got panic => error: %+v", errors.Panic(p))
-				notify(&adapter.AlertMessage{
+				notify(&proposal.AlertMessage{
 					ProjectName:  projectName,
 					JournalID:    journalID,
 					ErrorVerbose: errVerbose,
@@ -174,14 +174,14 @@ func UnaryServerInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, me
 			}
 
 			if err != nil {
-				switch err.(type) {
-				case adapter.BzError:
-					bzErr := err.(adapter.BzError)
+				switch err.(type) { // TODO status.New(codes.Code(bzErr.BzCode()), bzErr.Desc())
+				case proposal.BzError:
+					bzErr := err.(proposal.BzError)
 					s, _ := status.New(codes.Code(bzErr.BzCode()), bzErr.Desc()).WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", bzErr.StackErr())})
 					err = s.Err()
 
-				case adapter.AlertError:
-					alertErr := err.(adapter.AlertError)
+				case proposal.AlertError:
+					alertErr := err.(proposal.AlertError)
 
 					alert := alertErr.AlertMessage()
 					alert.JournalID = journalID
@@ -273,7 +273,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, me
 		}()
 
 		if req != nil {
-			if validator, ok := req.(adapter.Validator); ok {
+			if validator, ok := req.(proposal.Validator); ok {
 				if err := validator.Validate(); err != nil {
 					return nil, status.Error(codes.InvalidArgument, err.Error())
 				}
@@ -281,8 +281,8 @@ func UnaryServerInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, me
 		}
 
 		var (
-			authorizationValidator      adapter.UserinfoHandler
-			authorizationProxyValidator adapter.SignatureHandler
+			authorizationValidator      proposal.UserinfoHandler
+			authorizationProxyValidator proposal.SignatureHandler
 		)
 
 		if serviceHandler, ok := getServiceHandler(serviceName); ok {
@@ -317,7 +317,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify adapter.NotifyHandler, me
 			authProxy = authProxyHeader[0]
 		}
 
-		var payload adapter.Payload
+		var payload proposal.Payload
 		if forwardedByGrpcGateway(meta) {
 			payload = &restPayload{
 				journalID: journalID,
