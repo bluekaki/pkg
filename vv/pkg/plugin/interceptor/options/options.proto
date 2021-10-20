@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package interceptor;
 
-option go_package = "/options";
+option go_package = "github.com/bluekaki/pkg/vv/pkg/plugin/interceptor/options";
 
 import "google/protobuf/descriptor.proto";
 

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package validator;
 
-option go_package = "/options";
+option go_package = "github.com/bluekaki/pkg/vv/pkg/plugin/protoc-gen-message-validator/options";
 
 import "google/protobuf/descriptor.proto";
 
