@@ -152,7 +152,7 @@ func (g *grpcServer) Serve(lis net.Listener) error {
 }
 
 func (g *grpcServer) GracefulStop() {
-	g.GracefulStop()
+	g.server.GracefulStop()
 }
 
 func (g *grpcServer) t() {}

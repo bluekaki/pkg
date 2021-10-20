@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package dummy;
+
+option go_package = "./;dummy";
+
+import "interceptor/options.proto";
+import "validator/options.proto";
+import "google/api/annotations.proto";
+
+message EchoReq {
+  string message = 1 [ (validator.field) = {require : true, le : 30} ];
+}
+
+message EchoResp {
+  string message = 1;
+  bool ack = 2;
+}
+
+service DummyService {
+  rpc Echo(EchoReq) returns (EchoResp) {
+    option (interceptor.method_handler) = {
+      authorization : "dummy_sso",
+      authorization_proxy : "dummy_sign",
+      whitelisting : "dummy_iplist",
+      journal : true
+    };
+
+    option (google.api.http) = {
+      get : "/dummy/echo"
+    };
+  }
+}
