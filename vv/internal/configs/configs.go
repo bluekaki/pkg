@@ -1,5 +1,7 @@
 package configs
 
+const MaxMsgSize = 30 << 20
+
 // ServiceConfig the default service config
 const ServiceConfig = `
 {

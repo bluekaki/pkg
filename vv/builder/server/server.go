@@ -6,8 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bluekaki/pkg/vv/internal/configs"
 	"github.com/bluekaki/pkg/vv/internal/interceptor"
-	"github.com/bluekaki/pkg/vv/pkg/adapter"
+	"github.com/bluekaki/pkg/vv/proposal"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -31,11 +32,11 @@ var (
 	}
 )
 
-func RegisteAuthorizationValidator(name string, handler adapter.UserinfoHandler) {
+func RegisteAuthorizationValidator(name string, handler proposal.UserinfoHandler) {
 	interceptor.RegisteAuthorizationValidator(name, handler)
 }
 
-func RegisteAuthorizationProxyValidator(name string, handler adapter.SignatureHandler) {
+func RegisteAuthorizationProxyValidator(name string, handler proposal.SignatureHandler) {
 	interceptor.RegisteAuthorizationProxyValidator(name, handler)
 }
 
@@ -87,19 +88,21 @@ func WithProjectName(name string) Option {
 type RegisterEndpoint func(server *grpc.Server)
 
 // New create a grpc server
-func New(logger *zap.Logger, notify adapter.NotifyHandler, register RegisterEndpoint, options ...Option) GRPCServer {
+func New(logger *zap.Logger, notify proposal.NotifyHandler, register RegisterEndpoint, options ...Option) GRPCServer {
 	if logger == nil {
 		panic("logger required")
+	}
+	if notify == nil {
+		panic("notify required")
+	}
+	if register == nil {
+		panic("register required")
 	}
 
 	opt := new(option)
 	for _, f := range options {
 		f(opt)
 	}
-
-	// if opt.prometheusHandler != nil {
-	// 	opt.prometheusHandler(logger)
-	// }
 
 	enforcementPolicy := defaultEnforcementPolicy
 	if opt.enforcementPolicy != nil {
@@ -112,8 +115,8 @@ func New(logger *zap.Logger, notify adapter.NotifyHandler, register RegisterEndp
 	}
 
 	serverOptions := []grpc.ServerOption{
-		grpc.MaxRecvMsgSize(30 << 20),
-		grpc.MaxSendMsgSize(30 << 20),
+		grpc.MaxRecvMsgSize(configs.MaxMsgSize),
+		grpc.MaxSendMsgSize(configs.MaxMsgSize),
 		grpc.KeepaliveEnforcementPolicy(*enforcementPolicy),
 		grpc.KeepaliveParams(*keepalive),
 		grpc.UnaryInterceptor(interceptor.UnaryServerInterceptor(logger, notify, opt.metrics, opt.projectName)),

@@ -3,8 +3,8 @@ package interceptor
 import (
 	"fmt"
 
-	"github.com/bluekaki/pkg/vv/pkg/adapter"
 	"github.com/bluekaki/pkg/vv/pkg/plugin/interceptor/options"
+	"github.com/bluekaki/pkg/vv/proposal"
 
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/grpc"
@@ -15,7 +15,7 @@ import (
 
 const _ = grpc.SupportPackageIsVersion7
 
-func RegisteAuthorizationValidator(name string, handler adapter.UserinfoHandler) {
+func RegisteAuthorizationValidator(name string, handler proposal.UserinfoHandler) {
 	if _, ok := handlers.Authorization[name]; ok {
 		panic(fmt.Sprintf("authorization validator: %s has exists", name))
 	}
@@ -23,7 +23,7 @@ func RegisteAuthorizationValidator(name string, handler adapter.UserinfoHandler)
 	handlers.Authorization[name] = handler
 }
 
-func RegisteAuthorizationProxyValidator(name string, handler adapter.SignatureHandler) {
+func RegisteAuthorizationProxyValidator(name string, handler proposal.SignatureHandler) {
 	if _, ok := handlers.AuthorizationProxy[name]; ok {
 		panic(fmt.Sprintf("authorization-proxy validator: %s has exists", name))
 	}
@@ -31,7 +31,7 @@ func RegisteAuthorizationProxyValidator(name string, handler adapter.SignatureHa
 	handlers.AuthorizationProxy[name] = handler
 }
 
-func RegisteWhitelistingValidator(name string, handler adapter.WhitelistingHandler) {
+func RegisteWhitelistingValidator(name string, handler proposal.WhitelistingHandler) {
 	if _, ok := handlers.Whitelisting[name]; ok {
 		panic(fmt.Sprintf("whitelisting validator: %s has exists", name))
 	}
@@ -114,17 +114,17 @@ var handlers = &struct {
 	Services  map[string]*options.ServiceHandler // FullMethod : Handler
 	HttpRules map[string]*annotations.HttpRule   // FullMethod : Rule
 
-	Authorization      map[string]adapter.UserinfoHandler     // Name : Handler
-	AuthorizationProxy map[string]adapter.SignatureHandler    // Name : Handler
-	Whitelisting       map[string]adapter.WhitelistingHandler // Name : Handler
+	Authorization      map[string]proposal.UserinfoHandler     // Name : Handler
+	AuthorizationProxy map[string]proposal.SignatureHandler    // Name : Handler
+	Whitelisting       map[string]proposal.WhitelistingHandler // Name : Handler
 }{
 	Methods:   make(map[string]*options.MethodHandler),
 	Services:  make(map[string]*options.ServiceHandler),
 	HttpRules: make(map[string]*annotations.HttpRule),
 
-	Authorization:      make(map[string]adapter.UserinfoHandler),
-	AuthorizationProxy: make(map[string]adapter.SignatureHandler),
-	Whitelisting:       make(map[string]adapter.WhitelistingHandler),
+	Authorization:      make(map[string]proposal.UserinfoHandler),
+	AuthorizationProxy: make(map[string]proposal.SignatureHandler),
+	Whitelisting:       make(map[string]proposal.WhitelistingHandler),
 }
 
 func getMethodHandler(fullMethod string) (*options.MethodHandler, bool) {
@@ -142,17 +142,17 @@ func getHttpRule(fullMethod string) (*annotations.HttpRule, bool) {
 	return rule, ok
 }
 
-func getAuthorizationHandler(name string) (adapter.UserinfoHandler, bool) {
+func getAuthorizationHandler(name string) (proposal.UserinfoHandler, bool) {
 	handler, ok := handlers.Authorization[name]
 	return handler, ok
 }
 
-func getAuthorizationProxyHandler(name string) (adapter.SignatureHandler, bool) {
+func getAuthorizationProxyHandler(name string) (proposal.SignatureHandler, bool) {
 	handler, ok := handlers.AuthorizationProxy[name]
 	return handler, ok
 }
 
-func getWhitelistingHandler(name string) (adapter.WhitelistingHandler, bool) {
+func getWhitelistingHandler(name string) (proposal.WhitelistingHandler, bool) {
 	handler, ok := handlers.Whitelisting[name]
 	return handler, ok
 }

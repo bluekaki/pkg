@@ -1,4 +1,4 @@
-package adapter
+package proposal
 
 import (
 	"github.com/bluekaki/pkg/errors"
