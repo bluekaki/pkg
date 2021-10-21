@@ -50,7 +50,7 @@ func main() {
 }
 
 func notifyHandler(msg *proposal.AlertMessage) {
-	logger.Error("notify", zap.Any("msg", msg))
+	logger.Error("notify", zap.Any("journal", msg))
 }
 
 func init() {

@@ -5,8 +5,8 @@ import (
 )
 
 type Code interface {
-	BzCode() uint16
-	HTTPCode() uint16
+	BzCode() int
+	HTTPCode() int
 	Desc() string
 	WithDesc(string) Code
 }

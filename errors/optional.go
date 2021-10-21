@@ -45,11 +45,6 @@ func NewEnum(bzCode, statusCode uint16, desc string) Enum {
 	return bzErr
 }
 
-type Error interface {
-	error
-	t()
-}
-
 var _ BzError = (*bzError)(nil)
 
 type BzError interface {

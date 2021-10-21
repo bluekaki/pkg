@@ -8,6 +8,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+type Error interface {
+	error
+	t()
+}
+
 func callers(skip int) []uintptr {
 	var pcs [32]uintptr
 	l := runtime.Callers(skip, pcs[:])

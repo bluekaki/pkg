@@ -44,21 +44,82 @@ func main() {
 
 	dummySvc := dummy.NewDummyServiceClient(conn)
 
-	ctx := metadata.AppendToOutgoingContext(context.TODO(), "Authorization", "cBmhBrwHZ0dM5DJy9TK1")
-	var header metadata.MD
+	{
+		fmt.Println("---------------------- normal ----------------------------")
 
-	resp, err := dummySvc.Echo(ctx, &dummy.EchoReq{
-		Message: "Hello World !",
-	},
-		grpc.Header(&header),
-	)
-	if err != nil {
-		panic(err)
+		ctx := metadata.AppendToOutgoingContext(context.TODO(), "Authorization", "cBmhBrwHZ0dM5DJy9TK1")
+		var header metadata.MD
+
+		resp, err := dummySvc.Echo(ctx, &dummy.EchoReq{
+			Message: "Hello World !",
+		},
+			grpc.Header(&header),
+		)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(header.Get("Journal-Id")[0], resp.Message)
 	}
 
-	fmt.Println(header.Get("Journal-Id")[0], resp.Message)
+	{
+		fmt.Println("---------------------- panic ----------------------------")
+
+		ctx := metadata.AppendToOutgoingContext(context.TODO(), "Authorization", "cBmhBrwHZ0dM5DJy9TK1")
+		var header metadata.MD
+
+		resp, err := dummySvc.Echo(ctx, &dummy.EchoReq{
+			Message: "panic",
+		},
+			grpc.Header(&header),
+		)
+		if err != nil {
+			fmt.Println(header.Get("Journal-Id")[0], err)
+
+		} else {
+			fmt.Println(header.Get("Journal-Id")[0], resp.Message)
+		}
+	}
+
+	{
+		fmt.Println("---------------------- business err ----------------------------")
+
+		ctx := metadata.AppendToOutgoingContext(context.TODO(), "Authorization", "cBmhBrwHZ0dM5DJy9TK1")
+		var header metadata.MD
+
+		resp, err := dummySvc.Echo(ctx, &dummy.EchoReq{
+			Message: "business err",
+		},
+			grpc.Header(&header),
+		)
+		if err != nil {
+			fmt.Println(header.Get("Journal-Id")[0], err)
+
+		} else {
+			fmt.Println(header.Get("Journal-Id")[0], resp.Message)
+		}
+	}
+
+	{
+		fmt.Println("---------------------- alert err ----------------------------")
+
+		ctx := metadata.AppendToOutgoingContext(context.TODO(), "Authorization", "cBmhBrwHZ0dM5DJy9TK1")
+		var header metadata.MD
+
+		resp, err := dummySvc.Echo(ctx, &dummy.EchoReq{
+			Message: "alert err",
+		},
+			grpc.Header(&header),
+		)
+		if err != nil {
+			fmt.Println(header.Get("Journal-Id")[0], err)
+
+		} else {
+			fmt.Println(header.Get("Journal-Id")[0], resp.Message)
+		}
+	}
 }
 
 func notifyHandler(msg *proposal.AlertMessage) {
-	logger.Error("notify", zap.Any("msg", msg))
+	logger.Error("notify", zap.Any("journal", msg))
 }

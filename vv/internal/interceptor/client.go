@@ -42,21 +42,6 @@ func UnaryClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, s
 		meta.Set(JournalID, journalID)
 		ctx = metadata.NewOutgoingContext(ctx, meta)
 
-		defer func() { // double recover for safety
-			if p := recover(); p != nil {
-				errVerbose := fmt.Sprintf("got double panic => error: %+v", errors.Panic(p))
-				notify(&proposal.AlertMessage{
-					ProjectName:  projectName,
-					JournalID:    journalID,
-					ErrorVerbose: errVerbose,
-					Timestamp:    time.Now(),
-				})
-
-				err = status.New(codes.Internal, "got double panic").Err()
-				logger.Error(fmt.Sprintf("%s %s", journalID, errVerbose))
-			}
-		}()
-
 		defer func() {
 			if p := recover(); p != nil {
 				errVerbose := fmt.Sprintf("got panic => error: %+v", errors.Panic(p))

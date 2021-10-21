@@ -142,21 +142,6 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 			journalID = values[0]
 		}
 
-		defer func() { // double recover for safety
-			if p := recover(); p != nil {
-				errVerbose := fmt.Sprintf("got double panic => error: %+v", errors.Panic(p))
-				notify(&proposal.AlertMessage{
-					ProjectName:  projectName,
-					JournalID:    journalID,
-					ErrorVerbose: errVerbose,
-					Timestamp:    time.Now(),
-				})
-
-				err = status.New(codes.Internal, "got double panic").Err()
-				logger.Error(fmt.Sprintf("%s %s", journalID, errVerbose))
-			}
-		}()
-
 		defer func() {
 			grpc.SetHeader(ctx, metadata.Pairs(runtime.MetadataHeaderPrefix+JournalID, journalID))
 			grpc.SetHeader(ctx, metadata.Pairs(JournalID, journalID))
@@ -179,7 +164,9 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 				switch err.(type) {
 				case proposal.BzError:
 					bzErr := err.(proposal.BzError)
-					httpStatusError = &runtime.HTTPStatusError{HTTPStatus: int(bzErr.HTTPCode())}
+					httpStatusError = &runtime.HTTPStatusError{HTTPStatus: bzErr.HTTPCode()}
+					fmt.Println(">>>>>>>>>>>>>>>>>>>>>", httpStatusError.HTTPStatus)
+
 					s, _ := status.New(codes.Code(bzErr.BzCode()), bzErr.Desc()).WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", bzErr.StackErr())})
 					err = s.Err()
 
@@ -191,7 +178,9 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 					notify(alert)
 
 					bzErr := alertErr.BzError()
-					httpStatusError = &runtime.HTTPStatusError{HTTPStatus: int(bzErr.HTTPCode())}
+					httpStatusError = &runtime.HTTPStatusError{HTTPStatus: bzErr.HTTPCode()}
+					fmt.Println("<<<<<<<<<<<<<<<<<<<<", httpStatusError.HTTPStatus)
+
 					s, _ := status.New(codes.Code(bzErr.BzCode()), bzErr.Desc()).WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", bzErr.StackErr())})
 					err = s.Err()
 				}
@@ -277,6 +266,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 
 			if httpStatusError != nil {
 				httpStatusError.Err = err
+				err = httpStatusError
 			}
 		}()
 
