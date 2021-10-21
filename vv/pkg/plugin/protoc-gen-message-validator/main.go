@@ -292,7 +292,7 @@ func generateRequire(structName, prefix string, field *protogen.Field, g *protog
 			g.P("return ", errorsPackage.Ident("New"), `("`, field.GoName, ` contains empty value")`)
 			g.P("}")
 
-			g.P("if err := val.Valid(); err != nil {")
+			g.P("if err := val.Validate(); err != nil {")
 			g.P("return err")
 			g.P("}")
 
@@ -306,7 +306,7 @@ func generateRequire(structName, prefix string, field *protogen.Field, g *protog
 			g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` required")`)
 			g.P("}")
 
-			g.P("if err := ", prefix, ".", field.GoName, ".Valid(); err != nil {")
+			g.P("if err := ", prefix, ".", field.GoName, ".Validate(); err != nil {")
 			g.P("return err")
 			g.P("}")
 			return
