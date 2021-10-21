@@ -75,9 +75,6 @@ func NewBzError(code proposal.Code, err errors.Error) proposal.BzError {
 	if code == nil {
 		panic("proposal.Code required")
 	}
-	if err == nil {
-		panic("errors.Error required")
-	}
 
 	bzError := &bzError{err: err}
 	bzError.Code = code

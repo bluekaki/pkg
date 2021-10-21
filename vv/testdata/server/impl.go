@@ -38,18 +38,12 @@ func (d *dummyService) Echo(ctx context.Context, req *dummy.EchoReq) (*dummy.Ech
 	}
 
 	if req.Message == "business err" {
-		return nil, cuzerr.NewBzError(
-			errorCode,
-			errors.New("got a business err"),
-		)
+		return nil, cuzerr.NewBzError(errorCode, nil)
 	}
 
 	if req.Message == "alert err" {
 		return nil, cuzerr.NewAlertError(
-			cuzerr.NewBzError(
-				alertCode,
-				errors.New("got an alert err"),
-			),
+			cuzerr.NewBzError(alertCode, nil),
 			&proposal.AlertMessage{
 				ProjectName:  "dummy-server",
 				JournalID:    journalID,
