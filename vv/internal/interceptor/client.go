@@ -96,8 +96,10 @@ func UnaryClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, s
 				journal.Response.Code = s.Code().String()
 				journal.Response.Message = s.Message()
 
-				if len(s.Details()) > 0 {
-					journal.Response.ErrorVerbose = s.Details()[0].(*pb.Stack).Verbose
+				for _, detail := range s.Details() {
+					if stack, ok := detail.(*pb.Stack); ok {
+						journal.Response.ErrorVerbose = stack.Verbose
+					}
 				}
 				err = status.New(s.Code(), s.Message()).Err() // reset detail
 			}

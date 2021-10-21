@@ -159,14 +159,12 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 				err = s.Err()
 			}
 
-			var httpStatusError *runtime.HTTPStatusError // wrap http code
+			var statusCode *pb.Code
 			if err != nil {
 				switch err.(type) {
 				case proposal.BzError:
 					bzErr := err.(proposal.BzError)
-					httpStatusError = &runtime.HTTPStatusError{HTTPStatus: bzErr.HTTPCode()}
-					fmt.Println(">>>>>>>>>>>>>>>>>>>>>", httpStatusError.HTTPStatus)
-
+					statusCode = &pb.Code{HttpStatus: uint32(bzErr.HTTPCode())}
 					s, _ := status.New(codes.Code(bzErr.BzCode()), bzErr.Desc()).WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", bzErr.StackErr())})
 					err = s.Err()
 
@@ -178,9 +176,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 					notify(alert)
 
 					bzErr := alertErr.BzError()
-					httpStatusError = &runtime.HTTPStatusError{HTTPStatus: bzErr.HTTPCode()}
-					fmt.Println("<<<<<<<<<<<<<<<<<<<<", httpStatusError.HTTPStatus)
-
+					statusCode = &pb.Code{HttpStatus: uint32(bzErr.HTTPCode())}
 					s, _ := status.New(codes.Code(bzErr.BzCode()), bzErr.Desc()).WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", bzErr.StackErr())})
 					err = s.Err()
 				}
@@ -234,10 +230,18 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 					journal.Response.Code = s.Code().String()
 					journal.Response.Message = s.Message()
 
-					if len(s.Details()) > 0 {
-						journal.Response.ErrorVerbose = s.Details()[0].(*pb.Stack).Verbose
+					for _, detail := range s.Details() {
+						if stack, ok := detail.(*pb.Stack); ok {
+							journal.Response.ErrorVerbose = stack.Verbose
+						}
 					}
-					err = status.New(s.Code(), s.Message()).Err() // reset detail
+
+					s = status.New(s.Code(), s.Message()) // reset detail
+					if statusCode != nil {
+						s, _ = s.WithDetails(statusCode)
+					}
+
+					err = s.Err()
 				}
 
 				journal.CostSeconds = time.Since(ts).Seconds()
@@ -262,11 +266,6 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 					grpcRequestErrorCounter.WithLabelValues(method, code).Inc()
 					grpcRequestErrorDurationHistogram.WithLabelValues(method, code).Observe(time.Since(ts).Seconds())
 				}
-			}
-
-			if httpStatusError != nil {
-				httpStatusError.Err = err
-				err = httpStatusError
 			}
 		}()
 

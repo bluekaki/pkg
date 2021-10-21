@@ -11,6 +11,7 @@ import (
 	"github.com/bluekaki/pkg/vv/internal/pb"
 	"github.com/bluekaki/pkg/vv/proposal"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"google.golang.org/genproto/googleapis/api/annotations"
@@ -123,10 +124,22 @@ func UnaryGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 					journal.Response.Code = s.Code().String()
 					journal.Response.Message = s.Message()
 
-					if len(s.Details()) > 0 {
-						journal.Response.ErrorVerbose = s.Details()[0].(*pb.Stack).Verbose
+					var customStatus *runtime.HTTPStatusError
+					for _, detail := range s.Details() {
+						switch detail.(type) {
+						case *pb.Stack:
+							journal.Response.ErrorVerbose = detail.(*pb.Stack).Verbose
+
+						case *pb.Code:
+							customStatus = &runtime.HTTPStatusError{HTTPStatus: int(detail.(*pb.Code).HttpStatus)}
+						}
 					}
+
 					err = status.New(s.Code(), s.Message()).Err() // reset detail
+					if customStatus != nil {
+						customStatus.Err = err
+						err = customStatus
+					}
 				}
 
 				journal.CostSeconds = time.Since(ts).Seconds()

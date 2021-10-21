@@ -24,6 +24,11 @@ type dummyService struct {
 	dummy.UnimplementedDummyServiceServer
 }
 
+var (
+	errorCode = cuzerr.NewCode(1101, http.StatusBadRequest, "some business error occurs")
+	alertCode = cuzerr.NewCode(2307, http.StatusExpectationFailed, "some alert error occurs")
+)
+
 func (d *dummyService) Echo(ctx context.Context, req *dummy.EchoReq) (*dummy.EchoResp, error) {
 	userinfo := vv.Userinfo(ctx).(*Userinfo)
 	journalID, _ := vv.JournalID(ctx)
@@ -34,17 +39,15 @@ func (d *dummyService) Echo(ctx context.Context, req *dummy.EchoReq) (*dummy.Ech
 
 	if req.Message == "business err" {
 		return nil, cuzerr.NewBzError(
-			cuzerr.NewCode(1101, http.StatusBadRequest, "some business error occurs"),
+			errorCode,
 			errors.New("got a business err"),
 		)
 	}
 
 	if req.Message == "alert err" {
-		return nil, errors.New("xxxxxxxxxxx")
-
 		return nil, cuzerr.NewAlertError(
 			cuzerr.NewBzError(
-				cuzerr.NewCode(2307, http.StatusExpectationFailed, "some alert error occurs"),
+				alertCode,
 				errors.New("got an alert err"),
 			),
 			&proposal.AlertMessage{

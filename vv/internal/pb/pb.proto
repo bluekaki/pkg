@@ -6,6 +6,8 @@ import "google/protobuf/any.proto";
 
 message Stack { string verbose = 1; }
 
+message Code { uint32 http_status = 1; }
+
 message Journal {
   string id = 1;
   Request request = 2;
