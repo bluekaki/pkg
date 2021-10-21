@@ -29,7 +29,7 @@ func main() {
 		panic(err)
 	}
 
-	conn, err := client.New("127.0.0.1:8000", logger, notifyHandler,
+	conn, err := client.NewConn("127.0.0.1:8000", logger, notifyHandler,
 		client.WithSigner(
 			func(fullMethod string, jsonRaw []byte) (authorizationProxy, date string, err error) {
 				return signer.Generate("TESDUM", auth.MethodGRPC, fullMethod, jsonRaw)

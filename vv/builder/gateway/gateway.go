@@ -38,11 +38,12 @@ func init() {
 	runtime.DefaultContextTimeout = time.Second * 30
 }
 
+// RegisteWhitelistingValidator whiteling handler for interceptor options.whitelisting
 func RegisteWhitelistingValidator(name string, handler proposal.WhitelistingHandler) {
 	interceptor.RegisteWhitelistingValidator(name, handler)
 }
 
-// Option how setup client
+// Option some options for build a gateway
 type Option func(*option)
 
 type option struct {
@@ -81,14 +82,17 @@ func WithPrometheus(metrics func(http.Handler)) Option {
 	}
 }
 
+// WithProjectName add project name into alert message
 func WithProjectName(name string) Option {
 	return func(opt *option) {
 		opt.projectName = strings.TrimSpace(name)
 	}
 }
 
+// RegisterEndpoint the only entrance for register backend endpoints
 type RegisterEndpoint func(mux *runtime.ServeMux, opts []grpc.DialOption) error
 
+// NewCorsHandler create a cors http handler
 func NewCorsHandler(logger *zap.Logger, notify proposal.NotifyHandler, register RegisterEndpoint, options ...Option) http.Handler {
 	if logger == nil {
 		panic("logger required")

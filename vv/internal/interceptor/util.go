@@ -10,12 +10,12 @@ import (
 )
 
 func queryUnescape(uri string) string {
-	decodedUri, err := url.QueryUnescape(uri)
+	decodedURI, err := url.QueryUnescape(uri)
 	if err != nil {
 		return uri
 	}
 
-	return decodedUri
+	return decodedURI
 }
 
 func marshalJournal(journal proto.Message) interface{} {

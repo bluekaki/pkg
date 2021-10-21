@@ -22,6 +22,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
+// UnaryClientInterceptor unary interceptor for client
 func UnaryClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, signer proposal.Signer, projectName string) grpc.UnaryClientInterceptor {
 
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error) {
@@ -136,6 +137,7 @@ func UnaryClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, s
 	}
 }
 
+// StreamClientInterceptor stream interceptor for client
 func StreamClientInterceptor() grpc.StreamClientInterceptor {
 
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (stream grpc.ClientStream, err error) {

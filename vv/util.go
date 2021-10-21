@@ -3,15 +3,10 @@ package vv
 import (
 	"context"
 	stderr "errors"
-	"fmt"
 
-	"github.com/bluekaki/pkg/errors"
 	"github.com/bluekaki/pkg/vv/internal/interceptor"
-	"github.com/bluekaki/pkg/vv/internal/pb"
 
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 )
 
 var (
@@ -37,20 +32,7 @@ func JournalID(ctx context.Context) (string, error) {
 	return id[0], nil
 }
 
-// Error create some error
-func Error(c codes.Code, msg string, err errors.Error) error {
-	if c == codes.OK && err != nil {
-		c = codes.Internal
-	}
-
-	s := status.New(c, msg)
-	if err != nil {
-		s, _ = s.WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", err)})
-	}
-
-	return s.Err()
-}
-
+// Userinfo get userinfo from context
 func Userinfo(ctx context.Context) interface{} {
 	if ctx == nil {
 		return nil
@@ -58,6 +40,7 @@ func Userinfo(ctx context.Context) interface{} {
 	return ctx.Value(interceptor.SessionUserinfo{})
 }
 
+// SignatureIdentifier get signature identifier from context
 func SignatureIdentifier(ctx context.Context) string {
 	if ctx == nil {
 		return ""

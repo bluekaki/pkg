@@ -31,15 +31,17 @@ var (
 	}
 )
 
+// RegisteAuthorizationValidator userinfo handler for interceptor options.authorization
 func RegisteAuthorizationValidator(name string, handler proposal.UserinfoHandler) {
 	interceptor.RegisteAuthorizationValidator(name, handler)
 }
 
+// RegisteAuthorizationProxyValidator signature handler for interceptor options.authorization_proxy
 func RegisteAuthorizationProxyValidator(name string, handler proposal.SignatureHandler) {
 	interceptor.RegisteAuthorizationProxyValidator(name, handler)
 }
 
-// Option how setup client
+// Option some options for build a server
 type Option func(*option)
 
 type option struct {
@@ -78,12 +80,14 @@ func WithPrometheus(metrics func(http.Handler)) Option {
 	}
 }
 
+// WithProjectName add project name into alert message
 func WithProjectName(name string) Option {
 	return func(opt *option) {
 		opt.projectName = strings.TrimSpace(name)
 	}
 }
 
+// RegisterEndpoint the only entrance for register service
 type RegisterEndpoint func(server *grpc.Server)
 
 // New create a grpc server
@@ -136,6 +140,7 @@ func New(logger *zap.Logger, notify proposal.NotifyHandler, register RegisterEnd
 	return srv
 }
 
+// GRPCServer grpc server
 type GRPCServer interface {
 	Serve(lis net.Listener) error
 	GracefulStop()

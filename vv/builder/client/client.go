@@ -29,6 +29,7 @@ var (
 	defaultDialTimeout = time.Second * 2
 )
 
+// Option some options for build a conn
 type Option func(*option)
 
 type option struct {
@@ -68,21 +69,22 @@ func WithDialTimeout(timeout time.Duration) Option {
 	}
 }
 
-// WithSign setup the signature handler
+// WithSigner a handler for do signature
 func WithSigner(signer proposal.Signer) Option {
 	return func(opt *option) {
 		opt.signer = signer
 	}
 }
 
+// WithProjectName add project name into alert message
 func WithProjectName(name string) Option {
 	return func(opt *option) {
 		opt.projectName = strings.TrimSpace(name)
 	}
 }
 
-// New create a grpc client conn
-func New(endpoint string, logger *zap.Logger, notify proposal.NotifyHandler, options ...Option) (*grpc.ClientConn, error) {
+// NewConn create a grpc client conn
+func NewConn(endpoint string, logger *zap.Logger, notify proposal.NotifyHandler, options ...Option) (ConnInterface, error) {
 	if endpoint = strings.TrimSpace(endpoint); endpoint == "" {
 		return nil, errors.New("endpoint required")
 	}
@@ -135,5 +137,17 @@ func New(endpoint string, logger *zap.Logger, notify proposal.NotifyHandler, opt
 		return nil, errors.Wrapf(err, "dial %s err", endpoint)
 	}
 
-	return conn, nil
+	return &clientConn{conn}, nil
 }
+
+// ConnInterface a wrapper for grpc.ClientConnInterface
+type ConnInterface interface {
+	grpc.ClientConnInterface
+	t()
+}
+
+type clientConn struct {
+	*grpc.ClientConn
+}
+
+func (c *clientConn) t() {}

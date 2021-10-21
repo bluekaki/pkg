@@ -1,5 +1,6 @@
 package configs
 
+// MaxMsgSize the default max message size
 const MaxMsgSize = 30 << 20
 
 // ServiceConfig the default service config

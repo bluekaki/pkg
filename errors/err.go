@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Error an error with stack info
 type Error interface {
 	error
 	t()

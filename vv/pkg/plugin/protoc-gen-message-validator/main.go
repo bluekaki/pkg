@@ -107,27 +107,27 @@ func generateMessage(structName, prefix string, message *protogen.Message, g *pr
 			}
 
 			if fieldValidator.Lt != nil {
-				generateLT_LE_GT_GE(structName, prefix, field, "<", strconv.FormatUint(uint64(*fieldValidator.Lt), 10), g)
+				generateLTLEGTGE(structName, prefix, field, "<", strconv.FormatUint(uint64(*fieldValidator.Lt), 10), g)
 			}
 
 			if fieldValidator.Le != nil {
-				generateLT_LE_GT_GE(structName, prefix, field, "<=", strconv.FormatUint(uint64(*fieldValidator.Le), 10), g)
+				generateLTLEGTGE(structName, prefix, field, "<=", strconv.FormatUint(uint64(*fieldValidator.Le), 10), g)
 			}
 
 			if fieldValidator.Gt != nil {
-				generateLT_LE_GT_GE(structName, prefix, field, ">", strconv.FormatUint(uint64(*fieldValidator.Gt), 10), g)
+				generateLTLEGTGE(structName, prefix, field, ">", strconv.FormatUint(uint64(*fieldValidator.Gt), 10), g)
 			}
 
 			if fieldValidator.Ge != nil {
-				generateLT_LE_GT_GE(structName, prefix, field, ">=", strconv.FormatUint(uint64(*fieldValidator.Ge), 10), g)
+				generateLTLEGTGE(structName, prefix, field, ">=", strconv.FormatUint(uint64(*fieldValidator.Ge), 10), g)
 			}
 
 			if fieldValidator.MinCap != nil {
-				generateCAP_Min_Max(structName, prefix, field, ">=", strconv.FormatUint(uint64(*fieldValidator.MinCap), 10), g)
+				generateCAPMinMax(structName, prefix, field, ">=", strconv.FormatUint(uint64(*fieldValidator.MinCap), 10), g)
 			}
 
 			if fieldValidator.MaxCap != nil {
-				generateCAP_Min_Max(structName, prefix, field, "<=", strconv.FormatUint(uint64(*fieldValidator.MaxCap), 10), g)
+				generateCAPMinMax(structName, prefix, field, "<=", strconv.FormatUint(uint64(*fieldValidator.MaxCap), 10), g)
 			}
 
 			if fieldValidator.CstDatetime != nil && *fieldValidator.CstDatetime {
@@ -371,7 +371,7 @@ func generateEQNE(structName, prefix string, field *protogen.Field, operation, c
 	}
 }
 
-func generateLT_LE_GT_GE(structName, prefix string, field *protogen.Field, operation, condition string, g *protogen.GeneratedFile) {
+func generateLTLEGTGE(structName, prefix string, field *protogen.Field, operation, condition string, g *protogen.GeneratedFile) {
 	condition = strings.TrimSpace(condition)
 
 	desc := field.Desc
@@ -422,7 +422,7 @@ func generateLT_LE_GT_GE(structName, prefix string, field *protogen.Field, opera
 	}
 }
 
-func generateCAP_Min_Max(structName, prefix string, field *protogen.Field, operation, condition string, g *protogen.GeneratedFile) {
+func generateCAPMinMax(structName, prefix string, field *protogen.Field, operation, condition string, g *protogen.GeneratedFile) {
 	condition = strings.TrimSpace(condition)
 
 	desc := field.Desc

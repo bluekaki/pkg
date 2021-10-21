@@ -36,6 +36,7 @@ func (c *code) WithDesc(desc string) proposal.Code {
 
 var bzCodes = make(map[int]bool)
 
+// NewCode create a proposal code
 func NewCode(bzCode, httpCode int, desc string) proposal.Code {
 	if bzCode <= 0 || bzCode > 99999999 {
 		panic(fmt.Sprintf("bzCode %d illegal", bzCode))
@@ -71,6 +72,7 @@ func (b *bzError) StackErr() errors.Error {
 	return b.err
 }
 
+// NewBzError create a proposal bzerror
 func NewBzError(code proposal.Code, err errors.Error) proposal.BzError {
 	if code == nil {
 		panic("proposal.Code required")
@@ -101,6 +103,7 @@ func (a *alertError) AlertMessage() *proposal.AlertMessage {
 	return a.alertMessage
 }
 
+// NewAlertError create a proposal alerterror
 func NewAlertError(bzError proposal.BzError, alertMessage *proposal.AlertMessage) proposal.AlertError {
 	if bzError == nil {
 		panic("proposal.BzError required")

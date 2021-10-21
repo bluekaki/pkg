@@ -23,6 +23,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
+// UnaryGatewayInterceptor unary interceptor for gateway
 func UnaryGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, metrics func(http.Handler), projectName string) grpc.UnaryClientInterceptor {
 	if metrics != nil {
 		metrics(promhttp.Handler())
@@ -37,7 +38,7 @@ func UnaryGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 		journalID := meta.Get(JournalID)[0]
 
 		method := fullMethod
-		if httpRule, ok := getHttpRule(fullMethod); ok {
+		if httpRule, ok := getHTTPRule(fullMethod); ok {
 			if x, ok := httpRule.GetPattern().(*annotations.HttpRule_Get); ok {
 				method = "GET " + x.Get
 			} else if x, ok := httpRule.GetPattern().(*annotations.HttpRule_Put); ok {

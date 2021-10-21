@@ -31,6 +31,7 @@ var (
 
 func (d *dummyService) Echo(ctx context.Context, req *dummy.EchoReq) (*dummy.EchoResp, error) {
 	userinfo := vv.Userinfo(ctx).(*Userinfo)
+	identifier := vv.SignatureIdentifier(ctx)
 	journalID, _ := vv.JournalID(ctx)
 
 	if req.Message == "panic" {
@@ -54,7 +55,7 @@ func (d *dummyService) Echo(ctx context.Context, req *dummy.EchoReq) (*dummy.Ech
 	}
 
 	return &dummy.EchoResp{
-		Message: fmt.Sprintf("Hello %s, %s.", userinfo.Name, req.Message),
+		Message: fmt.Sprintf("Hello %s[%s], %s.", userinfo.Name, identifier, req.Message),
 		Ack:     true,
 	}, nil
 }

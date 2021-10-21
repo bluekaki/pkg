@@ -108,6 +108,7 @@ func (g *grpcPayload) Body() []byte {
 	return g.body
 }
 
+// UnaryServerInterceptor unary interceptor for server
 func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, metrics func(http.Handler), projectName string) grpc.UnaryServerInterceptor {
 	if metrics != nil {
 		metrics(promhttp.Handler())
@@ -254,7 +255,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 				}
 			}
 
-			if _, ok := getHttpRule(info.FullMethod); ok && metrics != nil {
+			if _, ok := getHTTPRule(info.FullMethod); ok && metrics != nil {
 				if err == nil {
 					grpcRequestSuccessCounter.WithLabelValues(method).Inc()
 					grpcRequestSuccessDurationHistogram.WithLabelValues(method).Observe(time.Since(ts).Seconds())
@@ -370,6 +371,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 	}
 }
 
+// StreamServerInterceptor stream interceptor for server
 func StreamServerInterceptor() grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 		return errors.New("not currently supported")

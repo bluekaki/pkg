@@ -15,6 +15,7 @@ import (
 
 const _ = grpc.SupportPackageIsVersion7
 
+// RegisteAuthorizationValidator userinfo handler for interceptor options.authorization
 func RegisteAuthorizationValidator(name string, handler proposal.UserinfoHandler) {
 	if _, ok := handlers.Authorization[name]; ok {
 		panic(fmt.Sprintf("authorization validator: %s has exists", name))
@@ -23,6 +24,7 @@ func RegisteAuthorizationValidator(name string, handler proposal.UserinfoHandler
 	handlers.Authorization[name] = handler
 }
 
+// RegisteAuthorizationProxyValidator signature handler for interceptor options.authorization_proxy
 func RegisteAuthorizationProxyValidator(name string, handler proposal.SignatureHandler) {
 	if _, ok := handlers.AuthorizationProxy[name]; ok {
 		panic(fmt.Sprintf("authorization-proxy validator: %s has exists", name))
@@ -31,6 +33,7 @@ func RegisteAuthorizationProxyValidator(name string, handler proposal.SignatureH
 	handlers.AuthorizationProxy[name] = handler
 }
 
+// RegisteWhitelistingValidator whiteling handler for interceptor options.whitelisting
 func RegisteWhitelistingValidator(name string, handler proposal.WhitelistingHandler) {
 	if _, ok := handlers.Whitelisting[name]; ok {
 		panic(fmt.Sprintf("whitelisting validator: %s has exists", name))
@@ -39,6 +42,7 @@ func RegisteWhitelistingValidator(name string, handler proposal.WhitelistingHand
 	handlers.Whitelisting[name] = handler
 }
 
+// ResloveFileDescriptor reslove options from FileDescriptor
 func ResloveFileDescriptor(gateway bool) {
 	protoregistry.GlobalFiles.RangeFiles(func(fd protoreflect.FileDescriptor) bool {
 		serivces := fd.Services()
@@ -100,7 +104,7 @@ func ResloveFileDescriptor(gateway bool) {
 				}
 
 				if httpRule, _ := proto.GetExtension(method.Options(), annotations.E_Http).(*annotations.HttpRule); httpRule != nil {
-					handlers.HttpRules[fullMethod] = httpRule
+					handlers.HTTPRules[fullMethod] = httpRule
 				}
 			}
 		}
@@ -112,7 +116,7 @@ func ResloveFileDescriptor(gateway bool) {
 var handlers = &struct {
 	Methods   map[string]*options.MethodHandler  // FullMethod : Handler
 	Services  map[string]*options.ServiceHandler // FullMethod : Handler
-	HttpRules map[string]*annotations.HttpRule   // FullMethod : Rule
+	HTTPRules map[string]*annotations.HttpRule   // FullMethod : Rule
 
 	Authorization      map[string]proposal.UserinfoHandler     // Name : Handler
 	AuthorizationProxy map[string]proposal.SignatureHandler    // Name : Handler
@@ -120,7 +124,7 @@ var handlers = &struct {
 }{
 	Methods:   make(map[string]*options.MethodHandler),
 	Services:  make(map[string]*options.ServiceHandler),
-	HttpRules: make(map[string]*annotations.HttpRule),
+	HTTPRules: make(map[string]*annotations.HttpRule),
 
 	Authorization:      make(map[string]proposal.UserinfoHandler),
 	AuthorizationProxy: make(map[string]proposal.SignatureHandler),
@@ -137,8 +141,8 @@ func getServiceHandler(serviceName string) (*options.ServiceHandler, bool) {
 	return handler, ok
 }
 
-func getHttpRule(fullMethod string) (*annotations.HttpRule, bool) {
-	rule, ok := handlers.HttpRules[fullMethod]
+func getHTTPRule(fullMethod string) (*annotations.HttpRule, bool) {
+	rule, ok := handlers.HTTPRules[fullMethod]
 	return rule, ok
 }
 
