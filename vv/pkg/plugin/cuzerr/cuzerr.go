@@ -3,6 +3,7 @@ package cuzerr
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/bluekaki/pkg/errors"
 	"github.com/bluekaki/pkg/vv/proposal"
@@ -57,7 +58,10 @@ func NewCode(bzCode, httpCode int, desc string) proposal.Code {
 	}
 }
 
-var _ proposal.BzError = (*bzError)(nil)
+type BzError interface {
+	proposal.BzError
+	AlertError(*proposal.AlertMessageMeta) proposal.AlertError
+}
 
 type bzError struct {
 	proposal.Code
@@ -72,8 +76,19 @@ func (b *bzError) StackErr() errors.Error {
 	return b.err
 }
 
+func (b *bzError) AlertError(meta *proposal.AlertMessageMeta) proposal.AlertError {
+	return &alertError{
+		bzError: b,
+		alertMessage: &proposal.AlertMessage{
+			ErrorVerbose: fmt.Sprintf("%+v", b.err),
+			Meta:         meta,
+			Timestamp:    time.Now(),
+		},
+	}
+}
+
 // NewBzError create a proposal bzerror
-func NewBzError(code proposal.Code, err errors.Error) proposal.BzError {
+func NewBzError(code proposal.Code, err errors.Error) BzError {
 	if code == nil {
 		panic("proposal.Code required")
 	}
@@ -101,19 +116,4 @@ func (a *alertError) BzError() proposal.BzError {
 
 func (a *alertError) AlertMessage() *proposal.AlertMessage {
 	return a.alertMessage
-}
-
-// NewAlertError create a proposal alerterror
-func NewAlertError(bzError proposal.BzError, alertMessage *proposal.AlertMessage) proposal.AlertError {
-	if bzError == nil {
-		panic("proposal.BzError required")
-	}
-	if alertMessage == nil {
-		panic("proposal.AlertMessage required")
-	}
-
-	return &alertError{
-		bzError:      bzError,
-		alertMessage: alertMessage,
-	}
 }

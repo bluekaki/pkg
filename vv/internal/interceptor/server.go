@@ -173,6 +173,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 					alertErr := err.(proposal.AlertError)
 
 					alert := alertErr.AlertMessage()
+					alert.ProjectName = projectName
 					alert.JournalID = journalID
 					notify(alert)
 
