@@ -37,10 +37,11 @@ func main() {
 		),
 		client.WithProjectName("dummy-client"),
 	)
-
 	if err != nil {
 		panic(err)
 	}
+
+	defer conn.Close()
 
 	dummySvc := dummy.NewDummyServiceClient(conn)
 

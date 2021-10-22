@@ -143,11 +143,16 @@ func NewConn(endpoint string, logger *zap.Logger, notify proposal.NotifyHandler,
 // ConnInterface a wrapper for grpc.ClientConnInterface
 type ConnInterface interface {
 	grpc.ClientConnInterface
+	Close() error
 	t()
 }
 
 type clientConn struct {
 	*grpc.ClientConn
+}
+
+func (c *clientConn) Close() error {
+	return c.ClientConn.Close()
 }
 
 func (c *clientConn) t() {}
