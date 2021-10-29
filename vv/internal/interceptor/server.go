@@ -331,9 +331,14 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 			payload = &grpcPayload{
 				journalID: journalID,
 				service:   serviceName,
-				date:      meta.Get(Date)[0],
-				method:    "GRPC",
-				uri:       info.FullMethod,
+				date: func() string {
+					if date := meta.Get(Date); len(date) > 0 {
+						return date[0]
+					}
+					return ""
+				}(),
+				method: "GRPC",
+				uri:    info.FullMethod,
 				body: func() []byte {
 					if req == nil {
 						return nil
