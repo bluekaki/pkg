@@ -136,11 +136,3 @@ func UnaryClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, s
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
 }
-
-// StreamClientInterceptor stream interceptor for client
-func StreamClientInterceptor() grpc.StreamClientInterceptor {
-
-	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (stream grpc.ClientStream, err error) {
-		return nil, errors.New("not currently supported")
-	}
-}

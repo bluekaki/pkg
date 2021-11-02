@@ -376,10 +376,3 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 		return handler(ctx, req)
 	}
 }
-
-// StreamServerInterceptor stream interceptor for server
-func StreamServerInterceptor() grpc.StreamServerInterceptor {
-	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
-		return errors.New("not currently supported")
-	}
-}
