@@ -123,6 +123,7 @@ func New(logger *zap.Logger, notify proposal.NotifyHandler, register RegisterEnd
 		grpc.KeepaliveEnforcementPolicy(*enforcementPolicy),
 		grpc.KeepaliveParams(*keepalive),
 		grpc.UnaryInterceptor(interceptor.UnaryServerInterceptor(logger, notify, opt.metrics, opt.projectName)),
+		grpc.StreamInterceptor(interceptor.StreamServerInterceptor(logger)),
 	}
 
 	if opt.credential != nil {

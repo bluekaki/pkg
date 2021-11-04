@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/bluekaki/pkg/auth"
 	"github.com/bluekaki/pkg/vv/builder/client"
@@ -45,7 +46,7 @@ func main() {
 
 	dummySvc := dummy.NewDummyServiceClient(conn)
 
-	{
+	if false {
 		fmt.Println("---------------------- normal ----------------------------")
 
 		ctx := metadata.AppendToOutgoingContext(context.TODO(), "Authorization", "cBmhBrwHZ0dM5DJy9TK1")
@@ -63,7 +64,7 @@ func main() {
 		fmt.Println(header.Get("Journal-Id")[0], resp.Message)
 	}
 
-	{
+	if false {
 		fmt.Println("---------------------- panic ----------------------------")
 
 		ctx := metadata.AppendToOutgoingContext(context.TODO(), "Authorization", "cBmhBrwHZ0dM5DJy9TK1")
@@ -82,7 +83,7 @@ func main() {
 		}
 	}
 
-	{
+	if false {
 		fmt.Println("---------------------- business err ----------------------------")
 
 		ctx := metadata.AppendToOutgoingContext(context.TODO(), "Authorization", "cBmhBrwHZ0dM5DJy9TK1")
@@ -101,7 +102,7 @@ func main() {
 		}
 	}
 
-	{
+	if false {
 		fmt.Println("---------------------- alert err ----------------------------")
 
 		ctx := metadata.AppendToOutgoingContext(context.TODO(), "Authorization", "cBmhBrwHZ0dM5DJy9TK1")
@@ -118,6 +119,49 @@ func main() {
 		} else {
 			fmt.Println(header.Get("Journal-Id")[0], resp.Message)
 		}
+	}
+
+	if true {
+		fmt.Println("---------------------- stream ----------------------------")
+
+		ctx := metadata.AppendToOutgoingContext(context.TODO(),
+			"Authorization", "cBmhBrwHZ0dM5DJy9TK1",
+			"Authorization-Proxy", "xxxxxxxx0000000ccccccccc",
+		)
+
+		stream, err := dummySvc.StreamEcho(ctx)
+		if err != nil {
+			panic(err)
+		}
+
+		ch := make(chan struct{})
+
+		go func() {
+			for {
+				resp, err := stream.Recv()
+				if err != nil {
+					if err == io.EOF {
+						close(ch)
+						return
+					}
+					panic(err)
+				}
+
+				fmt.Println(resp)
+			}
+		}()
+
+		for k := 0; k < 3; k++ {
+			err = stream.Send(&dummy.EchoReq{
+				Message: fmt.Sprintf("Hello World ! * %d", k),
+			})
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		stream.CloseSend()
+		<-ch
 	}
 }
 

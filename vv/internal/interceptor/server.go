@@ -376,3 +376,140 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 		return handler(ctx, req)
 	}
 }
+
+func StreamServerInterceptor(logger *zap.Logger) grpc.StreamServerInterceptor {
+
+	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
+		var journalID string
+		meta, _ := metadata.FromIncomingContext(stream.Context())
+		if values := meta.Get(JournalID); len(values) == 0 || values[0] == "" {
+			journalID = id.JournalID()
+
+		} else {
+			journalID = values[0]
+		}
+
+		return handler(srv, &streamServerInterceptor{
+			ServerStream: stream,
+			logger:       logger,
+			journalID:    journalID,
+			fullMethod:   info.FullMethod,
+		})
+	}
+}
+
+type streamServerInterceptor struct {
+	grpc.ServerStream
+	logger     *zap.Logger
+	journalID  string
+	fullMethod string
+	counter    struct {
+		send uint32
+		recv uint32
+	}
+}
+
+func (s *streamServerInterceptor) Context() context.Context {
+	meta, _ := metadata.FromIncomingContext(s.ServerStream.Context())
+	meta.Set(JournalID, s.journalID)
+
+	return metadata.NewIncomingContext(s.ServerStream.Context(), meta)
+}
+
+func (s *streamServerInterceptor) SendMsg(m interface{}) (err error) {
+	defer func() {
+		s.counter.send++
+		s.ServerStream.SendHeader(metadata.Pairs(JournalID, s.journalID))
+
+		if p := recover(); p != nil {
+			errVerbose := fmt.Sprintf("got panic => error: %+v", errors.Panic(p))
+			// notify(&proposal.AlertMessage{
+			// 	ProjectName:  projectName,
+			// 	JournalID:    journalID,
+			// 	ErrorVerbose: errVerbose,
+			// 	Timestamp:    time.Now(),
+			// })
+
+			s, _ := status.New(codes.Internal, "got panic").WithDetails(&pb.Stack{Verbose: errVerbose})
+			err = s.Err()
+		}
+
+		var statusCode *pb.Code
+		if err != nil {
+			switch err.(type) {
+			case proposal.BzError:
+				bzErr := err.(proposal.BzError)
+				statusCode = &pb.Code{HttpStatus: uint32(bzErr.HTTPCode())}
+				s, _ := status.New(codes.Code(bzErr.BzCode()), bzErr.Desc()).WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", bzErr.StackErr())})
+				err = s.Err()
+
+			case proposal.AlertError:
+				alertErr := err.(proposal.AlertError)
+
+				// alert := alertErr.AlertMessage()
+				// alert.ProjectName = projectName
+				// alert.JournalID = journalID
+				// notify(alert)
+
+				bzErr := alertErr.BzError()
+				statusCode = &pb.Code{HttpStatus: uint32(bzErr.HTTPCode())}
+				s, _ := status.New(codes.Code(bzErr.BzCode()), bzErr.Desc()).WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", bzErr.StackErr())})
+				err = s.Err()
+			}
+		}
+
+		journal := &pb.Journal{
+			Id: s.journalID,
+			Label: &pb.Lable{
+				Sequence: s.counter.send,
+				Desc:     "SendMsg",
+			},
+			Response: &pb.Response{
+				Code: codes.OK.String(),
+				Payload: func() *anypb.Any {
+					if m == nil {
+						return nil
+					}
+
+					any, _ := anypb.New(m.(proto.Message))
+					return any
+				}(),
+			},
+			Success: err == nil,
+		}
+
+		if err != nil {
+			s, _ := status.FromError(err)
+			journal.Response.Code = s.Code().String()
+			journal.Response.Message = s.Message()
+
+			for _, detail := range s.Details() {
+				if stack, ok := detail.(*pb.Stack); ok {
+					journal.Response.ErrorVerbose = stack.Verbose
+				}
+			}
+
+			s = status.New(s.Code(), s.Message()) // reset detail
+			if statusCode != nil {
+				s, _ = s.WithDetails(statusCode)
+			}
+
+			err = s.Err()
+		}
+
+		if err == nil {
+			s.logger.Info("server stream interceptor", zap.Any("journal", marshalJournal(journal)))
+
+		} else {
+			s.logger.Error("server stream interceptor", zap.Any("journal", marshalJournal(journal)))
+		}
+	}()
+
+	return s.ServerStream.SendMsg(m)
+}
+
+func (s *streamServerInterceptor) RecvMsg(m interface{}) (err error) {
+	s.counter.recv++
+
+	return s.ServerStream.RecvMsg(m)
+}
