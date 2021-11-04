@@ -129,11 +129,10 @@ func withoutBody(method, url string, form httpURL.Values, options ...Option) (bo
 	defer cancel()
 
 	if opt.Dialog != nil {
-		decodedURL, _ := httpURL.QueryUnescape(url)
 		opt.Dialog.Request = &journal.Request{
 			TTL:        ttl.String(),
 			Method:     method,
-			DecodedURL: decodedURL,
+			DecodedURL: QueryUnescape(url),
 			Header:     opt.Header,
 		}
 	}
@@ -249,13 +248,12 @@ func withFormBody(method, url string, form httpURL.Values, options ...Option) (b
 
 	formValue := form.Encode()
 	if opt.Dialog != nil {
-		decodedURL, _ := httpURL.QueryUnescape(url)
 		opt.Dialog.Request = &journal.Request{
 			TTL:        ttl.String(),
 			Method:     method,
-			DecodedURL: decodedURL,
+			DecodedURL: QueryUnescape(url),
 			Header:     opt.Header,
-			Body:       formValue,
+			Body:       QueryUnescape(formValue),
 		}
 	}
 
@@ -339,11 +337,10 @@ func withJSONBody(method, url string, raw json.RawMessage, options ...Option) (b
 	defer cancel()
 
 	if opt.Dialog != nil {
-		decodedURL, _ := httpURL.QueryUnescape(url)
 		opt.Dialog.Request = &journal.Request{
 			TTL:        ttl.String(),
 			Method:     method,
-			DecodedURL: decodedURL,
+			DecodedURL: QueryUnescape(url),
 			Header:     opt.Header,
 			Body:       string(raw), // TODO unsafe
 		}
