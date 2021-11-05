@@ -121,13 +121,13 @@ func main() {
 		}
 	}
 
-	if true {
+	if false {
 		fmt.Println("---------------------- stream ----------------------------")
 
 		ctx := metadata.AppendToOutgoingContext(context.TODO(), "Authorization", "cBmhBrwHZ0dM5DJy9TK1")
 
 		req := &dummy.EchoReq{
-			Message: "",
+			Message: "Hello World !",
 		}
 
 		stream, err := dummySvc.StreamEcho(ctx, req)

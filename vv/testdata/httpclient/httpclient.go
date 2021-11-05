@@ -18,18 +18,18 @@ func main() {
 		panic(err)
 	}
 
-	{
+	if true {
 		fmt.Println("---------------------- normal ----------------------------")
 
 		form := make(url.Values)
 		form.Set("message", "hello world")
 
-		signature, date, err := signer.Generate("TESDUM", auth.MethodGet, "/dummy/echo?"+form.Encode(), nil)
+		signature, date, err := signer.Generate("TESDUM", auth.MethodGet, "/dummy/stream/echo?"+form.Encode(), nil)
 		if err != nil {
 			panic(err)
 		}
 
-		body, header, _, err := httpclient.Get("http://127.0.0.1:8080/dummy/echo", form,
+		body, header, _, err := httpclient.Get("http://127.0.0.1:8080/dummy/stream/echo", form,
 			httpclient.WithHeader("Authorization", "cBmhBrwHZ0dM5DJy9TK1"),
 			httpclient.WithHeader("Date", date),
 			httpclient.WithHeader("Authorization-Proxy", signature),
@@ -41,7 +41,7 @@ func main() {
 		fmt.Println(header.Get("journal-id"), string(body))
 	}
 
-	{
+	if false {
 		fmt.Println("---------------------- panic ----------------------------")
 
 		form := make(url.Values)
@@ -65,7 +65,7 @@ func main() {
 		}
 	}
 
-	{
+	if false {
 		fmt.Println("---------------------- business err ----------------------------")
 
 		form := make(url.Values)
@@ -89,7 +89,7 @@ func main() {
 		}
 	}
 
-	{
+	if false {
 		fmt.Println("---------------------- alert err ----------------------------")
 
 		form := make(url.Values)

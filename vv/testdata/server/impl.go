@@ -28,6 +28,7 @@ var (
 )
 
 func (d *dummyService) Echo(ctx context.Context, req *dummy.EchoReq) (*dummy.EchoResp, error) {
+	journalID, _ := vv.JournalID(ctx)
 	userinfo := vv.Userinfo(ctx).(*Userinfo)
 	identifier := vv.SignatureIdentifier(ctx)
 
@@ -44,15 +45,19 @@ func (d *dummyService) Echo(ctx context.Context, req *dummy.EchoReq) (*dummy.Ech
 	}
 
 	return &dummy.EchoResp{
-		Message: fmt.Sprintf("Hello %s[%s], %s.", userinfo.Name, identifier, req.Message),
+		Message: fmt.Sprintf("{%s} %s[%s], %s.", journalID, userinfo.Name, identifier, req.Message),
 		Ack:     true,
 	}, nil
 }
 
 func (d *dummyService) StreamEcho(req *dummy.EchoReq, stream dummy.DummyService_StreamEchoServer) error {
+	journalID, _ := vv.JournalID(stream.Context())
+	userinfo := vv.Userinfo(stream.Context()).(*Userinfo)
+	identifier := vv.SignatureIdentifier(stream.Context())
+
 	for k := 0; k < 3; k++ {
 		err := stream.Send(&dummy.EchoResp{
-			Message: fmt.Sprintf("[%d] %s.", k, req.Message),
+			Message: fmt.Sprintf("{%s} %s[%s], %s #%d.", journalID, userinfo.Name, identifier, req.Message, k),
 			Ack:     true,
 		})
 		if err != nil {

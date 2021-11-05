@@ -394,6 +394,9 @@ func StreamServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 		ts := time.Now()
 
+		fullMethod := strings.Split(info.FullMethod, "/")
+		serviceName := fullMethod[1]
+
 		doJournal := false
 		method := info.FullMethod
 		if methodHandler, ok := getMethodHandler(info.FullMethod); ok {
@@ -528,11 +531,108 @@ func StreamServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 			}
 		}()
 
+		var (
+			authorizationValidator      proposal.UserinfoHandler
+			authorizationProxyValidator proposal.SignatureHandler
+		)
+
+		if serviceHandler, ok := getServiceHandler(serviceName); ok {
+			if serviceHandler.Authorization != nil && *serviceHandler.Authorization != "" {
+				authorizationValidator, _ = getAuthorizationHandler(*serviceHandler.Authorization)
+			}
+
+			if serviceHandler.AuthorizationProxy != nil && *serviceHandler.AuthorizationProxy != "" {
+				authorizationProxyValidator, _ = getAuthorizationProxyHandler(*serviceHandler.AuthorizationProxy)
+			}
+		}
+
+		if methodHandler, ok := getMethodHandler(info.FullMethod); ok {
+			if methodHandler.Authorization != nil && *methodHandler.Authorization != "" {
+				authorizationValidator, _ = getAuthorizationHandler(*methodHandler.Authorization)
+			}
+
+			if methodHandler.AuthorizationProxy != nil && *methodHandler.AuthorizationProxy != "" {
+				authorizationProxyValidator, _ = getAuthorizationProxyHandler(*methodHandler.AuthorizationProxy)
+			}
+		}
+
+		if authorizationValidator == nil && authorizationProxyValidator == nil {
+			return handler(srv, &streamServerInterceptor{
+				ServerStream: stream,
+				logger:       logger,
+				doJournal:    doJournal,
+				journalID:    journalID,
+			})
+		}
+
+		var auth, authProxy string
+		if authHeader := meta.Get(Authorization); len(authHeader) != 0 {
+			auth = authHeader[0]
+		}
+		if authProxyHeader := meta.Get(AuthorizationProxy); len(authProxyHeader) != 0 {
+			authProxy = authProxyHeader[0]
+		}
+
+		var payload proposal.Payload
+		if forwardedByGrpcGateway(meta) {
+			payload = &restPayload{
+				journalID: journalID,
+				service:   serviceName,
+				date:      meta.Get(Date)[0],
+				method:    meta.Get(Method)[0],
+				uri:       meta.Get(URI)[0],
+				body:      []byte(meta.Get(Body)[0]),
+			}
+
+		} else {
+			payload = &grpcPayload{
+				journalID: journalID,
+				service:   serviceName,
+				date: func() string {
+					if date := meta.Get(Date); len(date) > 0 {
+						return date[0]
+					}
+					return ""
+				}(),
+				method: "GRPC",
+				uri:    info.FullMethod,
+				body: func() []byte {
+					return []byte(journalID)
+				}(),
+			}
+		}
+
+		var userinfo interface{}
+		if authorizationValidator != nil {
+			userinfo, err = authorizationValidator(auth, payload)
+			if err != nil {
+				s := status.New(codes.Unauthenticated, codes.Unauthenticated.String())
+				s, _ = s.WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", err)})
+				return s.Err()
+			}
+		}
+
+		var identifier string
+		if authorizationProxyValidator != nil {
+			var ok bool
+			identifier, ok, err = authorizationProxyValidator(authProxy, payload)
+			if err != nil {
+				s := status.New(codes.PermissionDenied, codes.PermissionDenied.String())
+				s, _ = s.WithDetails(&pb.Stack{Verbose: fmt.Sprintf("%+v", err)})
+				return s.Err()
+			}
+			if !ok {
+				return status.Error(codes.PermissionDenied, "signature does not match")
+			}
+		}
+
 		return handler(srv, &streamServerInterceptor{
 			ServerStream: stream,
 			logger:       logger,
 			doJournal:    doJournal,
 			journalID:    journalID,
+			userinfo:     userinfo,
+			identifier:   identifier,
 		})
 	}
 }
@@ -546,13 +646,19 @@ type streamServerInterceptor struct {
 		send uint32
 		recv uint32
 	}
+	userinfo   interface{}
+	identifier string
 }
 
 func (s *streamServerInterceptor) Context() context.Context {
 	meta, _ := metadata.FromIncomingContext(s.ServerStream.Context())
 	meta.Set(JournalID, s.journalID)
 
-	return metadata.NewIncomingContext(s.ServerStream.Context(), meta)
+	ctx := metadata.NewIncomingContext(s.ServerStream.Context(), meta)
+	ctx = context.WithValue(ctx, SessionUserinfo{}, s.userinfo)
+	ctx = context.WithValue(ctx, SignatureIdentifier{}, s.identifier)
+
+	return ctx
 }
 
 func (s *streamServerInterceptor) SendMsg(m interface{}) (err error) {
