@@ -24,7 +24,7 @@ type dummyService struct {
 }
 
 var (
-	errorCode = cuzerr.NewCode(1101, http.StatusBadRequest, "some business error occurs")
+	bzCode    = cuzerr.NewCode(1101, http.StatusBadRequest, "some business error occurs")
 	alertCode = cuzerr.NewCode(2307, http.StatusExpectationFailed, "some alert error occurs")
 )
 
@@ -37,7 +37,7 @@ func (d *dummyService) Echo(ctx context.Context, req *dummy.EchoReq) (*dummy.Ech
 	}
 
 	if req.Message == "business err" {
-		return nil, cuzerr.NewBzError(errorCode, errors.New("got a business err"))
+		return nil, cuzerr.NewBzError(bzCode, errors.New("got a business err"))
 	}
 
 	if req.Message == "alert err" {
@@ -54,6 +54,9 @@ func (d *dummyService) StreamEcho(stream dummy.DummyService_StreamEchoServer) er
 	for {
 		req, err := stream.Recv()
 		if err != nil {
+			if vv.IsValidatorError(err) {
+				return err
+			}
 			if err != io.EOF {
 				return cuzerr.NewBzError(alertCode, errors.Wrap(err, "stream recv err")).AlertError(nil)
 			}

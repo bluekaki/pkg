@@ -152,9 +152,16 @@ func main() {
 		}()
 
 		for k := 0; k < 3; k++ {
-			err = stream.Send(&dummy.EchoReq{
-				Message: fmt.Sprintf("Hello World ! * %d", k),
-			})
+			req := &dummy.EchoReq{Message: fmt.Sprintf("%d", k)}
+			if k == 2 {
+				req.Message = ""
+			}
+
+			err = stream.Send(req)
+
+			// err = stream.Send(&dummy.EchoReq{
+			// 	Message: "", //fmt.Sprintf("Hello World ! * %d", k),
+			// })
 			if err != nil {
 				panic(err)
 			}

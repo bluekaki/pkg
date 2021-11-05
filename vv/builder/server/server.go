@@ -23,11 +23,9 @@ var (
 	}
 
 	defaultKeepAlive = &keepalive.ServerParameters{
-		MaxConnectionIdle:     15 * time.Second,
-		MaxConnectionAge:      30 * time.Second,
-		MaxConnectionAgeGrace: 5 * time.Second,
-		Time:                  5 * time.Second,
-		Timeout:               2 * time.Second,
+		MaxConnectionIdle: 15 * time.Second,
+		Time:              5 * time.Second,
+		Timeout:           2 * time.Second,
 	}
 )
 
@@ -123,7 +121,7 @@ func New(logger *zap.Logger, notify proposal.NotifyHandler, register RegisterEnd
 		grpc.KeepaliveEnforcementPolicy(*enforcementPolicy),
 		grpc.KeepaliveParams(*keepalive),
 		grpc.UnaryInterceptor(interceptor.UnaryServerInterceptor(logger, notify, opt.metrics, opt.projectName)),
-		grpc.StreamInterceptor(interceptor.StreamServerInterceptor(logger)),
+		grpc.StreamInterceptor(interceptor.StreamServerInterceptor(logger, notify, opt.metrics, opt.projectName)),
 	}
 
 	if opt.credential != nil {

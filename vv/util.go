@@ -6,7 +6,9 @@ import (
 
 	"github.com/bluekaki/pkg/vv/internal/interceptor"
 
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -56,4 +58,13 @@ func SignatureIdentifier(ctx context.Context) string {
 		return ""
 	}
 	return identifier
+}
+
+// IsValidatorError check this is an error of validator or not
+func IsValidatorError(err error) bool {
+	if status, _ := status.FromError(err); status != nil && status.Code() == codes.InvalidArgument {
+		return true
+	}
+
+	return false
 }
