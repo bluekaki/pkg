@@ -126,41 +126,27 @@ func main() {
 
 		ctx := metadata.AppendToOutgoingContext(context.TODO(), "Authorization", "cBmhBrwHZ0dM5DJy9TK1")
 
-		stream, err := dummySvc.StreamEcho(ctx)
+		req := &dummy.EchoReq{
+			Message: "",
+		}
+
+		stream, err := dummySvc.StreamEcho(ctx, req)
 		if err != nil {
 			panic(err)
 		}
 
 		header, _ := stream.Header()
-
-		ch := make(chan struct{})
-
-		go func() {
-			for {
-				resp, err := stream.Recv()
-				if err != nil {
-					if err == io.EOF {
-						close(ch)
-						return
-					}
-					panic(err)
-				}
-
-				fmt.Println(header.Get("Journal-Id")[0], resp)
-			}
-		}()
-
-		for k := 0; k < 3; k++ {
-			err = stream.Send(&dummy.EchoReq{
-				Message: fmt.Sprintf("Hello World ! * %d", k),
-			})
+		for {
+			resp, err := stream.Recv()
 			if err != nil {
+				if err == io.EOF {
+					return
+				}
 				panic(err)
 			}
-		}
 
-		stream.CloseSend()
-		<-ch
+			fmt.Println(header.Get("Journal-Id")[0], resp)
+		}
 	}
 }
 

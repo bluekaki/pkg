@@ -31,7 +31,7 @@ service DummyService {
     };
   }
 
-  rpc StreamEcho(stream EchoReq) returns (stream EchoResp) {
+  rpc StreamEcho(EchoReq) returns (stream EchoResp) {
     option (interceptor.method_handler) = {
       authorization : "dummy_sso",
       authorization_proxy : "dummy_sign",

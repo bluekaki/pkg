@@ -67,47 +67,32 @@ func local_request_DummyService_Echo_0(ctx context.Context, marshaler runtime.Ma
 
 }
 
+var (
+	filter_DummyService_StreamEcho_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
+)
+
 func request_DummyService_StreamEcho_0(ctx context.Context, marshaler runtime.Marshaler, client DummyServiceClient, req *http.Request, pathParams map[string]string) (DummyService_StreamEchoClient, runtime.ServerMetadata, error) {
+	var protoReq EchoReq
 	var metadata runtime.ServerMetadata
-	stream, err := client.StreamEcho(ctx)
+
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_DummyService_StreamEcho_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	stream, err := client.StreamEcho(ctx, &protoReq)
 	if err != nil {
-		grpclog.Infof("Failed to start streaming: %v", err)
 		return nil, metadata, err
 	}
-	dec := marshaler.NewDecoder(req.Body)
-	handleSend := func() error {
-		var protoReq EchoReq
-		err := dec.Decode(&protoReq)
-		if err == io.EOF {
-			return err
-		}
-		if err != nil {
-			grpclog.Infof("Failed to decode request: %v", err)
-			return err
-		}
-		if err := stream.Send(&protoReq); err != nil {
-			grpclog.Infof("Failed to send request: %v", err)
-			return err
-		}
-		return nil
-	}
-	go func() {
-		for {
-			if err := handleSend(); err != nil {
-				break
-			}
-		}
-		if err := stream.CloseSend(); err != nil {
-			grpclog.Infof("Failed to terminate client stream: %v", err)
-		}
-	}()
 	header, err := stream.Header()
 	if err != nil {
-		grpclog.Infof("Failed to get header from client: %v", err)
 		return nil, metadata, err
 	}
 	metadata.HeaderMD = header
 	return stream, metadata, nil
+
 }
 
 // RegisterDummyServiceHandlerServer registers the http handlers for service DummyService to "mux".

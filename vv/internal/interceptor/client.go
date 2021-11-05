@@ -29,6 +29,13 @@ func UnaryClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, s
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error) {
 		ts := time.Now()
 
+		doJournal := true
+		if methodHandler, ok := getMethodHandler(method); ok {
+			if methodHandler.Journal != nil && *methodHandler.Journal {
+				doJournal = true
+			}
+		}
+
 		var journalID string
 		meta, ok := metadata.FromOutgoingContext(ctx)
 		if !ok {
@@ -58,61 +65,63 @@ func UnaryClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, s
 				err = s.Err()
 			}
 
-			journal := &pb.Journal{
-				Id: journalID,
-				Request: &pb.Request{
-					Restapi: false,
-					Method:  method,
-					Metadata: func() map[string]string {
-						mp := make(map[string]string)
-						for key, values := range meta {
-							mp[key] = values[0]
-						}
-						return mp
-					}(),
-					Payload: func() *anypb.Any {
-						if req == nil {
-							return nil
-						}
+			if doJournal {
+				journal := &pb.Journal{
+					Id: journalID,
+					Request: &pb.Request{
+						Restapi: false,
+						Method:  method,
+						Metadata: func() map[string]string {
+							mp := make(map[string]string)
+							for key, values := range meta {
+								mp[key] = values[0]
+							}
+							return mp
+						}(),
+						Payload: func() *anypb.Any {
+							if req == nil {
+								return nil
+							}
 
-						any, _ := anypb.New(req.(proto.Message))
-						return any
-					}(),
-				},
-				Response: &pb.Response{
-					Code: codes.OK.String(),
-					Payload: func() *anypb.Any {
-						if reply == nil {
-							return nil
-						}
+							any, _ := anypb.New(req.(proto.Message))
+							return any
+						}(),
+					},
+					Response: &pb.Response{
+						Code: codes.OK.String(),
+						Payload: func() *anypb.Any {
+							if reply == nil {
+								return nil
+							}
 
-						any, _ := anypb.New(reply.(proto.Message))
-						return any
-					}(),
-				},
-				Success: err == nil,
-			}
-
-			if err != nil {
-				s, _ := status.FromError(err)
-				journal.Response.Code = s.Code().String()
-				journal.Response.Message = s.Message()
-
-				for _, detail := range s.Details() {
-					if stack, ok := detail.(*pb.Stack); ok {
-						journal.Response.ErrorVerbose = stack.Verbose
-					}
+							any, _ := anypb.New(reply.(proto.Message))
+							return any
+						}(),
+					},
+					Success: err == nil,
 				}
-				err = status.New(s.Code(), s.Message()).Err() // reset detail
-			}
 
-			journal.CostSeconds = time.Since(ts).Seconds()
+				if err != nil {
+					s, _ := status.FromError(err)
+					journal.Response.Code = s.Code().String()
+					journal.Response.Message = s.Message()
 
-			if err == nil {
-				logger.Info("client unary interceptor", zap.Any("journal", marshalJournal(journal)))
+					for _, detail := range s.Details() {
+						if stack, ok := detail.(*pb.Stack); ok {
+							journal.Response.ErrorVerbose = stack.Verbose
+						}
+					}
+					err = status.New(s.Code(), s.Message()).Err() // reset detail
+				}
 
-			} else {
-				logger.Error("client unary interceptor", zap.Any("journal", marshalJournal(journal)))
+				journal.CostSeconds = time.Since(ts).Seconds()
+
+				if err == nil {
+					logger.Info("client unary interceptor", zap.Any("journal", marshalJournal(journal)))
+
+				} else {
+					logger.Error("client unary interceptor", zap.Any("journal", marshalJournal(journal)))
+				}
 			}
 		}()
 
@@ -274,7 +283,7 @@ func (s *streamClientInterceptor) SendMsg(m interface{}) (err error) {
 				Sequence: s.counter.send,
 				Desc:     "SendMsg",
 			},
-			Response: &pb.Response{
+			Request: &pb.Request{
 				Payload: func() *anypb.Any {
 					if m == nil {
 						return nil
@@ -307,7 +316,7 @@ func (s *streamClientInterceptor) RecvMsg(m interface{}) (err error) {
 					Sequence: s.counter.recv,
 					Desc:     "RecvMsg",
 				},
-				Request: &pb.Request{
+				Response: &pb.Response{
 					Payload: func() *anypb.Any {
 						if m == nil {
 							return nil
@@ -317,6 +326,18 @@ func (s *streamClientInterceptor) RecvMsg(m interface{}) (err error) {
 						return any
 					}(),
 				},
+			}
+
+			if err != nil {
+				s, _ := status.FromError(err)
+				journal.Response.Code = s.Code().String()
+				journal.Response.Message = s.Message()
+
+				for _, detail := range s.Details() {
+					if stack, ok := detail.(*pb.Stack); ok {
+						journal.Response.ErrorVerbose = stack.Verbose
+					}
+				}
 			}
 
 			s.logger.Info("client stream/recv interceptor", zap.Any("journal", marshalJournal(journal)))

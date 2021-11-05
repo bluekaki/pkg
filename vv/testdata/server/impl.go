@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/bluekaki/pkg/errors"
@@ -50,21 +49,10 @@ func (d *dummyService) Echo(ctx context.Context, req *dummy.EchoReq) (*dummy.Ech
 	}, nil
 }
 
-func (d *dummyService) StreamEcho(stream dummy.DummyService_StreamEchoServer) error {
-	for {
-		req, err := stream.Recv()
-		if err != nil {
-			if vv.IsValidatorError(err) {
-				return err
-			}
-			if err != io.EOF {
-				return cuzerr.NewBzError(alertCode, errors.Wrap(err, "stream recv err")).AlertError(nil)
-			}
-			break
-		}
-
-		err = stream.Send(&dummy.EchoResp{
-			Message: fmt.Sprintf("Hello %s.", req.Message),
+func (d *dummyService) StreamEcho(req *dummy.EchoReq, stream dummy.DummyService_StreamEchoServer) error {
+	for k := 0; k < 3; k++ {
+		err := stream.Send(&dummy.EchoResp{
+			Message: fmt.Sprintf("[%d] %s.", k, req.Message),
 			Ack:     true,
 		})
 		if err != nil {

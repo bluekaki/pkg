@@ -19,7 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DummyServiceClient interface {
 	Echo(ctx context.Context, in *EchoReq, opts ...grpc.CallOption) (*EchoResp, error)
-	StreamEcho(ctx context.Context, opts ...grpc.CallOption) (DummyService_StreamEchoClient, error)
+	StreamEcho(ctx context.Context, in *EchoReq, opts ...grpc.CallOption) (DummyService_StreamEchoClient, error)
 }
 
 type dummyServiceClient struct {
@@ -39,27 +39,28 @@ func (c *dummyServiceClient) Echo(ctx context.Context, in *EchoReq, opts ...grpc
 	return out, nil
 }
 
-func (c *dummyServiceClient) StreamEcho(ctx context.Context, opts ...grpc.CallOption) (DummyService_StreamEchoClient, error) {
+func (c *dummyServiceClient) StreamEcho(ctx context.Context, in *EchoReq, opts ...grpc.CallOption) (DummyService_StreamEchoClient, error) {
 	stream, err := c.cc.NewStream(ctx, &DummyService_ServiceDesc.Streams[0], "/dummy.DummyService/StreamEcho", opts...)
 	if err != nil {
 		return nil, err
 	}
 	x := &dummyServiceStreamEchoClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
 	return x, nil
 }
 
 type DummyService_StreamEchoClient interface {
-	Send(*EchoReq) error
 	Recv() (*EchoResp, error)
 	grpc.ClientStream
 }
 
 type dummyServiceStreamEchoClient struct {
 	grpc.ClientStream
-}
-
-func (x *dummyServiceStreamEchoClient) Send(m *EchoReq) error {
-	return x.ClientStream.SendMsg(m)
 }
 
 func (x *dummyServiceStreamEchoClient) Recv() (*EchoResp, error) {
@@ -75,7 +76,7 @@ func (x *dummyServiceStreamEchoClient) Recv() (*EchoResp, error) {
 // for forward compatibility
 type DummyServiceServer interface {
 	Echo(context.Context, *EchoReq) (*EchoResp, error)
-	StreamEcho(DummyService_StreamEchoServer) error
+	StreamEcho(*EchoReq, DummyService_StreamEchoServer) error
 	mustEmbedUnimplementedDummyServiceServer()
 }
 
@@ -86,7 +87,7 @@ type UnimplementedDummyServiceServer struct {
 func (UnimplementedDummyServiceServer) Echo(context.Context, *EchoReq) (*EchoResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Echo not implemented")
 }
-func (UnimplementedDummyServiceServer) StreamEcho(DummyService_StreamEchoServer) error {
+func (UnimplementedDummyServiceServer) StreamEcho(*EchoReq, DummyService_StreamEchoServer) error {
 	return status.Errorf(codes.Unimplemented, "method StreamEcho not implemented")
 }
 func (UnimplementedDummyServiceServer) mustEmbedUnimplementedDummyServiceServer() {}
@@ -121,12 +122,15 @@ func _DummyService_Echo_Handler(srv interface{}, ctx context.Context, dec func(i
 }
 
 func _DummyService_StreamEcho_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(DummyServiceServer).StreamEcho(&dummyServiceStreamEchoServer{stream})
+	m := new(EchoReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(DummyServiceServer).StreamEcho(m, &dummyServiceStreamEchoServer{stream})
 }
 
 type DummyService_StreamEchoServer interface {
 	Send(*EchoResp) error
-	Recv() (*EchoReq, error)
 	grpc.ServerStream
 }
 
@@ -136,14 +140,6 @@ type dummyServiceStreamEchoServer struct {
 
 func (x *dummyServiceStreamEchoServer) Send(m *EchoResp) error {
 	return x.ServerStream.SendMsg(m)
-}
-
-func (x *dummyServiceStreamEchoServer) Recv() (*EchoReq, error) {
-	m := new(EchoReq)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
 }
 
 // DummyService_ServiceDesc is the grpc.ServiceDesc for DummyService service.
@@ -163,7 +159,6 @@ var DummyService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "StreamEcho",
 			Handler:       _DummyService_StreamEcho_Handler,
 			ServerStreams: true,
-			ClientStreams: true,
 		},
 	},
 	Metadata: "dummy.proto",
