@@ -383,6 +383,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 	}
 }
 
+// StreamServerInterceptor stream interceptor for server
 func StreamServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, metrics func(http.Handler), projectName string) grpc.StreamServerInterceptor {
 	if metrics != nil {
 		serverInitMetricsOnce.Do(func() {

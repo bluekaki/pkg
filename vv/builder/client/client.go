@@ -122,6 +122,7 @@ func NewConn(endpoint string, logger *zap.Logger, notify proposal.NotifyHandler,
 		grpc.WithMaxMsgSize(configs.MaxMsgSize),
 		grpc.WithKeepaliveParams(*kacp),
 		grpc.WithUnaryInterceptor(interceptor.UnaryClientInterceptor(logger, notify, opt.signer, opt.projectName)),
+		grpc.WithStreamInterceptor(interceptor.StreamClientInterceptor(logger, notify, opt.signer, opt.projectName)),
 		grpc.WithDefaultServiceConfig(configs.ServiceConfig),
 	}
 

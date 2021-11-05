@@ -124,15 +124,14 @@ func main() {
 	if true {
 		fmt.Println("---------------------- stream ----------------------------")
 
-		ctx := metadata.AppendToOutgoingContext(context.TODO(),
-			"Authorization", "cBmhBrwHZ0dM5DJy9TK1",
-			"Authorization-Proxy", "xxxxxxxx0000000ccccccccc",
-		)
+		ctx := metadata.AppendToOutgoingContext(context.TODO(), "Authorization", "cBmhBrwHZ0dM5DJy9TK1")
 
 		stream, err := dummySvc.StreamEcho(ctx)
 		if err != nil {
 			panic(err)
 		}
+
+		header, _ := stream.Header()
 
 		ch := make(chan struct{})
 
@@ -147,21 +146,14 @@ func main() {
 					panic(err)
 				}
 
-				fmt.Println(resp)
+				fmt.Println(header.Get("Journal-Id")[0], resp)
 			}
 		}()
 
 		for k := 0; k < 3; k++ {
-			req := &dummy.EchoReq{Message: fmt.Sprintf("%d", k)}
-			if k == 2 {
-				req.Message = ""
-			}
-
-			err = stream.Send(req)
-
-			// err = stream.Send(&dummy.EchoReq{
-			// 	Message: "", //fmt.Sprintf("Hello World ! * %d", k),
-			// })
+			err = stream.Send(&dummy.EchoReq{
+				Message: fmt.Sprintf("Hello World ! * %d", k),
+			})
 			if err != nil {
 				panic(err)
 			}
