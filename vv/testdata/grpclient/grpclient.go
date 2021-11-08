@@ -121,7 +121,7 @@ func main() {
 		}
 	}
 
-	if false {
+	if true {
 		fmt.Println("---------------------- stream ----------------------------")
 
 		ctx := metadata.AppendToOutgoingContext(context.TODO(), "Authorization", "cBmhBrwHZ0dM5DJy9TK1")

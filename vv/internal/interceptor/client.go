@@ -29,7 +29,7 @@ func UnaryClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, s
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error) {
 		ts := time.Now()
 
-		doJournal := true
+		doJournal := false
 		if methodHandler, ok := getMethodHandler(method); ok {
 			if methodHandler.Journal != nil && *methodHandler.Journal {
 				doJournal = true
@@ -150,11 +150,11 @@ func UnaryClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, s
 // StreamClientInterceptor stream interceptor for client
 func StreamClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, signer proposal.Signer, projectName string) grpc.StreamClientInterceptor {
 
-	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (stream grpc.ClientStream, err error) {
+	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, fullMethod string, streamer grpc.Streamer, opts ...grpc.CallOption) (stream grpc.ClientStream, err error) {
 		ts := time.Now()
 
-		doJournal := true
-		if methodHandler, ok := getMethodHandler(method); ok {
+		doJournal := false
+		if methodHandler, ok := getMethodHandler(fullMethod); ok {
 			if methodHandler.Journal != nil && *methodHandler.Journal {
 				doJournal = true
 			}
@@ -198,7 +198,7 @@ func StreamClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 					},
 					Request: &pb.Request{
 						Restapi: false,
-						Method:  method,
+						Method:  fullMethod,
 						Metadata: func() map[string]string {
 							mp := make(map[string]string)
 							for key, values := range meta {
@@ -239,7 +239,7 @@ func StreamClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 
 		if signer != nil {
 			var signature, date string
-			if signature, date, err = signer(method, []byte(journalID)); err != nil {
+			if signature, date, err = signer(fullMethod, []byte(journalID)); err != nil {
 				return
 			}
 
@@ -248,7 +248,7 @@ func StreamClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 			ctx = metadata.NewOutgoingContext(ctx, meta)
 		}
 
-		s, err := streamer(ctx, desc, cc, method, opts...)
+		s, err := streamer(ctx, desc, cc, fullMethod, opts...)
 		if err != nil {
 			return nil, err
 		}
@@ -317,6 +317,7 @@ func (s *streamClientInterceptor) RecvMsg(m interface{}) (err error) {
 					Desc:     "RecvMsg",
 				},
 				Response: &pb.Response{
+					Code: codes.OK.String(),
 					Payload: func() *anypb.Any {
 						if m == nil {
 							return nil

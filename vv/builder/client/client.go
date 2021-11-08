@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -156,3 +157,19 @@ func (c *clientConn) Close() error {
 }
 
 func (c *clientConn) t() {}
+
+func (c *clientConn) Invoke(ctx context.Context, method string, args interface{}, reply interface{}, opts ...grpc.CallOption) error {
+	if !interceptor.FileDescriptorHasResloved(method) {
+		interceptor.ResloveFileDescriptor(interceptor.Client)
+	}
+
+	return c.ClientConn.Invoke(ctx, method, args, reply, opts...)
+}
+
+func (c *clientConn) NewStream(ctx context.Context, desc *grpc.StreamDesc, method string, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+	if !interceptor.FileDescriptorHasResloved(method) {
+		interceptor.ResloveFileDescriptor(interceptor.Client)
+	}
+
+	return c.ClientConn.NewStream(ctx, desc, method, opts...)
+}

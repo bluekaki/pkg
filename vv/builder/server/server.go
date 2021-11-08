@@ -133,7 +133,7 @@ func New(logger *zap.Logger, notify proposal.NotifyHandler, register RegisterEnd
 	}
 
 	register(srv.server)
-	interceptor.ResloveFileDescriptor(false)
+	interceptor.ResloveFileDescriptor(interceptor.Server)
 
 	return srv
 }

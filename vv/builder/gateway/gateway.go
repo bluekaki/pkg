@@ -146,6 +146,7 @@ func NewCorsHandler(logger *zap.Logger, notify proposal.NotifyHandler, register 
 		grpc.WithMaxMsgSize(configs.MaxMsgSize),
 		grpc.WithKeepaliveParams(*kacp),
 		grpc.WithUnaryInterceptor(interceptor.UnaryGatewayInterceptor(logger, notify, opt.metrics, opt.projectName)),
+		grpc.WithStreamInterceptor(interceptor.StreamGatewayInterceptor(logger, notify, opt.metrics, opt.projectName)),
 		grpc.WithDefaultServiceConfig(configs.ServiceConfig),
 	}
 
@@ -158,7 +159,7 @@ func NewCorsHandler(logger *zap.Logger, notify proposal.NotifyHandler, register 
 	if err := register(mux, dialOptions); err != nil {
 		panic(err)
 	}
-	interceptor.ResloveFileDescriptor(true)
+	interceptor.ResloveFileDescriptor(interceptor.Gateway)
 
 	return cors.AllowAll().Handler(mux)
 }
