@@ -16,7 +16,7 @@ func TestSignature(t *testing.T) {
 	assert.Nil(err)
 
 	method := MethodPost
-	uri := "/echo?key1=value1&key2=value2"
+	uri := "/echo?key1=%CE%95%CE%BB%CE%BB%CE%B7%CE%BD%CE%B9%CE%BA%CF%8C&key2=%CE%B1%CE%BB%CF%86%CE%AC%CE%B2%CE%B7%CF%84%CE%BF"
 	body := []byte(`{"payload":"Hello World"}`)
 
 	authorization, date, err := instance.Generate("AAASys", method, uri, body)
@@ -29,5 +29,5 @@ func TestSignature(t *testing.T) {
 	assert.Nil(err)
 	assert.True(ok)
 
-	t.Log("identifier:", identifier)
+	assert.Equal(identifier, "AAASys")
 }

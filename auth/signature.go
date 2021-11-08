@@ -11,6 +11,7 @@ import (
 	"hash"
 	"math"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -243,6 +244,10 @@ func (s *signature) Generate(identifier Identifier, method Method, uri string, b
 		return
 	}
 
+	if decodedUri, err := url.QueryUnescape(uri); err == nil {
+		uri = decodedUri
+	}
+
 	secret, ok := s.getSecret(identifier)
 	if !ok {
 		err = errors.Errorf("identifier %s not defined", identifier)
@@ -287,6 +292,10 @@ func (s *signature) Verify(authorization, date string, method Method, uri string
 	if uri == "" {
 		err = errors.New("uri required")
 		return
+	}
+
+	if decodedUri, err := url.QueryUnescape(uri); err == nil {
+		uri = decodedUri
 	}
 
 	ts, err := time.ParseInLocation(http.TimeFormat, date, time.UTC)
