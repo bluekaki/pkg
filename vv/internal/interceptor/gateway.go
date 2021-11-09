@@ -313,22 +313,14 @@ func StreamGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler,
 					journal.Response.Code = s.Code().String()
 					journal.Response.Message = s.Message()
 
-					var customStatus *runtime.HTTPStatusError
+					// can not do customize http_code in stream mode
 					for _, detail := range s.Details() {
-						switch detail.(type) {
-						case *pb.Stack:
-							journal.Response.ErrorVerbose = detail.(*pb.Stack).Verbose
-
-						case *pb.Code:
-							customStatus = &runtime.HTTPStatusError{HTTPStatus: int(detail.(*pb.Code).HttpStatus)}
+						if stack, ok := detail.(*pb.Stack); ok {
+							journal.Response.ErrorVerbose = stack.Verbose
 						}
 					}
 
 					err = status.New(s.Code(), s.Message()).Err() // reset detail
-					if customStatus != nil {
-						customStatus.Err = err
-						err = customStatus
-					}
 				}
 
 				journal.CostSeconds = time.Since(ts).Seconds()
@@ -473,11 +465,14 @@ func (s *streamGatewayInterceptor) RecvMsg(m interface{}) (err error) {
 				journal.Response.Code = s.Code().String()
 				journal.Response.Message = s.Message()
 
+				// can not do customize http_code in stream mode
 				for _, detail := range s.Details() {
 					if stack, ok := detail.(*pb.Stack); ok {
 						journal.Response.ErrorVerbose = stack.Verbose
 					}
 				}
+
+				err = status.New(s.Code(), s.Message()).Err() // reset detail
 			}
 
 			s.logger.Info("gateway stream/send interceptor", zap.Any("journal", marshalJournal(journal)))
