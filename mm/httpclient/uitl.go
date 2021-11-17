@@ -1,10 +1,10 @@
 package httpclient
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -34,10 +34,10 @@ var defaultClient = &http.Client{
 	},
 }
 
-func doHTTP(ctx context.Context, method, url string, payload []byte, opt *option) ([]byte, http.Header, int, error) {
+func doHTTP(ctx context.Context, method, url string, payload io.Reader, opt *option) ([]byte, http.Header, int, error) {
 	ts := time.Now()
 
-	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(payload))
+	req, err := http.NewRequestWithContext(ctx, method, url, payload)
 	if err != nil {
 		return nil, nil, -1, errors.Wrapf(err, "new request [%s %s] err", method, url)
 	}
@@ -83,9 +83,10 @@ func doHTTP(ctx context.Context, method, url string, payload []byte, opt *option
 		if opt.Dialog != nil {
 			var raw string
 			if strings.Contains(resp.Header.Get("Content-Type"), "application/x-www-form-urlencoded") {
-				raw = QueryUnescape(string(body)) // unsafe
-			} else {
-				raw = string(body) // unsafe
+				raw = queryUnescape(string(body))
+
+			} else if strings.Contains(resp.Header.Get("Content-Type"), "application/json") {
+				raw = string(body)
 			}
 
 			opt.Dialog.AppendResponse(&journal.Response{
@@ -99,10 +100,7 @@ func doHTTP(ctx context.Context, method, url string, payload []byte, opt *option
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		err = newReplyErr(
-			resp.StatusCode,
-			errors.Errorf("do [%s %s] return code: %d message: %s", method, url, resp.StatusCode, string(body)),
-		)
+		err = errors.Errorf("do [%s %s] return code: %d message: %s", method, url, resp.StatusCode, string(body))
 	}
 
 	return body, resp.Header, resp.StatusCode, err
@@ -133,7 +131,7 @@ func addFormValuesIntoURL(rawURL string, form url.Values) (string, error) {
 	return target.String(), nil
 }
 
-func QueryUnescape(uri string) string {
+func queryUnescape(uri string) string {
 	decodedUri, err := url.QueryUnescape(uri)
 	if err != nil {
 		return uri
@@ -149,15 +147,4 @@ func marshalJournal(journal *journal.Journal) interface{} {
 		return string(raw)
 	}
 	return json.RawMessage(raw)
-}
-
-func QueryEscapePath(path string) string {
-	slice := strings.Split(path, "/")
-	for i, val := range slice {
-		if len(val) != len([]rune(val)) {
-			slice[i] = url.QueryEscape(val)
-		}
-	}
-
-	return strings.Join(slice, "/")
 }

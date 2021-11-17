@@ -1,8 +1,10 @@
 package httpclient
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	httpURL "net/url"
 	"time"
@@ -132,7 +134,7 @@ func withoutBody(method, url string, form httpURL.Values, options ...Option) (bo
 		opt.Dialog.Request = &journal.Request{
 			TTL:        ttl.String(),
 			Method:     method,
-			DecodedURL: QueryUnescape(url),
+			DecodedURL: queryUnescape(url),
 			Header:     opt.Header,
 		}
 	}
@@ -251,9 +253,9 @@ func withFormBody(method, url string, form httpURL.Values, options ...Option) (b
 		opt.Dialog.Request = &journal.Request{
 			TTL:        ttl.String(),
 			Method:     method,
-			DecodedURL: QueryUnescape(url),
+			DecodedURL: queryUnescape(url),
 			Header:     opt.Header,
-			Body:       QueryUnescape(formValue),
+			Body:       queryUnescape(formValue),
 		}
 	}
 
@@ -268,7 +270,7 @@ func withFormBody(method, url string, form httpURL.Values, options ...Option) (b
 	}
 
 	for k := 0; k < retryTimes; k++ {
-		body, header, statusCode, err = doHTTP(ctx, method, url, []byte(formValue), opt)
+		body, header, statusCode, err = doHTTP(ctx, method, url, bytes.NewReader([]byte(formValue)), opt)
 		if shouldRetry(ctx, statusCode) {
 			time.Sleep(retryDelay)
 			continue
@@ -340,9 +342,9 @@ func withJSONBody(method, url string, raw json.RawMessage, options ...Option) (b
 		opt.Dialog.Request = &journal.Request{
 			TTL:        ttl.String(),
 			Method:     method,
-			DecodedURL: QueryUnescape(url),
+			DecodedURL: queryUnescape(url),
 			Header:     opt.Header,
-			Body:       string(raw), // TODO unsafe
+			Body:       string(raw),
 		}
 	}
 
@@ -357,7 +359,126 @@ func withJSONBody(method, url string, raw json.RawMessage, options ...Option) (b
 	}
 
 	for k := 0; k < retryTimes; k++ {
-		body, header, statusCode, err = doHTTP(ctx, method, url, raw, opt)
+		body, header, statusCode, err = doHTTP(ctx, method, url, bytes.NewReader(raw), opt)
+		if shouldRetry(ctx, statusCode) {
+			time.Sleep(retryDelay)
+			continue
+		}
+
+		return
+	}
+	return
+}
+
+// PostMultipartFile post file 请求
+func PostMultipartFile(url string, payload []byte, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+	return withMultipartFile(http.MethodPost, url, payload, options...)
+}
+
+// PutMultipartFile put file 请求
+func PutMultipartFile(url string, payload []byte, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+	return withMultipartFile(http.MethodPut, url, payload, options...)
+}
+
+// PatchMultipartFile patch file 请求
+func PatchMultipartFile(url string, payload []byte, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+	return withMultipartFile(http.MethodPatch, url, payload, options...)
+}
+
+func withMultipartFile(method, url string, payload []byte, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+	if url == "" {
+		return nil, nil, -1, errors.New("url required")
+	}
+	if len(payload) == 0 {
+		return nil, nil, -1, errors.New("payload required")
+	}
+
+	ts := time.Now()
+
+	opt := newOption()
+	defer func() {
+		if opt.Journal != nil {
+			opt.Dialog.Success = err == nil
+			opt.Dialog.CostSeconds = time.Since(ts).Seconds()
+			opt.Journal.AppendDialog(opt.Dialog)
+			opt.Journal.Success = err == nil
+			opt.Journal.CostSeconds = time.Since(ts).Seconds()
+
+			if opt.Logger != nil && opt.PrintJournal {
+				if err == nil {
+					opt.Logger.Info(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
+				} else {
+					opt.Logger.Error(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
+				}
+			}
+		}
+	}()
+
+	for _, f := range options {
+		f(opt)
+	}
+
+	if len(opt.QueryForm) > 0 {
+		if url, err = addFormValuesIntoURL(url, opt.QueryForm); err != nil {
+			return
+		}
+	}
+
+	buf := bytes.NewBuffer(nil)
+	writer := multipart.NewWriter(buf)
+
+	file, err := writer.CreateFormFile("xxx", "xxx")
+	if err != nil {
+		return nil, nil, -1, errors.Wrap(err, "create multipart file err")
+	}
+
+	if _, err := file.Write(payload); err != nil {
+		return nil, nil, -1, errors.Wrap(err, "write multipart file err")
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, nil, -1, errors.Wrap(err, "close multipart file err")
+	}
+
+	opt.Header["Content-Type"] = writer.FormDataContentType()
+	if opt.Journal != nil {
+		opt.Header[journal.JournalHeader] = opt.Journal.ID()
+	}
+
+	ttl := opt.TTL
+	if ttl <= 0 {
+		ttl = DefaultTTL
+	}
+
+	background := context.Background()
+	if opt.Ctx != nil {
+		background = opt.Ctx
+	}
+
+	ctx, cancel := context.WithTimeout(background, ttl)
+	defer cancel()
+
+	if opt.Dialog != nil {
+		opt.Dialog.Request = &journal.Request{
+			TTL:        ttl.String(),
+			Method:     method,
+			DecodedURL: queryUnescape(url),
+			Header:     opt.Header,
+		}
+	}
+
+	retryTimes := opt.RetryTimes
+	if retryTimes <= 0 {
+		retryTimes = DefaultRetryTimes
+	}
+
+	retryDelay := opt.RetryDelay
+	if retryDelay <= 0 {
+		retryDelay = DefaultRetryDelay
+	}
+
+	for k := 0; k < retryTimes; k++ {
+		body, header, statusCode, err = doHTTP(ctx, method, url, buf, opt)
 		if shouldRetry(ctx, statusCode) {
 			time.Sleep(retryDelay)
 			continue
