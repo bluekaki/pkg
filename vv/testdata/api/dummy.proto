@@ -17,6 +17,13 @@ message EchoResp {
   bool ack = 2;
 }
 
+message UploadReq {
+  string file_name = 1 [ (validator.field) = {require : true, le : 30} ];
+  bytes raw = 2 [ (validator.field) = {require : true} ];
+}
+
+message UploadResp { string digest = 1; }
+
 service DummyService {
   rpc Echo(EchoReq) returns (EchoResp) {
     option (interceptor.method_handler) = {
@@ -41,6 +48,20 @@ service DummyService {
 
     option (google.api.http) = {
       get : "/dummy/stream/echo"
+    };
+  }
+
+  rpc Upload(UploadReq) returns (UploadResp) {
+    option (interceptor.method_handler) = {
+      authorization : "dummy_sso",
+      authorization_proxy : "dummy_sign",
+      whitelisting : "dummy_iplist",
+      journal : false
+    };
+
+    option (google.api.http) = {
+      post : "/dummy/upload/{file_name}"
+      body : "raw"
     };
   }
 }

@@ -3,7 +3,9 @@ package gateway
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"encoding/base64"
+	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -11,6 +13,7 @@ import (
 	"github.com/bluekaki/pkg/id"
 	"github.com/bluekaki/pkg/vv/internal/configs"
 	"github.com/bluekaki/pkg/vv/internal/interceptor"
+	"github.com/bluekaki/pkg/vv/internal/pkg/multipart"
 	"github.com/bluekaki/pkg/vv/proposal"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -122,7 +125,7 @@ func NewCorsHandler(logger *zap.Logger, notify proposal.NotifyHandler, register 
 	mux := runtime.NewServeMux(
 		runtime.WithIncomingHeaderMatcher(runtime.DefaultHeaderMatcher),
 		runtime.WithOutgoingHeaderMatcher(runtime.DefaultHeaderMatcher),
-		runtime.WithMetadata(annotator),
+		runtime.WithMetadata(annotator(logger)),
 		runtime.WithErrorHandler(runtime.DefaultHTTPErrorHandler),
 		runtime.WithStreamErrorHandler(runtime.DefaultStreamErrorHandler),
 		runtime.WithRoutingErrorHandler(runtime.DefaultRoutingErrorHandler),
@@ -137,6 +140,7 @@ func NewCorsHandler(logger *zap.Logger, notify proposal.NotifyHandler, register 
 				},
 			},
 		}),
+		runtime.WithMarshalerOption(multipart.ContentTypeFormData, new(formData)),
 	)
 
 	dialOptions := []grpc.DialOption{
@@ -164,24 +168,42 @@ func NewCorsHandler(logger *zap.Logger, notify proposal.NotifyHandler, register 
 	return cors.AllowAll().Handler(mux)
 }
 
-func annotator(ctx context.Context, req *http.Request) metadata.MD {
-	body, _ := ioutil.ReadAll(req.Body)
-	req.Body = ioutil.NopCloser(bytes.NewBuffer(body)) // re-construct req body
+func annotator(logger *zap.Logger) func(ctx context.Context, req *http.Request) metadata.MD {
 
-	journalID := req.Header.Get(interceptor.JournalID)
-	if journalID == "" {
-		journalID = id.JournalID()
+	return func(ctx context.Context, req *http.Request) metadata.MD {
+		journalID := req.Header.Get(interceptor.JournalID)
+		if journalID == "" {
+			journalID = id.JournalID()
+		}
+
+		body, octet, err := multipart.Parse(req)
+		if err != nil {
+			logger.Error(fmt.Sprintf("parse multipart err [Journal-Id: %s]", journalID), zap.Error(err))
+		}
+
+		req.Body = io.NopCloser(bytes.NewBuffer(body)) // re-construct req body
+
+		return metadata.Pairs(
+			interceptor.JournalID, journalID,
+			interceptor.Authorization, req.Header.Get(interceptor.Authorization),
+			interceptor.AuthorizationProxy, req.Header.Get(interceptor.AuthorizationProxy),
+			interceptor.Date, req.Header.Get(interceptor.Date),
+			interceptor.Method, req.Method,
+			interceptor.URI, req.RequestURI,
+			interceptor.Body, func() string {
+				if octet {
+					return base64.StdEncoding.EncodeToString(body)
+				}
+				return string(body)
+			}(),
+			interceptor.XForwardedFor, req.Header.Get(interceptor.XForwardedFor),
+			interceptor.XForwardedHost, req.Header.Get(interceptor.XForwardedHost),
+			interceptor.OctetStream, func() string {
+				if octet {
+					return "base64"
+				}
+				return ""
+			}(),
+		)
 	}
-
-	return metadata.Pairs(
-		interceptor.JournalID, journalID,
-		interceptor.Authorization, req.Header.Get(interceptor.Authorization),
-		interceptor.AuthorizationProxy, req.Header.Get(interceptor.AuthorizationProxy),
-		interceptor.Date, req.Header.Get(interceptor.Date),
-		interceptor.Method, req.Method,
-		interceptor.URI, req.RequestURI,
-		interceptor.Body, string(body),
-		interceptor.XForwardedFor, req.Header.Get(interceptor.XForwardedFor),
-		interceptor.XForwardedHost, req.Header.Get(interceptor.XForwardedHost),
-	)
 }

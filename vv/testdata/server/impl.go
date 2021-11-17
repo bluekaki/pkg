@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 
@@ -66,4 +68,15 @@ func (d *dummyService) StreamEcho(req *dummy.EchoReq, stream dummy.DummyService_
 	}
 
 	return nil
+}
+
+func (d *dummyService) Upload(ctx context.Context, req *dummy.UploadReq) (*dummy.UploadResp, error) {
+	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	fmt.Println(req.FileName, string(req.Raw))
+	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+
+	digest := sha256.Sum256(req.Raw)
+	return &dummy.UploadResp{
+		Digest: hex.EncodeToString(digest[:]),
+	}, nil
 }

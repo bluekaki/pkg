@@ -32,3 +32,33 @@ func (e *EchoResp) Validate() error {
 
 	return nil
 }
+
+func (u *UploadReq) Validate() error {
+
+	// FileName  Kind:StringKind Cardinality:optional IsList:false IsMap:false IsPacked:false IsPlaceholder:false IsWeak:false IsExtension:false HasPresence:false
+	u.FileName = strings.TrimSpace(u.FileName)
+
+	if u.FileName == "" {
+		return errors.New("file_name required")
+	}
+
+	if !(len(u.FileName) <= 30) {
+		return errors.New("file_name illegal")
+	}
+
+	// Raw  Kind:BytesKind Cardinality:optional IsList:false IsMap:false IsPacked:false IsPlaceholder:false IsWeak:false IsExtension:false HasPresence:false
+
+	if len(u.Raw) == 0 {
+		return errors.New("raw required")
+	}
+
+	return nil
+}
+
+func (u *UploadResp) Validate() error {
+
+	// Digest  Kind:StringKind Cardinality:optional IsList:false IsMap:false IsPacked:false IsPlaceholder:false IsWeak:false IsExtension:false HasPresence:false
+	u.Digest = strings.TrimSpace(u.Digest)
+
+	return nil
+}

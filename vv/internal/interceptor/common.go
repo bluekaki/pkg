@@ -23,6 +23,8 @@ const (
 	XForwardedFor = "x-forwarded-for"
 	// XForwardedHost forwarded host
 	XForwardedHost = "x-forwarded-host"
+	// OctetStream binary files
+	OctetStream = "octet-stream"
 )
 
 var toLoggedMetadata = map[string]bool{
@@ -34,6 +36,7 @@ var toLoggedMetadata = map[string]bool{
 	Body:               true,
 	XForwardedFor:      true,
 	XForwardedHost:     true,
+	OctetStream:        true,
 }
 
 var gwHeader = struct {

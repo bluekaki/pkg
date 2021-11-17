@@ -2,6 +2,7 @@ package interceptor
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -330,7 +331,15 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 				date:      meta.Get(Date)[0],
 				method:    meta.Get(Method)[0],
 				uri:       meta.Get(URI)[0],
-				body:      []byte(meta.Get(Body)[0]),
+				body: func() []byte {
+					if meta.Get(OctetStream)[0] != "" {
+						raw, _ := base64.StdEncoding.DecodeString(meta.Get(Body)[0])
+						return raw
+
+					} else {
+						return []byte(meta.Get(Body)[0])
+					}
+				}(),
 			}
 
 		} else {

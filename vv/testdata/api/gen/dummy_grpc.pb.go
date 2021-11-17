@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 type DummyServiceClient interface {
 	Echo(ctx context.Context, in *EchoReq, opts ...grpc.CallOption) (*EchoResp, error)
 	StreamEcho(ctx context.Context, in *EchoReq, opts ...grpc.CallOption) (DummyService_StreamEchoClient, error)
+	Upload(ctx context.Context, in *UploadReq, opts ...grpc.CallOption) (*UploadResp, error)
 }
 
 type dummyServiceClient struct {
@@ -71,12 +72,22 @@ func (x *dummyServiceStreamEchoClient) Recv() (*EchoResp, error) {
 	return m, nil
 }
 
+func (c *dummyServiceClient) Upload(ctx context.Context, in *UploadReq, opts ...grpc.CallOption) (*UploadResp, error) {
+	out := new(UploadResp)
+	err := c.cc.Invoke(ctx, "/dummy.DummyService/Upload", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DummyServiceServer is the server API for DummyService service.
 // All implementations must embed UnimplementedDummyServiceServer
 // for forward compatibility
 type DummyServiceServer interface {
 	Echo(context.Context, *EchoReq) (*EchoResp, error)
 	StreamEcho(*EchoReq, DummyService_StreamEchoServer) error
+	Upload(context.Context, *UploadReq) (*UploadResp, error)
 	mustEmbedUnimplementedDummyServiceServer()
 }
 
@@ -89,6 +100,9 @@ func (UnimplementedDummyServiceServer) Echo(context.Context, *EchoReq) (*EchoRes
 }
 func (UnimplementedDummyServiceServer) StreamEcho(*EchoReq, DummyService_StreamEchoServer) error {
 	return status.Errorf(codes.Unimplemented, "method StreamEcho not implemented")
+}
+func (UnimplementedDummyServiceServer) Upload(context.Context, *UploadReq) (*UploadResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Upload not implemented")
 }
 func (UnimplementedDummyServiceServer) mustEmbedUnimplementedDummyServiceServer() {}
 
@@ -142,6 +156,24 @@ func (x *dummyServiceStreamEchoServer) Send(m *EchoResp) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _DummyService_Upload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UploadReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DummyServiceServer).Upload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dummy.DummyService/Upload",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DummyServiceServer).Upload(ctx, req.(*UploadReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DummyService_ServiceDesc is the grpc.ServiceDesc for DummyService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +184,10 @@ var DummyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Echo",
 			Handler:    _DummyService_Echo_Handler,
+		},
+		{
+			MethodName: "Upload",
+			Handler:    _DummyService_Upload_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

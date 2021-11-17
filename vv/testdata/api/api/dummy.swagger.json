@@ -84,6 +84,45 @@
           "DummyService"
         ]
       }
+    },
+    "/dummy/upload/{file_name}": {
+      "post": {
+        "operationId": "DummyService_Upload",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/dummyUploadResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "file_name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "byte"
+            }
+          }
+        ],
+        "tags": [
+          "DummyService"
+        ]
+      }
     }
   },
   "definitions": {
@@ -95,6 +134,14 @@
         },
         "ack": {
           "type": "boolean"
+        }
+      }
+    },
+    "dummyUploadResp": {
+      "type": "object",
+      "properties": {
+        "digest": {
+          "type": "string"
         }
       }
     },
