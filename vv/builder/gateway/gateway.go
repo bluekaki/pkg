@@ -13,6 +13,7 @@ import (
 	"github.com/bluekaki/pkg/id"
 	"github.com/bluekaki/pkg/vv/internal/configs"
 	"github.com/bluekaki/pkg/vv/internal/interceptor"
+	"github.com/bluekaki/pkg/vv/internal/pkg/marshaler"
 	"github.com/bluekaki/pkg/vv/internal/pkg/multipart"
 	"github.com/bluekaki/pkg/vv/proposal"
 
@@ -24,7 +25,6 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/resolver/dns"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var (
@@ -122,6 +122,9 @@ func NewCorsHandler(logger *zap.Logger, notify proposal.NotifyHandler, register 
 		dialTimeout = opt.dialTimeout
 	}
 
+	jsonPbMarshaler := marshaler.NewJSONPbMarshaler()
+	fromDataMarshaler := marshaler.NewFromDataMarshaler()
+
 	mux := runtime.NewServeMux(
 		runtime.WithIncomingHeaderMatcher(runtime.DefaultHeaderMatcher),
 		runtime.WithOutgoingHeaderMatcher(runtime.DefaultHeaderMatcher),
@@ -129,18 +132,10 @@ func NewCorsHandler(logger *zap.Logger, notify proposal.NotifyHandler, register 
 		runtime.WithErrorHandler(runtime.DefaultHTTPErrorHandler),
 		runtime.WithStreamErrorHandler(runtime.DefaultStreamErrorHandler),
 		runtime.WithRoutingErrorHandler(runtime.DefaultRoutingErrorHandler),
-		runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.HTTPBodyMarshaler{
-			Marshaler: &runtime.JSONPb{
-				MarshalOptions: protojson.MarshalOptions{
-					UseProtoNames:   true,
-					EmitUnpopulated: true,
-				},
-				UnmarshalOptions: protojson.UnmarshalOptions{
-					DiscardUnknown: true,
-				},
-			},
-		}),
-		runtime.WithMarshalerOption(multipart.ContentTypeFormData, new(formData)),
+		runtime.WithMarshalerOption(runtime.MIMEWildcard, marshaler.NewWildcardMarshaler()),
+		runtime.WithMarshalerOption("application/x-www-form-urlencoded", jsonPbMarshaler),
+		runtime.WithMarshalerOption("application/json", jsonPbMarshaler),
+		runtime.WithMarshalerOption("multipart/form-data", fromDataMarshaler),
 	)
 
 	dialOptions := []grpc.DialOption{
@@ -148,6 +143,7 @@ func NewCorsHandler(logger *zap.Logger, notify proposal.NotifyHandler, register 
 		grpc.WithTimeout(dialTimeout),
 		grpc.WithBlock(),
 		grpc.WithMaxMsgSize(configs.MaxMsgSize),
+		grpc.WithMaxHeaderListSize(configs.MaxMsgSize),
 		grpc.WithKeepaliveParams(*kacp),
 		grpc.WithUnaryInterceptor(interceptor.UnaryGatewayInterceptor(logger, notify, opt.metrics, opt.projectName)),
 		grpc.WithStreamInterceptor(interceptor.StreamGatewayInterceptor(logger, notify, opt.metrics, opt.projectName)),

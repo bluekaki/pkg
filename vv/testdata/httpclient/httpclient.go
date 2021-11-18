@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/url"
 
 	"github.com/bluekaki/pkg/auth"
@@ -21,7 +23,7 @@ func main() {
 		panic(err)
 	}
 
-	if false {
+	if true {
 		fmt.Println("---------------------- normal ----------------------------")
 
 		form := make(url.Values)
@@ -119,22 +121,27 @@ func main() {
 	if true {
 		fmt.Println("---------------------- upload file ----------------------------")
 
-		payload, err := ioutil.ReadFile("httpclient.go")
-		if err != nil {
-			panic(err)
+		payload := make([][]byte, 3)
+		for i := range payload {
+			buf := make([]byte, 10<<20)
+			io.ReadFull(rand.Reader, buf)
+			payload[i] = buf
 		}
 
-		payload = payload[:200]
+		hash := sha256.New()
+		for i := range payload {
+			hash.Write(payload[i])
+		}
 
-		digest := sha256.Sum256(payload)
+		digest := hash.Sum(nil)
 		fmt.Println(hex.EncodeToString(digest[:]))
 
-		signature, date, err := signer.Generate("TESDUM", auth.MethodPost, "/dummy/upload/测试文件", payload)
+		signature, date, err := signer.Generate("TESDUM", auth.MethodPost, "/dummy/upload/A Test File", bytes.Join(payload, nil))
 		if err != nil {
 			panic(err)
 		}
 
-		body, header, _, err := httpclient.PostMultipartFile("http://127.0.0.1:8080/dummy/upload/测试文件", payload,
+		body, header, _, err := httpclient.PostMultipartFile("http://127.0.0.1:8080/dummy/upload/A Test File", payload,
 			httpclient.WithHeader("Authorization", "cBmhBrwHZ0dM5DJy9TK1"),
 			httpclient.WithHeader("Date", date),
 			httpclient.WithHeader("Authorization-Proxy", signature),

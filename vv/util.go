@@ -5,6 +5,7 @@ import (
 	stderr "errors"
 
 	"github.com/bluekaki/pkg/vv/internal/interceptor"
+	"github.com/bluekaki/pkg/vv/internal/pkg/multipart"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -67,4 +68,9 @@ func IsValidatorError(err error) bool {
 	}
 
 	return false
+}
+
+// ParseFormData get file(s) from a wrapped multipart/form-data body
+func ParseFormData(raw []byte) [][]byte {
+	return multipart.ParseFormData(raw)
 }

@@ -1,23 +1,26 @@
-package gateway
+package marshaler
 
 import (
 	"io"
 
 	"github.com/bluekaki/pkg/errors"
-	"github.com/bluekaki/pkg/vv/internal/pkg/multipart"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 )
 
-type formData struct {
-	runtime.JSONPb
+func NewFromDataMarshaler() runtime.Marshaler {
+	return &fromData{Marshaler: jsonPbMarshaler}
 }
 
-func (f *formData) ContentType(_ interface{}) string {
-	return multipart.ContentTypeFormData
+type fromData struct {
+	runtime.Marshaler
 }
 
-func (f *formData) Unmarshal(data []byte, value interface{}) error {
+func (f *fromData) ContentType(_ interface{}) string {
+	return "multipart/form-data"
+}
+
+func (f *fromData) Unmarshal(data []byte, value interface{}) error {
 	message, ok := value.(*[]byte)
 	if !ok {
 		return errors.New("unable to unmarshal non bytes field")
@@ -29,7 +32,7 @@ func (f *formData) Unmarshal(data []byte, value interface{}) error {
 	return nil
 }
 
-func (f *formData) NewDecoder(reader io.Reader) runtime.Decoder {
+func (f *fromData) NewDecoder(reader io.Reader) runtime.Decoder {
 	return runtime.DecoderFunc(func(value interface{}) error {
 		buffer, err := io.ReadAll(reader)
 		if err != nil {

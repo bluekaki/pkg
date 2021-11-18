@@ -1,10 +1,10 @@
 package httpclient
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -34,10 +34,10 @@ var defaultClient = &http.Client{
 	},
 }
 
-func doHTTP(ctx context.Context, method, url string, payload io.Reader, opt *option) ([]byte, http.Header, int, error) {
+func doHTTP(ctx context.Context, method, url string, payload []byte, opt *option) ([]byte, http.Header, int, error) {
 	ts := time.Now()
 
-	req, err := http.NewRequestWithContext(ctx, method, url, payload)
+	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(payload))
 	if err != nil {
 		return nil, nil, -1, errors.Wrapf(err, "new request [%s %s] err", method, url)
 	}

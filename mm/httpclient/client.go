@@ -7,6 +7,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	httpURL "net/url"
+	"strconv"
 	"time"
 
 	"github.com/bluekaki/pkg/errors"
@@ -270,7 +271,7 @@ func withFormBody(method, url string, form httpURL.Values, options ...Option) (b
 	}
 
 	for k := 0; k < retryTimes; k++ {
-		body, header, statusCode, err = doHTTP(ctx, method, url, bytes.NewReader([]byte(formValue)), opt)
+		body, header, statusCode, err = doHTTP(ctx, method, url, []byte(formValue), opt)
 		if shouldRetry(ctx, statusCode) {
 			time.Sleep(retryDelay)
 			continue
@@ -359,7 +360,7 @@ func withJSONBody(method, url string, raw json.RawMessage, options ...Option) (b
 	}
 
 	for k := 0; k < retryTimes; k++ {
-		body, header, statusCode, err = doHTTP(ctx, method, url, bytes.NewReader(raw), opt)
+		body, header, statusCode, err = doHTTP(ctx, method, url, raw, opt)
 		if shouldRetry(ctx, statusCode) {
 			time.Sleep(retryDelay)
 			continue
@@ -371,26 +372,31 @@ func withJSONBody(method, url string, raw json.RawMessage, options ...Option) (b
 }
 
 // PostMultipartFile post file 请求
-func PostMultipartFile(url string, payload []byte, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+func PostMultipartFile(url string, payload [][]byte, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withMultipartFile(http.MethodPost, url, payload, options...)
 }
 
 // PutMultipartFile put file 请求
-func PutMultipartFile(url string, payload []byte, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+func PutMultipartFile(url string, payload [][]byte, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withMultipartFile(http.MethodPut, url, payload, options...)
 }
 
 // PatchMultipartFile patch file 请求
-func PatchMultipartFile(url string, payload []byte, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+func PatchMultipartFile(url string, payload [][]byte, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	return withMultipartFile(http.MethodPatch, url, payload, options...)
 }
 
-func withMultipartFile(method, url string, payload []byte, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
+func withMultipartFile(method, url string, payload [][]byte, options ...Option) (body []byte, header http.Header, statusCode int, err error) {
 	if url == "" {
 		return nil, nil, -1, errors.New("url required")
 	}
 	if len(payload) == 0 {
 		return nil, nil, -1, errors.New("payload required")
+	}
+	for i := range payload {
+		if len(payload[i]) == 0 {
+			return nil, nil, -1, errors.Errorf("payload[%d] required", i)
+		}
 	}
 
 	ts := time.Now()
@@ -427,13 +433,15 @@ func withMultipartFile(method, url string, payload []byte, options ...Option) (b
 	buf := bytes.NewBuffer(nil)
 	writer := multipart.NewWriter(buf)
 
-	file, err := writer.CreateFormFile("xxx", "xxx")
-	if err != nil {
-		return nil, nil, -1, errors.Wrap(err, "create multipart file err")
-	}
+	for i := range payload {
+		file, err := writer.CreateFormFile(strconv.Itoa(i), strconv.Itoa(i))
+		if err != nil {
+			return nil, nil, -1, errors.Wrap(err, "create multipart file err")
+		}
 
-	if _, err := file.Write(payload); err != nil {
-		return nil, nil, -1, errors.Wrap(err, "write multipart file err")
+		if _, err := file.Write(payload[i]); err != nil {
+			return nil, nil, -1, errors.Wrap(err, "write multipart file err")
+		}
 	}
 
 	if err := writer.Close(); err != nil {
@@ -478,7 +486,7 @@ func withMultipartFile(method, url string, payload []byte, options ...Option) (b
 	}
 
 	for k := 0; k < retryTimes; k++ {
-		body, header, statusCode, err = doHTTP(ctx, method, url, buf, opt)
+		body, header, statusCode, err = doHTTP(ctx, method, url, buf.Bytes(), opt)
 		if shouldRetry(ctx, statusCode) {
 			time.Sleep(retryDelay)
 			continue

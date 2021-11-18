@@ -1,6 +1,7 @@
 package interceptor
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"github.com/bluekaki/pkg/id"
 	"github.com/bluekaki/pkg/pbutil"
 	"github.com/bluekaki/pkg/vv/internal/pb"
+	"github.com/bluekaki/pkg/vv/internal/pkg/multipart"
 	"github.com/bluekaki/pkg/vv/proposal"
 
 	protoV1 "github.com/golang/protobuf/proto"
@@ -334,7 +336,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 				body: func() []byte {
 					if meta.Get(OctetStream)[0] != "" {
 						raw, _ := base64.StdEncoding.DecodeString(meta.Get(Body)[0])
-						return raw
+						return bytes.Join(multipart.ParseFormData(raw), nil)
 
 					} else {
 						return []byte(meta.Get(Body)[0])

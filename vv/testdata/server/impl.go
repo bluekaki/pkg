@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/bluekaki/pkg/errors"
 	"github.com/bluekaki/pkg/vv"
+	"github.com/bluekaki/pkg/vv/internal/pkg/multipart"
 	"github.com/bluekaki/pkg/vv/pkg/plugin/cuzerr"
 	"github.com/bluekaki/pkg/vv/testdata/api/gen"
 
@@ -72,10 +74,10 @@ func (d *dummyService) StreamEcho(req *dummy.EchoReq, stream dummy.DummyService_
 
 func (d *dummyService) Upload(ctx context.Context, req *dummy.UploadReq) (*dummy.UploadResp, error) {
 	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-	fmt.Println(req.FileName, string(req.Raw))
+	fmt.Println(req.FileName, len(req.Raw))
 	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 
-	digest := sha256.Sum256(req.Raw)
+	digest := sha256.Sum256(bytes.Join(multipart.ParseFormData(req.Raw), nil))
 	return &dummy.UploadResp{
 		Digest: hex.EncodeToString(digest[:]),
 	}, nil

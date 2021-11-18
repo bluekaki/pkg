@@ -9,10 +9,6 @@ import (
 	"github.com/bluekaki/pkg/errors"
 )
 
-const (
-	ContentTypeFormData = "multipart/form-data"
-)
-
 func Parse(req *http.Request) ([]byte, bool, error) {
 	contentType, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
 	if err != nil {
@@ -20,7 +16,7 @@ func Parse(req *http.Request) ([]byte, bool, error) {
 	}
 
 	switch textproto.CanonicalMIMEHeaderKey(contentType) {
-	case ContentTypeFormData:
+	case "multipart/form-data":
 		body, err := parseFormData(req)
 		return body, true, err
 	}

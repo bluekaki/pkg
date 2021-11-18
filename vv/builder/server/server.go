@@ -117,7 +117,7 @@ func New(logger *zap.Logger, notify proposal.NotifyHandler, register RegisterEnd
 
 	serverOptions := []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(configs.MaxMsgSize),
-		grpc.MaxSendMsgSize(configs.MaxMsgSize),
+		grpc.MaxHeaderListSize(configs.MaxMsgSize),
 		grpc.KeepaliveEnforcementPolicy(*enforcementPolicy),
 		grpc.KeepaliveParams(*keepalive),
 		grpc.UnaryInterceptor(interceptor.UnaryServerInterceptor(logger, notify, opt.metrics, opt.projectName)),
