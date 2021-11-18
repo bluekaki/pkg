@@ -46,6 +46,58 @@
         ]
       }
     },
+    "/dummy/excel": {
+      "get": {
+        "operationId": "DummyService_Excel",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/dummyExcelResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "DummyService"
+        ]
+      }
+    },
+    "/dummy/picture": {
+      "get": {
+        "operationId": "DummyService_Picture",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/dummyPictureResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "file_name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "DummyService"
+        ]
+      }
+    },
     "/dummy/stream/echo": {
       "get": {
         "operationId": "DummyService_StreamEcho",
@@ -134,6 +186,24 @@
         },
         "ack": {
           "type": "boolean"
+        }
+      }
+    },
+    "dummyExcelResp": {
+      "type": "object",
+      "properties": {
+        "raw": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "dummyPictureResp": {
+      "type": "object",
+      "properties": {
+        "raw": {
+          "type": "string",
+          "format": "byte"
         }
       }
     },

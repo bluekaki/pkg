@@ -7,6 +7,7 @@ option go_package = "./;dummy";
 import "interceptor/options.proto";
 import "validator/options.proto";
 import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
 
 message EchoReq {
   string message = 1 [ (validator.field) = {require : true, le : 30} ];
@@ -23,6 +24,27 @@ message UploadReq {
 }
 
 message UploadResp { string digest = 1; }
+
+message PictureReq {
+  string file_name = 1 [ (validator.field) = {require : true, le : 30} ];
+}
+
+message PictureResp {
+  option (validator.media) = {
+    content_type : "image/png"
+  };
+
+  bytes raw = 1;
+}
+
+message ExcelResp {
+  option (validator.media) = {
+    content_type : "application/"
+                   "vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  };
+
+  bytes raw = 1;
+}
 
 service DummyService {
   rpc Echo(EchoReq) returns (EchoResp) {
@@ -62,6 +84,18 @@ service DummyService {
     option (google.api.http) = {
       post : "/dummy/upload/{file_name}"
       body : "raw"
+    };
+  }
+
+  rpc Picture(PictureReq) returns (PictureResp) {
+    option (google.api.http) = {
+      get : "/dummy/picture"
+    };
+  }
+
+  rpc Excel(google.protobuf.Empty) returns (ExcelResp) {
+    option (google.api.http) = {
+      get : "/dummy/excel"
     };
   }
 }

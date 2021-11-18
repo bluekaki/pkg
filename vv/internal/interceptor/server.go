@@ -246,13 +246,6 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 							journal.Response.ErrorVerbose = stack.Verbose
 						}
 					}
-
-					s = status.New(s.Code(), s.Message()) // reset detail
-					if statusCode != nil {
-						s, _ = s.WithDetails(statusCode)
-					}
-
-					err = s.Err()
 				}
 
 				journal.CostSeconds = time.Since(ts).Seconds()
@@ -263,6 +256,16 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 				} else {
 					logger.Error("server unary interceptor", zap.Any("journal", marshalJournal(journal)))
 				}
+			}
+
+			if err != nil {
+				s, _ := status.FromError(err)
+				s = status.New(s.Code(), s.Message()) // reset detail
+				if statusCode != nil {
+					s, _ = s.WithDetails(statusCode)
+				}
+
+				err = s.Err()
 			}
 
 			if metrics != nil {
@@ -508,13 +511,6 @@ func StreamServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 							journal.Response.ErrorVerbose = stack.Verbose
 						}
 					}
-
-					s = status.New(s.Code(), s.Message()) // reset detail
-					if statusCode != nil {
-						s, _ = s.WithDetails(statusCode)
-					}
-
-					err = s.Err()
 				}
 
 				journal.CostSeconds = time.Since(ts).Seconds()
@@ -525,6 +521,16 @@ func StreamServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 				} else {
 					logger.Error("server stream interceptor", zap.Any("journal", marshalJournal(journal)))
 				}
+			}
+
+			if err != nil {
+				s, _ := status.FromError(err)
+				s = status.New(s.Code(), s.Message()) // reset detail
+				if statusCode != nil {
+					s, _ = s.WithDetails(statusCode)
+				}
+
+				err = s.Err()
 			}
 
 			if metrics != nil {
@@ -592,7 +598,15 @@ func StreamServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 				date:      meta.Get(Date)[0],
 				method:    meta.Get(Method)[0],
 				uri:       meta.Get(URI)[0],
-				body:      []byte(meta.Get(Body)[0]),
+				body: func() []byte {
+					if meta.Get(OctetStream)[0] != "" {
+						raw, _ := base64.StdEncoding.DecodeString(meta.Get(Body)[0])
+						return bytes.Join(multipart.ParseFormData(raw), nil)
+
+					} else {
+						return []byte(meta.Get(Body)[0])
+					}
+				}(),
 			}
 
 		} else {

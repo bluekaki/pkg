@@ -1,14 +1,12 @@
 package marshaler
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/bluekaki/pkg/errors"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
 )
 
 func NewWildcardMarshaler(logger *zap.Logger) runtime.Marshaler {
@@ -67,18 +65,26 @@ func (w *wildcard) Unmarshal(data []byte, value interface{}) error {
 	return nil
 }
 
-func (w *wildcard) ContentType(_ interface{}) string {
+type media interface {
+	ContentType() string
+	Payload() []byte
+}
+
+func (w *wildcard) ContentType(value interface{}) string {
+	switch value.(type) {
+	case media:
+		return value.(media).ContentType()
+	}
+
 	return runtime.MIMEWildcard
 }
 
 func (w *wildcard) Marshal(value interface{}) ([]byte, error) {
-	fmt.Println(">>> Marshal <<<")
-	fmt.Println(fmt.Sprintf("%#v", value))
-
 	switch value.(type) {
-	case proto.Message:
+	case media:
+		return value.(media).Payload(), nil
+
+	default:
 		return jsonPbMarshaler.Marshal(value)
 	}
-
-	return nil, errors.New("unable to marshal non wildcard field")
 }

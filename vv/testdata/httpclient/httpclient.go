@@ -23,7 +23,7 @@ func main() {
 		panic(err)
 	}
 
-	if true {
+	if false {
 		fmt.Println("---------------------- normal ----------------------------")
 
 		form := make(url.Values)
@@ -118,7 +118,7 @@ func main() {
 		}
 	}
 
-	if true {
+	if false {
 		fmt.Println("---------------------- upload file ----------------------------")
 
 		payload := make([][]byte, 3)

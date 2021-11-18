@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/bluekaki/pkg/errors"
 	"github.com/bluekaki/pkg/vv"
@@ -80,5 +81,16 @@ func (d *dummyService) Upload(ctx context.Context, req *dummy.UploadReq) (*dummy
 	digest := sha256.Sum256(bytes.Join(multipart.ParseFormData(req.Raw), nil))
 	return &dummy.UploadResp{
 		Digest: hex.EncodeToString(digest[:]),
+	}, nil
+}
+
+func (d *dummyService) Picture(ctx context.Context, req *dummy.PictureReq) (*dummy.PictureResp, error) {
+	raw, err := os.ReadFile(req.FileName)
+	if err != nil {
+		return nil, cuzerr.NewBzError(alertCode, errors.Wrapf(err, "read picture %s err", req.FileName)).AlertError(nil)
+	}
+
+	return &dummy.PictureResp{
+		Raw: raw,
 	}, nil
 }

@@ -7,6 +7,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -21,6 +22,8 @@ type DummyServiceClient interface {
 	Echo(ctx context.Context, in *EchoReq, opts ...grpc.CallOption) (*EchoResp, error)
 	StreamEcho(ctx context.Context, in *EchoReq, opts ...grpc.CallOption) (DummyService_StreamEchoClient, error)
 	Upload(ctx context.Context, in *UploadReq, opts ...grpc.CallOption) (*UploadResp, error)
+	Picture(ctx context.Context, in *PictureReq, opts ...grpc.CallOption) (*PictureResp, error)
+	Excel(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ExcelResp, error)
 }
 
 type dummyServiceClient struct {
@@ -81,6 +84,24 @@ func (c *dummyServiceClient) Upload(ctx context.Context, in *UploadReq, opts ...
 	return out, nil
 }
 
+func (c *dummyServiceClient) Picture(ctx context.Context, in *PictureReq, opts ...grpc.CallOption) (*PictureResp, error) {
+	out := new(PictureResp)
+	err := c.cc.Invoke(ctx, "/dummy.DummyService/Picture", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dummyServiceClient) Excel(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ExcelResp, error) {
+	out := new(ExcelResp)
+	err := c.cc.Invoke(ctx, "/dummy.DummyService/Excel", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DummyServiceServer is the server API for DummyService service.
 // All implementations must embed UnimplementedDummyServiceServer
 // for forward compatibility
@@ -88,6 +109,8 @@ type DummyServiceServer interface {
 	Echo(context.Context, *EchoReq) (*EchoResp, error)
 	StreamEcho(*EchoReq, DummyService_StreamEchoServer) error
 	Upload(context.Context, *UploadReq) (*UploadResp, error)
+	Picture(context.Context, *PictureReq) (*PictureResp, error)
+	Excel(context.Context, *emptypb.Empty) (*ExcelResp, error)
 	mustEmbedUnimplementedDummyServiceServer()
 }
 
@@ -103,6 +126,12 @@ func (UnimplementedDummyServiceServer) StreamEcho(*EchoReq, DummyService_StreamE
 }
 func (UnimplementedDummyServiceServer) Upload(context.Context, *UploadReq) (*UploadResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Upload not implemented")
+}
+func (UnimplementedDummyServiceServer) Picture(context.Context, *PictureReq) (*PictureResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Picture not implemented")
+}
+func (UnimplementedDummyServiceServer) Excel(context.Context, *emptypb.Empty) (*ExcelResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Excel not implemented")
 }
 func (UnimplementedDummyServiceServer) mustEmbedUnimplementedDummyServiceServer() {}
 
@@ -174,6 +203,42 @@ func _DummyService_Upload_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DummyService_Picture_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PictureReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DummyServiceServer).Picture(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dummy.DummyService/Picture",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DummyServiceServer).Picture(ctx, req.(*PictureReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DummyService_Excel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DummyServiceServer).Excel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dummy.DummyService/Excel",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DummyServiceServer).Excel(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DummyService_ServiceDesc is the grpc.ServiceDesc for DummyService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -188,6 +253,14 @@ var DummyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Upload",
 			Handler:    _DummyService_Upload_Handler,
+		},
+		{
+			MethodName: "Picture",
+			Handler:    _DummyService_Picture_Handler,
+		},
+		{
+			MethodName: "Excel",
+			Handler:    _DummyService_Excel_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

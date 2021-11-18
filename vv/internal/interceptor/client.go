@@ -111,7 +111,6 @@ func UnaryClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, s
 							journal.Response.ErrorVerbose = stack.Verbose
 						}
 					}
-					err = status.New(s.Code(), s.Message()).Err() // reset detail
 				}
 
 				journal.CostSeconds = time.Since(ts).Seconds()
@@ -122,6 +121,11 @@ func UnaryClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, s
 				} else {
 					logger.Error("client unary interceptor", zap.Any("journal", marshalJournal(journal)))
 				}
+			}
+
+			if err != nil {
+				s, _ := status.FromError(err)
+				err = status.New(s.Code(), s.Message()).Err() // reset detail
 			}
 		}()
 
@@ -223,7 +227,6 @@ func StreamClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 							journal.Response.ErrorVerbose = stack.Verbose
 						}
 					}
-					err = status.New(s.Code(), s.Message()).Err() // reset detail
 				}
 
 				journal.CostSeconds = time.Since(ts).Seconds()
@@ -234,6 +237,11 @@ func StreamClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 				} else {
 					logger.Error("client stream interceptor", zap.Any("journal", marshalJournal(journal)))
 				}
+			}
+
+			if err != nil {
+				s, _ := status.FromError(err)
+				err = status.New(s.Code(), s.Message()).Err() // reset detail
 			}
 		}()
 

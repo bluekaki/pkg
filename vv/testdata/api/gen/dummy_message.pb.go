@@ -62,3 +62,45 @@ func (u *UploadResp) Validate() error {
 
 	return nil
 }
+
+func (p *PictureReq) Validate() error {
+
+	// FileName  Kind:StringKind Cardinality:optional IsList:false IsMap:false IsPacked:false IsPlaceholder:false IsWeak:false IsExtension:false HasPresence:false
+	p.FileName = strings.TrimSpace(p.FileName)
+
+	if p.FileName == "" {
+		return errors.New("file_name required")
+	}
+
+	if !(len(p.FileName) <= 30) {
+		return errors.New("file_name illegal")
+	}
+
+	return nil
+}
+
+func (p *PictureResp) ContentType() string {
+	return "image/png"
+}
+func (p *PictureResp) Payload() []byte {
+	return p.Raw
+}
+func (p *PictureResp) Validate() error {
+
+	// Raw  Kind:BytesKind Cardinality:optional IsList:false IsMap:false IsPacked:false IsPlaceholder:false IsWeak:false IsExtension:false HasPresence:false
+
+	return nil
+}
+
+func (e *ExcelResp) ContentType() string {
+	return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+}
+func (e *ExcelResp) Payload() []byte {
+	return e.Raw
+}
+func (e *ExcelResp) Validate() error {
+
+	// Raw  Kind:BytesKind Cardinality:optional IsList:false IsMap:false IsPacked:false IsPlaceholder:false IsWeak:false IsExtension:false HasPresence:false
+
+	return nil
+}
