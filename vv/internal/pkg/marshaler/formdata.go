@@ -6,21 +6,30 @@ import (
 	"github.com/bluekaki/pkg/errors"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"go.uber.org/zap"
 )
 
-func NewFromDataMarshaler() runtime.Marshaler {
-	return &fromData{Marshaler: jsonPbMarshaler}
+func NewFormDataMarshaler(logger *zap.Logger) runtime.Marshaler {
+	if logger == nil {
+		panic("logger required")
+	}
+
+	return &formData{
+		Marshaler: jsonPbMarshaler,
+		logger:    logger,
+	}
 }
 
-type fromData struct {
+type formData struct {
 	runtime.Marshaler
+	logger *zap.Logger
 }
 
-func (f *fromData) ContentType(_ interface{}) string {
+func (f *formData) ContentType(_ interface{}) string {
 	return "multipart/form-data"
 }
 
-func (f *fromData) Unmarshal(data []byte, value interface{}) error {
+func (f *formData) Unmarshal(data []byte, value interface{}) error {
 	message, ok := value.(*[]byte)
 	if !ok {
 		return errors.New("unable to unmarshal non bytes field")
@@ -32,7 +41,7 @@ func (f *fromData) Unmarshal(data []byte, value interface{}) error {
 	return nil
 }
 
-func (f *fromData) NewDecoder(reader io.Reader) runtime.Decoder {
+func (f *formData) NewDecoder(reader io.Reader) runtime.Decoder {
 	return runtime.DecoderFunc(func(value interface{}) error {
 		buffer, err := io.ReadAll(reader)
 		if err != nil {

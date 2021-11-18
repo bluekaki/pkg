@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"mime"
 	"strconv"
 	"strings"
 
@@ -64,6 +65,19 @@ func generateFile(gen *protogen.Plugin, file *protogen.File) {
 }
 
 func generateMessage(structName, prefix string, message *protogen.Message, g *protogen.GeneratedFile) {
+	if mediaValidator, _ := proto.GetExtension(message.Desc.Options(), options.E_Media).(*options.MediaValidator); mediaValidator != nil {
+		if mediaValidator.ContentType != nil && *mediaValidator.ContentType != "" {
+			contentType, _, err := mime.ParseMediaType(*mediaValidator.ContentType)
+			if err != nil {
+				panic(err)
+			}
+
+			g.P("func (", prefix, "*", structName, ") ContentType() string {")
+			g.P("return ", contentType)
+			g.P("}")
+		}
+	}
+
 	g.P("func (", prefix, "*", structName, ") Validate() error {")
 
 	for _, field := range message.Fields {

@@ -123,7 +123,7 @@ func NewCorsHandler(logger *zap.Logger, notify proposal.NotifyHandler, register 
 	}
 
 	jsonPbMarshaler := marshaler.NewJSONPbMarshaler()
-	fromDataMarshaler := marshaler.NewFromDataMarshaler()
+	formDataMarshaler := marshaler.NewFormDataMarshaler(logger)
 
 	mux := runtime.NewServeMux(
 		runtime.WithIncomingHeaderMatcher(runtime.DefaultHeaderMatcher),
@@ -132,10 +132,10 @@ func NewCorsHandler(logger *zap.Logger, notify proposal.NotifyHandler, register 
 		runtime.WithErrorHandler(runtime.DefaultHTTPErrorHandler),
 		runtime.WithStreamErrorHandler(runtime.DefaultStreamErrorHandler),
 		runtime.WithRoutingErrorHandler(runtime.DefaultRoutingErrorHandler),
-		runtime.WithMarshalerOption(runtime.MIMEWildcard, marshaler.NewWildcardMarshaler()),
+		runtime.WithMarshalerOption(runtime.MIMEWildcard, marshaler.NewWildcardMarshaler(logger)),
 		runtime.WithMarshalerOption("application/x-www-form-urlencoded", jsonPbMarshaler),
 		runtime.WithMarshalerOption("application/json", jsonPbMarshaler),
-		runtime.WithMarshalerOption("multipart/form-data", fromDataMarshaler),
+		runtime.WithMarshalerOption("multipart/form-data", formDataMarshaler),
 	)
 
 	dialOptions := []grpc.DialOption{

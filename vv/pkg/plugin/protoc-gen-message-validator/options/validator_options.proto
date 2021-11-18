@@ -24,3 +24,7 @@ message FieldValidator {
   optional bool cst_day = 13;      // 2006-01-02
   optional bool duration = 14;     // 7s
 }
+
+extend google.protobuf.MessageOptions { optional MediaValidator media = 74601; }
+
+message MediaValidator { optional string content_type = 1; }

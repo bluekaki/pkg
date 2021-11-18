@@ -1,30 +1,29 @@
 package marshaler
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/bluekaki/pkg/errors"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 )
 
-func NewWildcardMarshaler() runtime.Marshaler {
-	return new(wildcard)
-}
+func NewWildcardMarshaler(logger *zap.Logger) runtime.Marshaler {
+	if logger == nil {
+		panic("logger required")
+	}
 
-var _ runtime.Marshaler = (*wildcard)(nil)
+	return &wildcard{
+		logger: logger,
+	}
+}
 
 type wildcard struct {
 	runtime.Marshaler
-}
-
-func (w *wildcard) ContentType(_ interface{}) string {
-	return "*"
-}
-
-func (w *wildcard) Unmarshal(data []byte, value interface{}) error {
-
-	return errors.New("unable to unmarshal non wildcard field")
+	logger *zap.Logger
 }
 
 func (w *wildcard) NewDecoder(reader io.Reader) runtime.Decoder {
@@ -35,11 +34,6 @@ func (w *wildcard) NewDecoder(reader io.Reader) runtime.Decoder {
 		}
 		return w.Unmarshal(buffer, value)
 	})
-}
-
-func (w *wildcard) Marshal(v interface{}) ([]byte, error) {
-
-	return nil, errors.New("unable to marshal non wildcard field")
 }
 
 func (w *wildcard) NewEncoder(writer io.Writer) runtime.Encoder {
@@ -55,4 +49,36 @@ func (w *wildcard) NewEncoder(writer io.Writer) runtime.Encoder {
 
 		return nil
 	})
+}
+
+func (w *wildcard) Unmarshal(data []byte, value interface{}) error {
+	switch value.(type) {
+	case *[]byte:
+		message := value.(*[]byte)
+		*message = make([]byte, len(data))
+		copy(*message, data)
+
+	default:
+		err := errors.Errorf("wildcard unable to unmarshal type of %#v", value)
+		w.logger.Error("wildcard unmarshal err", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (w *wildcard) ContentType(_ interface{}) string {
+	return runtime.MIMEWildcard
+}
+
+func (w *wildcard) Marshal(value interface{}) ([]byte, error) {
+	fmt.Println(">>> Marshal <<<")
+	fmt.Println(fmt.Sprintf("%#v", value))
+
+	switch value.(type) {
+	case proto.Message:
+		return jsonPbMarshaler.Marshal(value)
+	}
+
+	return nil, errors.New("unable to marshal non wildcard field")
 }
