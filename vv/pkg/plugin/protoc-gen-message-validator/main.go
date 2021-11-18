@@ -72,6 +72,10 @@ func generateMessage(structName, prefix string, message *protogen.Message, g *pr
 				panic(err)
 			}
 
+			if ext, _ := mime.ExtensionsByType(contentType); len(ext) == 0 {
+				panic(fmt.Sprintf("content-type: %s illegal", *mediaValidator.ContentType))
+			}
+
 			g.P("func (", prefix, "*", structName, ") ContentType() string {")
 			g.P("return ", `"`, contentType, `"`)
 			g.P("}")
