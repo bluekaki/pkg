@@ -69,11 +69,17 @@ func generateMessage(structName, prefix string, message *protogen.Message, g *pr
 		if mediaValidator.ContentType != nil && *mediaValidator.ContentType != "" {
 			contentType, _, err := mime.ParseMediaType(*mediaValidator.ContentType)
 			if err != nil {
-				panic(err)
+				g.P()
+				g.P(`// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>`)
+				g.P(err.Error())
+				g.P(`// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<`)
 			}
 
 			if ext, _ := mime.ExtensionsByType(contentType); len(ext) == 0 {
-				panic(fmt.Sprintf("content-type: %s illegal", *mediaValidator.ContentType))
+				g.P()
+				g.P(`// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>`)
+				g.P(fmt.Sprintf("content-type: %s illegal", *mediaValidator.ContentType))
+				g.P(`// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<`)
 			}
 
 			g.P("func (", prefix, "*", structName, ") ContentType() string {")
