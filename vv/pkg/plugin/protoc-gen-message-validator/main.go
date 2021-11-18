@@ -73,7 +73,7 @@ func generateMessage(structName, prefix string, message *protogen.Message, g *pr
 			}
 
 			g.P("func (", prefix, "*", structName, ") ContentType() string {")
-			g.P("return ", contentType)
+			g.P("return ", `"`, contentType, `"`)
 			g.P("}")
 		}
 	}
