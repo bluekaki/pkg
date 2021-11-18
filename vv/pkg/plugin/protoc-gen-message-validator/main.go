@@ -75,6 +75,10 @@ func generateMessage(structName, prefix string, message *protogen.Message, g *pr
 			g.P("func (", prefix, "*", structName, ") ContentType() string {")
 			g.P("return ", `"`, contentType, `"`)
 			g.P("}")
+
+			g.P("func (", prefix, "*", structName, ") Payload() []byte {")
+			g.P("return ", prefix, ".Raw")
+			g.P("}")
 		}
 	}
 
