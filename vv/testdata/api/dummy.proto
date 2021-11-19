@@ -47,6 +47,16 @@ message ExcelResp {
 }
 
 service DummyService {
+  rpc Ping(google.protobuf.Empty) returns (google.protobuf.Empty) {
+    option (interceptor.method_handler) = {
+      journal : true
+    };
+
+    option (google.api.http) = {
+      get : "/dummy/ping"
+    };
+  }
+
   rpc Echo(EchoReq) returns (EchoResp) {
     option (interceptor.method_handler) = {
       authorization : "dummy_sso",

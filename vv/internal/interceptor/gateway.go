@@ -115,7 +115,7 @@ func UnaryGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 					Response: &pb.Response{
 						Code: codes.OK.String(),
 						Payload: func() *anypb.Any {
-							if reply == nil {
+							if err != nil || reply == nil {
 								return nil
 							}
 
@@ -131,11 +131,20 @@ func UnaryGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 					journal.Response.Code = s.Code().String()
 					journal.Response.Message = s.Message()
 
+					var customStatus *runtime.HTTPStatusError
 					for _, detail := range s.Details() {
 						switch detail.(type) {
 						case *pb.Stack:
 							journal.Response.ErrorVerbose = detail.(*pb.Stack).Verbose
+						case *pb.Code:
+							customStatus = &runtime.HTTPStatusError{HTTPStatus: int(detail.(*pb.Code).HttpStatus)}
 						}
+					}
+
+					err = status.New(s.Code(), s.Message()).Err() // reset detail
+					if customStatus != nil {
+						customStatus.Err = err
+						err = customStatus
 					}
 				}
 
@@ -146,24 +155,6 @@ func UnaryGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 
 				} else {
 					logger.Error("gateway unary interceptor", zap.Any("journal", marshalJournal(journal)))
-				}
-			}
-
-			if err != nil {
-				s, _ := status.FromError(err)
-
-				var customStatus *runtime.HTTPStatusError
-				for _, detail := range s.Details() {
-					switch detail.(type) {
-					case *pb.Code:
-						customStatus = &runtime.HTTPStatusError{HTTPStatus: int(detail.(*pb.Code).HttpStatus)}
-					}
-				}
-
-				err = status.New(s.Code(), s.Message()).Err() // reset detail
-				if customStatus != nil {
-					customStatus.Err = err
-					err = customStatus
 				}
 			}
 
@@ -327,6 +318,8 @@ func StreamGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler,
 							journal.Response.ErrorVerbose = stack.Verbose
 						}
 					}
+
+					err = status.New(s.Code(), s.Message()).Err() // reset detail
 				}
 
 				journal.CostSeconds = time.Since(ts).Seconds()
@@ -337,11 +330,6 @@ func StreamGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler,
 				} else {
 					logger.Error("gateway stream interceptor", zap.Any("journal", marshalJournal(journal)))
 				}
-			}
-
-			if err != nil {
-				s, _ := status.FromError(err)
-				err = status.New(s.Code(), s.Message()).Err() // reset detail
 			}
 
 			if metrics != nil {
@@ -398,52 +386,67 @@ func StreamGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler,
 		return &streamGatewayInterceptor{
 			ClientStream: s,
 			logger:       logger,
-			doJournal:    doJournal,
-			journalID:    journalID,
+
+			journalID: journalID,
+
+			doJournal: doJournal,
+			method:    fullMethod,
 		}, nil
 	}
 }
 
 type streamGatewayInterceptor struct {
 	grpc.ClientStream
-	logger    *zap.Logger
-	doJournal bool
+	logger *zap.Logger
+
 	journalID string
-	counter   struct {
+
+	counter struct {
 		send uint32
 		recv uint32
 	}
+
+	doJournal bool
+	method    string
 }
 
 func (s *streamGatewayInterceptor) SendMsg(m interface{}) (err error) {
 	s.counter.recv++
 
-	if s.doJournal {
-		journal := &pb.Journal{
-			Id: s.journalID,
-			Label: &pb.Lable{
-				Sequence: s.counter.recv,
-				Desc:     "RecvMsg",
-			},
-			Request: &pb.Request{
-				Payload: func() *anypb.Any {
-					if m == nil {
-						return nil
-					}
+	ts := time.Now()
+	defer func() {
+		if s.doJournal {
+			journal := &pb.Journal{
+				Id: s.journalID,
+				Label: &pb.Lable{
+					Sequence: s.counter.recv,
+					Desc:     "RecvMsg",
+				},
+				Request: &pb.Request{
+					Restapi: true,
+					Method:  s.method,
+					Payload: func() *anypb.Any {
+						if m == nil {
+							return nil
+						}
 
-					any, _ := anypb.New(m.(proto.Message))
-					return any
-				}(),
-			},
+						any, _ := anypb.New(m.(proto.Message))
+						return any
+					}(),
+				},
+				Success:     err == nil,
+				CostSeconds: time.Since(ts).Seconds(),
+			}
+
+			s.logger.Info("gateway stream/recv interceptor", zap.Any("journal", marshalJournal(journal)))
 		}
-
-		s.logger.Info("gateway stream/recv interceptor", zap.Any("journal", marshalJournal(journal)))
-	}
+	}()
 
 	return s.ClientStream.SendMsg(m)
 }
 
 func (s *streamGatewayInterceptor) RecvMsg(m interface{}) (err error) {
+	ts := time.Now()
 	defer func() {
 		if err == io.EOF {
 			return
@@ -461,7 +464,7 @@ func (s *streamGatewayInterceptor) RecvMsg(m interface{}) (err error) {
 				Response: &pb.Response{
 					Code: codes.OK.String(),
 					Payload: func() *anypb.Any {
-						if m == nil {
+						if err != nil || m == nil {
 							return nil
 						}
 
@@ -469,6 +472,8 @@ func (s *streamGatewayInterceptor) RecvMsg(m interface{}) (err error) {
 						return any
 					}(),
 				},
+				Success:     err == nil,
+				CostSeconds: time.Since(ts).Seconds(),
 			}
 
 			if err != nil {
@@ -482,14 +487,11 @@ func (s *streamGatewayInterceptor) RecvMsg(m interface{}) (err error) {
 						journal.Response.ErrorVerbose = stack.Verbose
 					}
 				}
+
+				err = status.New(s.Code(), s.Message()).Err() // reset detail
 			}
 
 			s.logger.Info("gateway stream/send interceptor", zap.Any("journal", marshalJournal(journal)))
-		}
-
-		if err != nil {
-			s, _ := status.FromError(err)
-			err = status.New(s.Code(), s.Message()).Err() // reset detail
 		}
 	}()
 

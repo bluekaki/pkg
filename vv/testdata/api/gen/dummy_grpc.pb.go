@@ -19,6 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DummyServiceClient interface {
+	Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Echo(ctx context.Context, in *EchoReq, opts ...grpc.CallOption) (*EchoResp, error)
 	StreamEcho(ctx context.Context, in *EchoReq, opts ...grpc.CallOption) (DummyService_StreamEchoClient, error)
 	Upload(ctx context.Context, in *UploadReq, opts ...grpc.CallOption) (*UploadResp, error)
@@ -32,6 +33,15 @@ type dummyServiceClient struct {
 
 func NewDummyServiceClient(cc grpc.ClientConnInterface) DummyServiceClient {
 	return &dummyServiceClient{cc}
+}
+
+func (c *dummyServiceClient) Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/dummy.DummyService/Ping", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *dummyServiceClient) Echo(ctx context.Context, in *EchoReq, opts ...grpc.CallOption) (*EchoResp, error) {
@@ -106,6 +116,7 @@ func (c *dummyServiceClient) Excel(ctx context.Context, in *emptypb.Empty, opts 
 // All implementations must embed UnimplementedDummyServiceServer
 // for forward compatibility
 type DummyServiceServer interface {
+	Ping(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	Echo(context.Context, *EchoReq) (*EchoResp, error)
 	StreamEcho(*EchoReq, DummyService_StreamEchoServer) error
 	Upload(context.Context, *UploadReq) (*UploadResp, error)
@@ -118,6 +129,9 @@ type DummyServiceServer interface {
 type UnimplementedDummyServiceServer struct {
 }
 
+func (UnimplementedDummyServiceServer) Ping(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
 func (UnimplementedDummyServiceServer) Echo(context.Context, *EchoReq) (*EchoResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Echo not implemented")
 }
@@ -144,6 +158,24 @@ type UnsafeDummyServiceServer interface {
 
 func RegisterDummyServiceServer(s grpc.ServiceRegistrar, srv DummyServiceServer) {
 	s.RegisterService(&DummyService_ServiceDesc, srv)
+}
+
+func _DummyService_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DummyServiceServer).Ping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dummy.DummyService/Ping",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DummyServiceServer).Ping(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _DummyService_Echo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -246,6 +278,10 @@ var DummyService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "dummy.DummyService",
 	HandlerType: (*DummyServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Ping",
+			Handler:    _DummyService_Ping_Handler,
+		},
 		{
 			MethodName: "Echo",
 			Handler:    _DummyService_Echo_Handler,

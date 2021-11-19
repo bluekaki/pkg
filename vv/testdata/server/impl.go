@@ -33,6 +33,10 @@ var (
 	alertCode = cuzerr.NewCode(2307, http.StatusExpectationFailed, "some alert error occurs")
 )
 
+func (d *dummyService) Ping(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
+	return new(emptypb.Empty), nil
+}
+
 func (d *dummyService) Echo(ctx context.Context, req *dummy.EchoReq) (*dummy.EchoResp, error) {
 	journalID, _ := vv.JournalID(ctx)
 	userinfo := vv.Userinfo(ctx).(*Userinfo)
@@ -61,6 +65,8 @@ func (d *dummyService) StreamEcho(req *dummy.EchoReq, stream dummy.DummyService_
 	userinfo := vv.Userinfo(stream.Context()).(*Userinfo)
 	identifier := vv.SignatureIdentifier(stream.Context())
 
+	// panic("xxxxxxxxxxxxxxxxxxxxxxxxx")
+
 	for k := 0; k < 3; k++ {
 		err := stream.Send(&dummy.EchoResp{
 			Message: fmt.Sprintf("{%s} %s[%s], %s #%d.", journalID, userinfo.Name, identifier, req.Message, k),
@@ -69,6 +75,8 @@ func (d *dummyService) StreamEcho(req *dummy.EchoReq, stream dummy.DummyService_
 		if err != nil {
 			return cuzerr.NewBzError(alertCode, errors.Wrap(err, "stream send err")).AlertError(nil)
 		}
+
+		// return cuzerr.NewBzError(alertCode, errors.New("stream alert err")).AlertError(nil)
 	}
 
 	return nil

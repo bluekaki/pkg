@@ -98,6 +98,28 @@
         ]
       }
     },
+    "/dummy/ping": {
+      "get": {
+        "operationId": "DummyService_Ping",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "DummyService"
+        ]
+      }
+    },
     "/dummy/stream/echo": {
       "get": {
         "operationId": "DummyService_StreamEcho",
