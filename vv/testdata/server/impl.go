@@ -16,6 +16,7 @@ import (
 	"github.com/bluekaki/pkg/vv/testdata/api/gen"
 
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type Userinfo struct {
@@ -91,6 +92,17 @@ func (d *dummyService) Picture(ctx context.Context, req *dummy.PictureReq) (*dum
 	}
 
 	return &dummy.PictureResp{
+		Raw: raw,
+	}, nil
+}
+
+func (d *dummyService) Excel(ctx context.Context, _ *emptypb.Empty) (*dummy.ExcelResp, error) {
+	raw, err := os.ReadFile("excel.xlsx")
+	if err != nil {
+		return nil, cuzerr.NewBzError(alertCode, errors.Wrap(err, "read excel.xlsx err")).AlertError(nil)
+	}
+
+	return &dummy.ExcelResp{
 		Raw: raw,
 	}, nil
 }

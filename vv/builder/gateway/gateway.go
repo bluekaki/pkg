@@ -132,6 +132,7 @@ func NewCorsHandler(logger *zap.Logger, notify proposal.NotifyHandler, register 
 		runtime.WithErrorHandler(runtime.DefaultHTTPErrorHandler),
 		runtime.WithStreamErrorHandler(runtime.DefaultStreamErrorHandler),
 		runtime.WithRoutingErrorHandler(runtime.DefaultRoutingErrorHandler),
+
 		runtime.WithMarshalerOption(runtime.MIMEWildcard, marshaler.NewWildcardMarshaler(logger)),
 		runtime.WithMarshalerOption("application/x-www-form-urlencoded", jsonPbMarshaler),
 		runtime.WithMarshalerOption("application/json", jsonPbMarshaler),
