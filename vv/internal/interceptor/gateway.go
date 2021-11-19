@@ -83,13 +83,17 @@ func UnaryGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 				err = s.Err()
 			}
 
-			if doJournal {
+			{
 				journal := &pb.Journal{
 					Id: journalID,
 					Request: &pb.Request{
 						Restapi: true,
 						Method:  fullMethod,
 						Metadata: func() map[string]string {
+							if !doJournal {
+								return nil
+							}
+
 							mp := make(map[string]string)
 							for key, values := range meta {
 								if key == URI {
@@ -104,7 +108,7 @@ func UnaryGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 							return mp
 						}(),
 						Payload: func() *anypb.Any {
-							if req == nil {
+							if !doJournal || req == nil {
 								return nil
 							}
 
@@ -115,7 +119,7 @@ func UnaryGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 					Response: &pb.Response{
 						Code: codes.OK.String(),
 						Payload: func() *anypb.Any {
-							if err != nil || reply == nil {
+							if !doJournal || err != nil || reply == nil {
 								return nil
 							}
 
@@ -277,7 +281,7 @@ func StreamGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler,
 				err = s.Err()
 			}
 
-			if doJournal {
+			{
 				journal := &pb.Journal{
 					Id: journalID,
 					Label: &pb.Lable{
@@ -287,6 +291,10 @@ func StreamGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler,
 						Restapi: true,
 						Method:  fullMethod,
 						Metadata: func() map[string]string {
+							if !doJournal {
+								return nil
+							}
+
 							mp := make(map[string]string)
 							for key, values := range meta {
 								if key == URI {
@@ -415,7 +423,7 @@ func (s *streamGatewayInterceptor) SendMsg(m interface{}) (err error) {
 
 	ts := time.Now()
 	defer func() {
-		if s.doJournal {
+		{
 			journal := &pb.Journal{
 				Id: s.journalID,
 				Label: &pb.Lable{
@@ -426,7 +434,7 @@ func (s *streamGatewayInterceptor) SendMsg(m interface{}) (err error) {
 					Restapi: true,
 					Method:  s.method,
 					Payload: func() *anypb.Any {
-						if m == nil {
+						if !s.doJournal || m == nil {
 							return nil
 						}
 
@@ -454,7 +462,7 @@ func (s *streamGatewayInterceptor) RecvMsg(m interface{}) (err error) {
 
 		s.counter.send++
 
-		if s.doJournal {
+		{
 			journal := &pb.Journal{
 				Id: s.journalID,
 				Label: &pb.Lable{
@@ -464,7 +472,7 @@ func (s *streamGatewayInterceptor) RecvMsg(m interface{}) (err error) {
 				Response: &pb.Response{
 					Code: codes.OK.String(),
 					Payload: func() *anypb.Any {
-						if err != nil || m == nil {
+						if !s.doJournal || err != nil || m == nil {
 							return nil
 						}
 
