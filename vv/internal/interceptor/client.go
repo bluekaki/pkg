@@ -90,7 +90,7 @@ func UnaryClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, s
 					Response: &pb.Response{
 						Code: codes.OK.String(),
 						Payload: func() *anypb.Any {
-							if reply == nil {
+							if err != nil || reply == nil {
 								return nil
 							}
 
@@ -258,52 +258,66 @@ func StreamClientInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 		return &streamClientInterceptor{
 			ClientStream: s,
 			logger:       logger,
-			doJournal:    doJournal,
-			journalID:    journalID,
+
+			journalID: journalID,
+
+			doJournal: doJournal,
+			method:    fullMethod,
 		}, nil
 	}
 }
 
 type streamClientInterceptor struct {
 	grpc.ClientStream
-	logger    *zap.Logger
-	doJournal bool
+	logger *zap.Logger
+
 	journalID string
-	counter   struct {
+
+	counter struct {
 		send uint32
 		recv uint32
 	}
+
+	doJournal bool
+	method    string
 }
 
 func (s *streamClientInterceptor) SendMsg(m interface{}) (err error) {
 	s.counter.send++
 
-	if s.doJournal {
-		journal := &pb.Journal{
-			Id: s.journalID,
-			Label: &pb.Lable{
-				Sequence: s.counter.send,
-				Desc:     "SendMsg",
-			},
-			Request: &pb.Request{
-				Payload: func() *anypb.Any {
-					if m == nil {
-						return nil
-					}
+	ts := time.Now()
+	defer func() {
+		if s.doJournal {
+			journal := &pb.Journal{
+				Id: s.journalID,
+				Label: &pb.Lable{
+					Sequence: s.counter.send,
+					Desc:     "SendMsg",
+				},
+				Request: &pb.Request{
+					Method: s.method,
+					Payload: func() *anypb.Any {
+						if m == nil {
+							return nil
+						}
 
-					any, _ := anypb.New(m.(proto.Message))
-					return any
-				}(),
-			},
+						any, _ := anypb.New(m.(proto.Message))
+						return any
+					}(),
+				},
+				Success:     err == nil,
+				CostSeconds: time.Since(ts).Seconds(),
+			}
+
+			s.logger.Info("client stream/send interceptor", zap.Any("journal", marshalJournal(journal)))
 		}
-
-		s.logger.Info("client stream/send interceptor", zap.Any("journal", marshalJournal(journal)))
-	}
+	}()
 
 	return s.ClientStream.SendMsg(m)
 }
 
 func (s *streamClientInterceptor) RecvMsg(m interface{}) (err error) {
+	ts := time.Now()
 	defer func() {
 		if err == io.EOF {
 			return
@@ -321,7 +335,7 @@ func (s *streamClientInterceptor) RecvMsg(m interface{}) (err error) {
 				Response: &pb.Response{
 					Code: codes.OK.String(),
 					Payload: func() *anypb.Any {
-						if m == nil {
+						if err != nil || m == nil {
 							return nil
 						}
 
@@ -329,6 +343,8 @@ func (s *streamClientInterceptor) RecvMsg(m interface{}) (err error) {
 						return any
 					}(),
 				},
+				Success:     err == nil,
+				CostSeconds: time.Since(ts).Seconds(),
 			}
 
 			if err != nil {
@@ -341,6 +357,8 @@ func (s *streamClientInterceptor) RecvMsg(m interface{}) (err error) {
 						journal.Response.ErrorVerbose = stack.Verbose
 					}
 				}
+
+				err = status.New(s.Code(), s.Message()).Err() // reset detail
 			}
 
 			s.logger.Info("client stream/recv interceptor", zap.Any("journal", marshalJournal(journal)))
