@@ -130,10 +130,15 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 		serviceName := fullMethod[1]
 
 		doJournal := false
+		ignore := false
 		method := info.FullMethod
 		if methodHandler, ok := getMethodHandler(info.FullMethod); ok {
 			if methodHandler.Journal != nil && *methodHandler.Journal {
 				doJournal = true
+			}
+
+			if methodHandler.Ignore != nil && *methodHandler.Ignore {
+				ignore = true
 			}
 
 			if methodHandler.MetricsAlias != nil && *methodHandler.MetricsAlias != "" {
@@ -193,7 +198,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 				}
 			}
 
-			{
+			if !ignore {
 				journal := &pb.Journal{
 					Id: journalID,
 					Request: &pb.Request{
@@ -413,10 +418,15 @@ func StreamServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 		serviceName := fullMethod[1]
 
 		doJournal := false
+		ignore := false
 		method := info.FullMethod
 		if methodHandler, ok := getMethodHandler(info.FullMethod); ok {
 			if methodHandler.Journal != nil && *methodHandler.Journal {
 				doJournal = true
+			}
+
+			if methodHandler.Ignore != nil && *methodHandler.Ignore {
+				ignore = true
 			}
 
 			if methodHandler.MetricsAlias != nil && *methodHandler.MetricsAlias != "" {
@@ -472,7 +482,7 @@ func StreamServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 				}
 			}
 
-			{
+			if !ignore {
 				journal := &pb.Journal{
 					Id: journalID,
 					Label: &pb.Lable{
@@ -579,8 +589,13 @@ func StreamServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 			return handler(srv, &streamServerInterceptor{
 				ServerStream: stream,
 				logger:       logger,
-				doJournal:    doJournal,
-				journalID:    journalID,
+
+				journalID: journalID,
+
+				ignore:    ignore,
+				doJournal: doJournal,
+				restapi:   forwardedByGrpcGateway(meta),
+				method:    info.FullMethod,
 			})
 		}
 
@@ -661,6 +676,7 @@ func StreamServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 			userinfo:   userinfo,
 			identifier: identifier,
 
+			ignore:    ignore,
 			doJournal: doJournal,
 			restapi:   forwardedByGrpcGateway(meta),
 			method:    info.FullMethod,
@@ -681,6 +697,7 @@ type streamServerInterceptor struct {
 		recv uint32
 	}
 
+	ignore    bool
 	doJournal bool
 	restapi   bool
 	method    string
@@ -702,7 +719,7 @@ func (s *streamServerInterceptor) SendMsg(m interface{}) (err error) {
 
 	ts := time.Now()
 	defer func() {
-		{
+		if !s.ignore {
 			journal := &pb.Journal{
 				Id: s.journalID,
 				Label: &pb.Lable{
@@ -747,7 +764,7 @@ func (s *streamServerInterceptor) RecvMsg(m interface{}) (err error) {
 
 		s.counter.recv++
 
-		{
+		if !s.ignore {
 			journal := &pb.Journal{
 				Id: s.journalID,
 				Label: &pb.Lable{

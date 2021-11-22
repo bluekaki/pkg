@@ -59,9 +59,14 @@ func UnaryGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 		}
 
 		doJournal := false
+		ignore := false
 		if methodHandler, ok := getMethodHandler(fullMethod); ok {
 			if methodHandler.Journal != nil && *methodHandler.Journal {
 				doJournal = true
+			}
+
+			if methodHandler.Ignore != nil && *methodHandler.Ignore {
+				ignore = true
 			}
 
 			if methodHandler.MetricsAlias != nil && *methodHandler.MetricsAlias != "" {
@@ -83,7 +88,7 @@ func UnaryGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 				err = s.Err()
 			}
 
-			{
+			if !ignore {
 				journal := &pb.Journal{
 					Id: journalID,
 					Request: &pb.Request{
@@ -257,9 +262,14 @@ func StreamGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler,
 		}
 
 		doJournal := false
+		ignore := false
 		if methodHandler, ok := getMethodHandler(fullMethod); ok {
 			if methodHandler.Journal != nil && *methodHandler.Journal {
 				doJournal = true
+			}
+
+			if methodHandler.Ignore != nil && *methodHandler.Ignore {
+				ignore = true
 			}
 
 			if methodHandler.MetricsAlias != nil && *methodHandler.MetricsAlias != "" {
@@ -281,7 +291,7 @@ func StreamGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler,
 				err = s.Err()
 			}
 
-			{
+			if !ignore {
 				journal := &pb.Journal{
 					Id: journalID,
 					Label: &pb.Lable{
@@ -397,6 +407,7 @@ func StreamGatewayInterceptor(logger *zap.Logger, notify proposal.NotifyHandler,
 
 			journalID: journalID,
 
+			ignore:    ignore,
 			doJournal: doJournal,
 			method:    fullMethod,
 		}, nil
@@ -414,6 +425,7 @@ type streamGatewayInterceptor struct {
 		recv uint32
 	}
 
+	ignore    bool
 	doJournal bool
 	method    string
 }
@@ -423,7 +435,7 @@ func (s *streamGatewayInterceptor) SendMsg(m interface{}) (err error) {
 
 	ts := time.Now()
 	defer func() {
-		{
+		if !s.ignore {
 			journal := &pb.Journal{
 				Id: s.journalID,
 				Label: &pb.Lable{
@@ -462,7 +474,7 @@ func (s *streamGatewayInterceptor) RecvMsg(m interface{}) (err error) {
 
 		s.counter.send++
 
-		{
+		if !s.ignore {
 			journal := &pb.Journal{
 				Id: s.journalID,
 				Label: &pb.Lable{

@@ -49,7 +49,7 @@ message ExcelResp {
 service DummyService {
   rpc Ping(google.protobuf.Empty) returns (google.protobuf.Empty) {
     option (interceptor.method_handler) = {
-      journal : true
+      ignore : true
     };
 
     option (google.api.http) = {
