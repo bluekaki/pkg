@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/bluekaki/pkg/errors"
-	"github.com/bluekaki/pkg/mm/internal/journal"
+	"github.com/bluekaki/pkg/mm/httpclient/internal/journal"
 
 	"go.uber.org/zap"
 )
@@ -49,8 +49,8 @@ func doHTTP(ctx context.Context, method, url string, payload []byte, opt *option
 	resp, err := defaultClient.Do(req)
 	if err != nil {
 		err = errors.Wrapf(err, "do request [%s %s] err", method, url)
-		if opt.Dialog != nil {
-			opt.Dialog.AppendResponse(&journal.Response{
+		if opt.Journal != nil {
+			opt.Journal.AppendResponse(&journal.Response{
 				Body:        err.Error(),
 				CostSeconds: time.Since(ts).Seconds(),
 			})
@@ -66,8 +66,8 @@ func doHTTP(ctx context.Context, method, url string, payload []byte, opt *option
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		err = errors.Wrapf(err, "read resp body from [%s %s] err", method, url)
-		if opt.Dialog != nil {
-			opt.Dialog.AppendResponse(&journal.Response{
+		if opt.Journal != nil {
+			opt.Journal.AppendResponse(&journal.Response{
 				Body:        err.Error(),
 				CostSeconds: time.Since(ts).Seconds(),
 			})
@@ -80,16 +80,15 @@ func doHTTP(ctx context.Context, method, url string, payload []byte, opt *option
 	}
 
 	defer func() {
-		if opt.Dialog != nil {
+		if opt.Journal != nil {
 			var raw string
 			if strings.Contains(resp.Header.Get("Content-Type"), "application/x-www-form-urlencoded") {
 				raw = queryUnescape(string(body))
-
-			} else if strings.Contains(resp.Header.Get("Content-Type"), "application/json") {
-				raw = string(body)
+			} else {
+				raw = string(body) // TODO unsafe
 			}
 
-			opt.Dialog.AppendResponse(&journal.Response{
+			opt.Journal.AppendResponse(&journal.Response{
 				Header:      journal.ToJournalHeader(resp.Header),
 				StatusCode:  resp.StatusCode,
 				Status:      resp.Status,
@@ -106,7 +105,6 @@ func doHTTP(ctx context.Context, method, url string, payload []byte, opt *option
 	return body, resp.Header, resp.StatusCode, err
 }
 
-// addFormValuesIntoURL append url.Values into url string
 func addFormValuesIntoURL(rawURL string, form url.Values) (string, error) {
 	if rawURL == "" {
 		return "", errors.New("rawURL required")
