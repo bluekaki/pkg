@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 var (
@@ -48,6 +49,7 @@ type option struct {
 	keepalive         *keepalive.ServerParameters
 	metrics           func(http.Handler)
 	projectName       string
+	fds               []protoreflect.FileDescriptor
 }
 
 // WithCredential setup credential for tls
@@ -82,6 +84,15 @@ func WithPrometheus(metrics func(http.Handler)) Option {
 func WithProjectName(name string) Option {
 	return func(opt *option) {
 		opt.projectName = strings.TrimSpace(name)
+	}
+}
+
+// WithIgnoreFileDescriptor ignore some method likes grpc/health
+func WithIgnoreFileDescriptor(fd protoreflect.FileDescriptor) Option {
+	return func(opt *option) {
+		if fd != nil {
+			opt.fds = append(opt.fds, fd)
+		}
 	}
 }
 
@@ -134,6 +145,7 @@ func New(logger *zap.Logger, notify proposal.NotifyHandler, register RegisterEnd
 
 	register(srv.server)
 	interceptor.ResloveFileDescriptor(interceptor.Server)
+	interceptor.IgnoreFileDescriptor(opt.fds)
 
 	return srv
 }

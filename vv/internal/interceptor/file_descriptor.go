@@ -136,6 +136,29 @@ func ResloveFileDescriptor(role Role) {
 	})
 }
 
+// IgnoreFileDescriptor ignore some methods
+func IgnoreFileDescriptor(fds []protoreflect.FileDescriptor) {
+	fdLock.Lock()
+	defer fdLock.Unlock()
+
+	methodHandler := new(options.MethodHandler)
+	*methodHandler.Ignore = true
+
+	for _, fd := range fds {
+		serivces := fd.Services()
+		for i := 0; i < serivces.Len(); i++ {
+			serivce := serivces.Get(i)
+			methods := serivce.Methods()
+			for k := 0; k < methods.Len(); k++ {
+				method := methods.Get(k)
+				fullMethod := fmt.Sprintf("/%s/%s", serivce.FullName(), method.Name())
+
+				handlers.Methods[fullMethod] = methodHandler
+			}
+		}
+	}
+}
+
 var handlers = &struct {
 	Methods   map[string]*options.MethodHandler  // FullMethod : Handler
 	Services  map[string]*options.ServiceHandler // FullMethod : Handler
