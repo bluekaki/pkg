@@ -141,8 +141,10 @@ func IgnoreFileDescriptor(fds []protoreflect.FileDescriptor) {
 	fdLock.Lock()
 	defer fdLock.Unlock()
 
-	methodHandler := new(options.MethodHandler)
-	*methodHandler.Ignore = true
+	ignore := true
+	methodHandler := &options.MethodHandler{
+		Ignore: &ignore,
+	}
 
 	for _, fd := range fds {
 		serivces := fd.Services()
