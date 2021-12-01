@@ -5,14 +5,26 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-var jsonPbMarshaler = &runtime.JSONPb{
-	MarshalOptions: protojson.MarshalOptions{
+type jsonPb struct {
+	runtime.JSONPb
+}
+
+func (j *jsonPb) ContentType(_ interface{}) string {
+	return "application/json; charset=utf-8"
+}
+
+var jsonPbMarshaler *jsonPb
+
+func init() {
+	jsonPbMarshaler = new(jsonPb)
+	jsonPbMarshaler.MarshalOptions = protojson.MarshalOptions{
 		UseProtoNames:   true,
 		EmitUnpopulated: true,
-	},
-	UnmarshalOptions: protojson.UnmarshalOptions{
+	}
+
+	jsonPbMarshaler.UnmarshalOptions = protojson.UnmarshalOptions{
 		DiscardUnknown: true,
-	},
+	}
 }
 
 func NewJSONPbMarshaler() runtime.Marshaler {
