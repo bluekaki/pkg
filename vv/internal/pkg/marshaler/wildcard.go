@@ -74,9 +74,10 @@ func (w *wildcard) ContentType(value interface{}) string {
 	switch value.(type) {
 	case media:
 		return value.(media).ContentType()
-	}
 
-	return runtime.MIMEWildcard
+	default:
+		return jsonPbMarshaler.ContentType(value)
+	}
 }
 
 func (w *wildcard) Marshal(value interface{}) ([]byte, error) {
