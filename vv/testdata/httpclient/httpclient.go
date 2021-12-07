@@ -5,12 +5,14 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/url"
 
 	"github.com/bluekaki/pkg/auth"
 	"github.com/bluekaki/pkg/mm/httpclient"
+	"github.com/bluekaki/pkg/vv/testdata/api/gen"
 )
 
 func main() {
@@ -116,6 +118,31 @@ func main() {
 		} else {
 			fmt.Println(header.Get("journal-id"), string(body))
 		}
+	}
+
+	if false {
+		fmt.Println("---------------------- post ----------------------------")
+
+		raw, _ := json.Marshal(&dummy.PostEchoReq{
+			Name:    "minami",
+			Message: "Hello World !",
+		})
+
+		signature, date, err := signer.Generate("TESDUM", auth.MethodPost, "/dummy/echo", raw)
+		if err != nil {
+			panic(err)
+		}
+
+		body, header, _, err := httpclient.PostJSONBody("http://127.0.0.1:8080/dummy/echo", json.RawMessage(raw),
+			httpclient.WithHeader("Authorization", "cBmhBrwHZ0dM5DJy9TK1"),
+			httpclient.WithHeader("Date", date),
+			httpclient.WithHeader("Authorization-Proxy", signature),
+		)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(header.Get("journal-id"), string(body))
 	}
 
 	if false {

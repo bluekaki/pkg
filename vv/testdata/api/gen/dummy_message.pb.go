@@ -33,6 +33,43 @@ func (e *EchoResp) Validate() error {
 	return nil
 }
 
+func (p *PostEchoReq) Validate() error {
+
+	// Name  Kind:StringKind Cardinality:optional IsList:false IsMap:false IsPacked:false IsPlaceholder:false IsWeak:false IsExtension:false HasPresence:false
+	p.Name = strings.TrimSpace(p.Name)
+
+	if p.Name == "" {
+		return errors.New("name required")
+	}
+
+	if !(len(p.Name) <= 30) {
+		return errors.New("name illegal")
+	}
+
+	// Message  Kind:StringKind Cardinality:optional IsList:false IsMap:false IsPacked:false IsPlaceholder:false IsWeak:false IsExtension:false HasPresence:false
+	p.Message = strings.TrimSpace(p.Message)
+
+	if p.Message == "" {
+		return errors.New("message required")
+	}
+
+	if !(len(p.Message) <= 30) {
+		return errors.New("message illegal")
+	}
+
+	return nil
+}
+
+func (p *PostEchoResp) Validate() error {
+
+	// Message  Kind:StringKind Cardinality:optional IsList:false IsMap:false IsPacked:false IsPlaceholder:false IsWeak:false IsExtension:false HasPresence:false
+	p.Message = strings.TrimSpace(p.Message)
+
+	// Ack  Kind:BoolKind Cardinality:optional IsList:false IsMap:false IsPacked:false IsPlaceholder:false IsWeak:false IsExtension:false HasPresence:false
+
+	return nil
+}
+
 func (u *UploadReq) Validate() error {
 
 	// FileName  Kind:StringKind Cardinality:optional IsList:false IsMap:false IsPacked:false IsPlaceholder:false IsWeak:false IsExtension:false HasPresence:false

@@ -22,6 +22,7 @@ type DummyServiceClient interface {
 	Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Echo(ctx context.Context, in *EchoReq, opts ...grpc.CallOption) (*EchoResp, error)
 	StreamEcho(ctx context.Context, in *EchoReq, opts ...grpc.CallOption) (DummyService_StreamEchoClient, error)
+	PostEcho(ctx context.Context, in *PostEchoReq, opts ...grpc.CallOption) (*PostEchoResp, error)
 	Upload(ctx context.Context, in *UploadReq, opts ...grpc.CallOption) (*UploadResp, error)
 	Picture(ctx context.Context, in *PictureReq, opts ...grpc.CallOption) (*PictureResp, error)
 	Excel(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ExcelResp, error)
@@ -85,6 +86,15 @@ func (x *dummyServiceStreamEchoClient) Recv() (*EchoResp, error) {
 	return m, nil
 }
 
+func (c *dummyServiceClient) PostEcho(ctx context.Context, in *PostEchoReq, opts ...grpc.CallOption) (*PostEchoResp, error) {
+	out := new(PostEchoResp)
+	err := c.cc.Invoke(ctx, "/dummy.DummyService/PostEcho", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *dummyServiceClient) Upload(ctx context.Context, in *UploadReq, opts ...grpc.CallOption) (*UploadResp, error) {
 	out := new(UploadResp)
 	err := c.cc.Invoke(ctx, "/dummy.DummyService/Upload", in, out, opts...)
@@ -119,6 +129,7 @@ type DummyServiceServer interface {
 	Ping(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	Echo(context.Context, *EchoReq) (*EchoResp, error)
 	StreamEcho(*EchoReq, DummyService_StreamEchoServer) error
+	PostEcho(context.Context, *PostEchoReq) (*PostEchoResp, error)
 	Upload(context.Context, *UploadReq) (*UploadResp, error)
 	Picture(context.Context, *PictureReq) (*PictureResp, error)
 	Excel(context.Context, *emptypb.Empty) (*ExcelResp, error)
@@ -137,6 +148,9 @@ func (UnimplementedDummyServiceServer) Echo(context.Context, *EchoReq) (*EchoRes
 }
 func (UnimplementedDummyServiceServer) StreamEcho(*EchoReq, DummyService_StreamEchoServer) error {
 	return status.Errorf(codes.Unimplemented, "method StreamEcho not implemented")
+}
+func (UnimplementedDummyServiceServer) PostEcho(context.Context, *PostEchoReq) (*PostEchoResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PostEcho not implemented")
 }
 func (UnimplementedDummyServiceServer) Upload(context.Context, *UploadReq) (*UploadResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Upload not implemented")
@@ -217,6 +231,24 @@ func (x *dummyServiceStreamEchoServer) Send(m *EchoResp) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _DummyService_PostEcho_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PostEchoReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DummyServiceServer).PostEcho(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dummy.DummyService/PostEcho",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DummyServiceServer).PostEcho(ctx, req.(*PostEchoReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _DummyService_Upload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UploadReq)
 	if err := dec(in); err != nil {
@@ -285,6 +317,10 @@ var DummyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Echo",
 			Handler:    _DummyService_Echo_Handler,
+		},
+		{
+			MethodName: "PostEcho",
+			Handler:    _DummyService_PostEcho_Handler,
 		},
 		{
 			MethodName: "Upload",

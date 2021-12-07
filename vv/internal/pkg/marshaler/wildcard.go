@@ -5,6 +5,7 @@ import (
 
 	"github.com/bluekaki/pkg/errors"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.uber.org/zap"
 )
@@ -55,6 +56,9 @@ func (w *wildcard) Unmarshal(data []byte, value interface{}) error {
 		message := value.(*[]byte)
 		*message = make([]byte, len(data))
 		copy(*message, data)
+
+	case proto.Message:
+		return jsonPbMarshaler.Unmarshal(data, value)
 
 	default:
 		err := errors.Errorf("wildcard unable to unmarshal type of %#v", value)

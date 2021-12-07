@@ -18,6 +18,16 @@ message EchoResp {
   bool ack = 2;
 }
 
+message PostEchoReq {
+  string name = 1 [ (validator.field) = {require : true, le : 30} ];
+  string message = 2 [ (validator.field) = {require : true, le : 30} ];
+}
+
+message PostEchoResp {
+  string message = 1;
+  bool ack = 2;
+}
+
 message UploadReq {
   string file_name = 1 [ (validator.field) = {require : true, le : 30} ];
   bytes raw = 2 [ (validator.field) = {require : true} ];
@@ -80,6 +90,20 @@ service DummyService {
 
     option (google.api.http) = {
       get : "/dummy/stream/echo"
+    };
+  }
+
+  rpc PostEcho(PostEchoReq) returns (PostEchoResp) {
+    option (interceptor.method_handler) = {
+      authorization : "dummy_sso",
+      authorization_proxy : "dummy_sign",
+      whitelisting : "dummy_iplist",
+      journal : true
+    };
+
+    option (google.api.http) = {
+      post : "/dummy/echo"
+      body : "*"
     };
   }
 

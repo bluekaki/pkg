@@ -44,6 +44,36 @@
         "tags": [
           "DummyService"
         ]
+      },
+      "post": {
+        "operationId": "DummyService_PostEcho",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/dummyPostEchoResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/dummyPostEchoReq"
+            }
+          }
+        ],
+        "tags": [
+          "DummyService"
+        ]
       }
     },
     "/dummy/excel": {
@@ -226,6 +256,28 @@
         "raw": {
           "type": "string",
           "format": "byte"
+        }
+      }
+    },
+    "dummyPostEchoReq": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "dummyPostEchoResp": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "ack": {
+          "type": "boolean"
         }
       }
     },

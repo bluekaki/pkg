@@ -82,6 +82,14 @@ func (d *dummyService) StreamEcho(req *dummy.EchoReq, stream dummy.DummyService_
 	return nil
 }
 
+func (d *dummyService) PostEcho(ctx context.Context, req *dummy.PostEchoReq) (*dummy.PostEchoResp, error) {
+
+	return &dummy.PostEchoResp{
+		Message: fmt.Sprintf("%s-%s", req.Name, req.Message),
+		Ack:     true,
+	}, nil
+}
+
 func (d *dummyService) Upload(ctx context.Context, req *dummy.UploadReq) (*dummy.UploadResp, error) {
 	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 	fmt.Println(req.FileName, len(req.Raw))
