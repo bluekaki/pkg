@@ -3,6 +3,7 @@ package credential
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"strings"
 
 	"github.com/bluekaki/pkg/errors"
 
@@ -11,6 +12,8 @@ import (
 
 // ClientOption option for client credential
 type ClientOption struct {
+	// ServerName name of server, a wildcard *.xx.com is supported.
+	ServerName string
 	// ChainPEMBlock chain of server issuer's
 	ChainPEMBlock []byte
 	// CertPEMBlock used by if server require and verify client cert; optional
@@ -33,30 +36,34 @@ type ServerOption struct {
 
 // NewClient create client's credential
 func NewClient(option ClientOption) (credentials.TransportCredentials, error) {
-	var pool *x509.CertPool
-	if len(option.ChainPEMBlock) > 0 {
-		pool = x509.NewCertPool()
-		if !pool.AppendCertsFromPEM(option.ChainPEMBlock) {
-			return nil, errors.New("ChainPEMBlocks illegal")
+	serverName := strings.TrimSpace(option.ServerName)
+	if serverName == "" {
+		return nil, errors.New("ServerName required")
+	}
+
+	if len(option.ChainPEMBlock) == 0 {
+		return nil, errors.New("ChainPEMBlock required")
+	}
+
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(option.ChainPEMBlock) {
+		return nil, errors.New("ChainPEMBlocks illegal")
+	}
+
+	var certs []tls.Certificate
+	if len(option.CertPEMBlock) > 0 && len(option.KeyPEMBlock) > 0 {
+		cert, err := tls.X509KeyPair(option.CertPEMBlock, option.KeyPEMBlock)
+		if err != nil {
+			return nil, errors.New("CertPEMBlock or KeyPEMBlock illegal")
 		}
-	}
 
-	if len(option.CertPEMBlock) == 0 {
-		return nil, errors.New("CertPEMBlock required")
+		certs = []tls.Certificate{cert}
 	}
-	if len(option.KeyPEMBlock) == 0 {
-		return nil, errors.New("KeyPEMBlock required")
-	}
-
-	cert, err := tls.X509KeyPair(option.CertPEMBlock, option.KeyPEMBlock)
-	if err != nil {
-		return nil, errors.New("CertPEMBlock or KeyPEMBlock illegal")
-	}
-	certs := []tls.Certificate{cert}
 
 	return credentials.NewTLS(&tls.Config{
 		Certificates: certs,
 		RootCAs:      pool,
+		ServerName:   serverName,
 		CipherSuites: []uint16{
 			tls.TLS_AES_128_GCM_SHA256,
 			tls.TLS_AES_256_GCM_SHA384,
@@ -70,6 +77,10 @@ func NewClient(option ClientOption) (credentials.TransportCredentials, error) {
 
 // NewServer create server's credential
 func NewServer(option ServerOption) (credentials.TransportCredentials, error) {
+	if option.RequireAndVerifyClientCert && len(option.ChainPEMBlock) == 0 {
+		return nil, errors.New("ChainPEMBlocks required")
+	}
+
 	var pool *x509.CertPool
 	if len(option.ChainPEMBlock) > 0 {
 		pool = x509.NewCertPool()
