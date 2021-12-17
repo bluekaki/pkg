@@ -19,4 +19,3 @@ A collection of minami's packages
 - [terminal - read something from terminal without local echo](terminal)
 - [urltable - a fuzzy url path matcher](urltable)
 - [vv - a more flexible framework based on grpc-gateway](vv)
-- 
