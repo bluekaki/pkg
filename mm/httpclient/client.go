@@ -97,6 +97,14 @@ func withoutBody(method, url string, form httpURL.Values, options ...Option) (bo
 					opt.Logger.Error(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
 				}
 			}
+
+			if opt.NonDurableLogger != nil {
+				if err == nil {
+					opt.NonDurableLogger.Info(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
+				} else {
+					opt.NonDurableLogger.Error(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
+				}
+			}
 		}
 	}()
 
@@ -199,6 +207,14 @@ func withFormBody(method, url string, form httpURL.Values, options ...Option) (b
 					opt.Logger.Error(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
 				}
 			}
+
+			if opt.NonDurableLogger != nil {
+				if err == nil {
+					opt.NonDurableLogger.Info(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
+				} else {
+					opt.NonDurableLogger.Error(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
+				}
+			}
 		}
 	}()
 
@@ -284,6 +300,14 @@ func withJSONBody(method, url string, raw json.RawMessage, options ...Option) (b
 					opt.Logger.Info(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
 				} else {
 					opt.Logger.Error(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
+				}
+			}
+
+			if opt.NonDurableLogger != nil {
+				if err == nil {
+					opt.NonDurableLogger.Info(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
+				} else {
+					opt.NonDurableLogger.Error(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
 				}
 			}
 		}
@@ -387,6 +411,14 @@ func withMultipartFile(method, url string, payload [][]byte, options ...Option) 
 					opt.Logger.Info(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
 				} else {
 					opt.Logger.Error(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
+				}
+			}
+
+			if opt.NonDurableLogger != nil {
+				if err == nil {
+					opt.NonDurableLogger.Info(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
+				} else {
+					opt.NonDurableLogger.Error(opt.Desc, zap.Any("journal", marshalJournal(opt.Journal)))
 				}
 			}
 		}

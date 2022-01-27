@@ -10,19 +10,23 @@ import (
 	"go.uber.org/zap"
 )
 
+type VerifyResponseHandler func(body []byte) error
+
 type Option func(*option)
 
 type option struct {
-	Ctx          context.Context
-	TTL          time.Duration
-	Header       map[string]string
-	Journal      *journal.Journal
-	RetryTimes   int
-	RetryDelay   time.Duration
-	PrintJournal bool
-	Logger       *zap.Logger
-	Desc         string
-	QueryForm    url.Values
+	Ctx                   context.Context
+	TTL                   time.Duration
+	Header                map[string]string
+	Journal               *journal.Journal
+	RetryTimes            int
+	RetryDelay            time.Duration
+	PrintJournal          bool
+	Logger                *zap.Logger
+	Desc                  string
+	QueryForm             url.Values
+	VerifyResponseHandler VerifyResponseHandler
+	NonDurableLogger      *zap.Logger
 }
 
 func newOption() *option {
@@ -69,6 +73,12 @@ func WithJournalID(id string) Option {
 	}
 }
 
+func WithDesc(desc string) Option {
+	return func(opt *option) {
+		opt.Desc = desc
+	}
+}
+
 func WithPrintJournal(logger *zap.Logger, desc string) Option {
 	return func(opt *option) {
 		opt.PrintJournal = true
@@ -81,5 +91,18 @@ func WithPrintJournal(logger *zap.Logger, desc string) Option {
 func WithQueryForm(form url.Values) Option {
 	return func(opt *option) {
 		opt.QueryForm = form
+	}
+}
+
+func WithVerifyResponseHandler(handler VerifyResponseHandler) Option {
+	return func(opt *option) {
+		opt.VerifyResponseHandler = handler
+	}
+}
+
+// WithNonDurableLogger record log in external storage
+func WithNonDurableLogger(logger *zap.Logger) Option {
+	return func(opt *option) {
+		opt.NonDurableLogger = logger
 	}
 }

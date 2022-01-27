@@ -99,10 +99,14 @@ func doHTTP(ctx context.Context, method, url string, payload []byte, opt *option
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		err = errors.Errorf("do [%s %s] return code: %d message: %s", method, url, resp.StatusCode, string(body))
+		return body, resp.Header, resp.StatusCode, errors.Errorf("do [%s %s] return code: %d message: %s", method, url, resp.StatusCode, string(body))
 	}
 
-	return body, resp.Header, resp.StatusCode, err
+	if handler := opt.VerifyResponseHandler; handler != nil {
+		return body, resp.Header, resp.StatusCode, handler(body)
+	}
+
+	return body, resp.Header, resp.StatusCode, nil
 }
 
 func AddFormValuesIntoURL(rawURL string, form url.Values) (string, error) {
