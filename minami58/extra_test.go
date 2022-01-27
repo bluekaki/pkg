@@ -12,7 +12,7 @@ Has fierent omnesque qualisque id. Ius id zril cotidieque, ferri consulatu inter
 Vim ne alii intellegat, veri volutpat ne sit. Nemore cetero dissentiet et cum, at appareat inciderint per. Vim partiendo gloriatur contentiones et, falli fierent molestie qui in, iriure petentium vulputate eos ea. Usu et latine labores delicata, ut verear maiestatis est. Cum eu veri timeam adipiscing, sumo malis adipisci ut cum, his nonumy aliquip feugait ut. Cu cum erat molestie, vix nibh ponderum mediocritatem eu.
 Graecis volutpat in mel, summo fuisset no est. Qui decore homero euismod cu, ei falli utinam vis. Fabulas persequeris qui in. Vero doming has at, eius consequat mel at. Vis diam putant at.`)
 
-	raw, err := EncodeWithDesc(payload, "Lorem ipsum", Non)
+	raw, err := EncodeWithDesc(payload, "Lorem ipsum", LF)
 	if err != nil {
 		t.Fatal(err)
 	}

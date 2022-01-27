@@ -1,104 +1,92 @@
 package minami58
 
 import (
-	"github.com/bluekaki/pkg/errors"
+	"encoding/binary"
 )
 
-// Coefficient of expansion 1.5
+const alphabet = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
+const alphabetLen = 58
 
-const (
-	step   = 16 // 4bits
-	cycles = 29 // 29 × 16 ÷ 58 = 8
-
-	alphabets = 58 // 58 alphabets
-)
-
-var (
-	alphabet         = []byte("NWbqy6aVDPJQv7MmSKGkEYhTFciH1gZ8endpXsCUL93ofRAB5zjx4tur2w")
-	reversedAlphabet ['z' + 1]int
-
-	dict    [cycles][]byte        // (1/2)bytes => 1byte
-	mapping [cycles]['z' + 1]byte // 1byte => 2bytes
-)
+var index = make(map[byte]uint16, alphabetLen)
 
 func init() {
-	for i := range reversedAlphabet {
-		reversedAlphabet[i] = -1
-	}
-
 	for i, c := range alphabet {
-		reversedAlphabet[c] = i
+		index[byte(c)] = uint16(i)
 	}
 }
 
-func init() {
-	nexter := builder()
-	for k := 0; k < cycles; k++ {
-		source := nexter()
-		dict[k] = source
-
-		for i, c := range source {
-			mapping[k][c] = byte(i)
-		}
-	}
-}
-
-type nexter func() []byte
-
-func builder() nexter {
-	cursor := 0
-	return func() (raw []byte) {
-		next := cursor + step
-
-		if offset := next - len(alphabet); offset > 0 {
-			raw = append(alphabet[cursor:], alphabet[:offset]...)
-			cursor = offset
-
-		} else {
-			raw = alphabet[cursor:next]
-			cursor = next
-		}
-
-		return
-	}
-}
-
-// Encode something
-func Encode(payload []byte) []byte {
-	if len(payload) == 0 {
-		return nil
-	}
-
-	raw := make([]byte, len(payload)*2)
-	for i, v := range payload {
-		x := i * 2
-		raw[x] = dict[x%cycles][v>>4]
-
-		y := i*2 + 1
-		raw[y] = dict[y%cycles][v<<4>>4]
-	}
-
-	return raw
-}
-
-// Decode something
-func Decode(raw []byte) ([]byte, error) {
+func Encode(raw []byte) []byte {
 	if len(raw) == 0 {
-		return nil, nil
+		return raw
 	}
+
+	var lastOne []byte
 	if len(raw)%2 != 0 {
-		return nil, errors.New("raw should be in pairs")
+		lastOne = raw[len(raw)-1:]
+		raw = raw[:len(raw)-1]
 	}
 
-	payload := make([]byte, len(raw)/2)
+	buf := make([]byte, 0, (len(raw)/2)*3+2)
+	for k := 0; k < len(raw); k += 2 {
+		num := binary.BigEndian.Uint16(raw[k : k+2])
 
-	size := len(raw)
-	for i := 0; i < size; i += 2 {
-		x := i % cycles
-		y := (i + 1) % cycles
+		x := num / alphabetLen
+		a := num % alphabetLen
 
-		payload[i/2] = mapping[x][raw[i]]<<4 | mapping[y][raw[i+1]]
+		b := x / alphabetLen
+		c := x % alphabetLen
+
+		buf = append(buf, alphabet[a])
+		buf = append(buf, alphabet[b])
+		buf = append(buf, alphabet[c])
 	}
 
-	return payload, nil
+	if lastOne != nil {
+		a := lastOne[0] / alphabetLen
+		b := lastOne[0] % alphabetLen
+
+		buf = append(buf, alphabet[a])
+		buf = append(buf, alphabet[b])
+	}
+
+	return buf
+}
+
+func Decode(raw []byte) []byte {
+	if len(raw) == 0 {
+		return raw
+	}
+
+	notDivisible := len(raw)%3 != 0
+	if notDivisible && (len(raw)-2)%3 != 0 {
+		return raw
+	}
+
+	var lastTwo []byte
+	if notDivisible {
+		lastTwo = raw[len(raw)-2:]
+		raw = raw[:len(raw)-2]
+	}
+
+	buf := make([]byte, 0, (len(raw)/3)*2+1)
+	for k := 0; k < len(raw); k += 3 {
+		a := index[raw[k]]
+		b := index[raw[k+1]]
+		c := index[raw[k+2]]
+
+		x := make([]byte, 2)
+		binary.BigEndian.PutUint16(x, (b*alphabetLen+c)*alphabetLen+a)
+
+		buf = append(buf, x...)
+	}
+
+	if lastTwo != nil {
+		a := uint8(index[lastTwo[0]])
+		b := uint8(index[lastTwo[1]])
+
+		x := a*alphabetLen + b
+		buf = append(buf, x)
+	}
+
+	return buf
 }

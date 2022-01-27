@@ -4,38 +4,33 @@ import (
 	"bytes"
 	"crypto/rand"
 	"io"
+	mrand "math/rand"
 	"testing"
+	"time"
 )
 
 func Test(t *testing.T) {
-	payload := make([]byte, 256)
+	rander := mrand.New(mrand.NewSource(time.Now().UnixNano()))
 
-	for k := 0; k < 1024; k++ {
-		io.ReadFull(rand.Reader, payload)
+	for k := 0; k < 1000000; k++ {
+		buf := make([]byte, rander.Intn(100))
+		io.ReadFull(rand.Reader, buf)
 
-		raw := Encode(payload)
-		t.Log(string(raw))
+		raw := Decode((Encode(buf)))
+		if !bytes.Equal(buf, raw) {
+			t.Log(buf)
+			t.Log(raw)
 
-		raw, err := Decode(raw)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if !bytes.Equal(payload, raw) {
 			t.Fatal("not match")
 		}
 	}
 }
 
 func Benchmark(b *testing.B) {
-	payload := make([]byte, 256)
+	payload := make([]byte, 1027)
 	io.ReadFull(rand.Reader, payload)
 
-	raw, err := Decode(Encode(payload))
-	if err != nil {
-		b.Fatal(err)
-	}
-
+	raw := Decode(Encode(payload))
 	if !bytes.Equal(payload, raw) {
 		b.Fatal("not match")
 	}

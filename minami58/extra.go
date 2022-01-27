@@ -9,7 +9,7 @@ import (
 
 const (
 	descPrefix = "Desc: "
-	lineLenght = 64
+	lineLenght = 76
 )
 
 var (
@@ -113,6 +113,6 @@ func DecodeWithDesc(raw []byte) (desc string, payload []byte, err error) {
 		return
 	}
 
-	payload, err = Decode(buf.Bytes())
+	payload = Decode(buf.Bytes())
 	return
 }
