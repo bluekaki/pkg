@@ -83,7 +83,7 @@ func doHTTP(ctx context.Context, method, url string, payload []byte, opt *option
 		if opt.Journal != nil {
 			var raw string
 			if strings.Contains(resp.Header.Get("Content-Type"), "application/x-www-form-urlencoded") {
-				raw = queryUnescape(string(body))
+				raw = QueryUnescape(string(body))
 			} else {
 				raw = string(body) // TODO unsafe
 			}
@@ -105,7 +105,7 @@ func doHTTP(ctx context.Context, method, url string, payload []byte, opt *option
 	return body, resp.Header, resp.StatusCode, err
 }
 
-func addFormValuesIntoURL(rawURL string, form url.Values) (string, error) {
+func AddFormValuesIntoURL(rawURL string, form url.Values) (string, error) {
 	if rawURL == "" {
 		return "", errors.New("rawURL required")
 	}
@@ -129,7 +129,7 @@ func addFormValuesIntoURL(rawURL string, form url.Values) (string, error) {
 	return target.String(), nil
 }
 
-func queryUnescape(uri string) string {
+func QueryUnescape(uri string) string {
 	decodedUri, err := url.QueryUnescape(uri)
 	if err != nil {
 		return uri

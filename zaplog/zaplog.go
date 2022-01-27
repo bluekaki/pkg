@@ -63,33 +63,16 @@ func WithField(key, value string) Option {
 	}
 }
 
-// WithFileP write log to some file
-func WithFileP(file string) Option {
-	dir := filepath.Dir(file)
-	if err := os.MkdirAll(dir, 0766); err != nil {
-		panic(err)
-	}
-
-	f, err := os.OpenFile(file, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
-	if err != nil {
-		panic(err)
-	}
-
-	return func(opt *option) {
-		opt.file = zapcore.Lock(f)
-	}
-}
-
 // WithFile write log to some file
 func WithFile(file string) Option {
 	dir := filepath.Dir(file)
 	if err := os.MkdirAll(dir, 0766); err != nil {
-		return func(opt *option) {}
+		panic(err)
 	}
 
 	f, err := os.OpenFile(file, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 	if err != nil {
-		return func(opt *option) {}
+		panic(err)
 	}
 
 	return func(opt *option) {
@@ -97,8 +80,8 @@ func WithFile(file string) Option {
 	}
 }
 
-// WithFileRotationP write log to some file with rotation
-func WithFileRotationP(file string) Option {
+// WithFileRotation write log to some file with rotation
+func WithFileRotation(file string) Option {
 	dir := filepath.Dir(file)
 	if err := os.MkdirAll(dir, 0766); err != nil {
 		panic(err)

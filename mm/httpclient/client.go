@@ -77,7 +77,7 @@ func withoutBody(method, url string, form httpURL.Values, options ...Option) (bo
 	}
 
 	if len(form) > 0 {
-		if url, err = addFormValuesIntoURL(url, form); err != nil {
+		if url, err = AddFormValuesIntoURL(url, form); err != nil {
 			return
 		}
 	}
@@ -125,7 +125,7 @@ func withoutBody(method, url string, form httpURL.Values, options ...Option) (bo
 		opt.Journal.Request = &journal.Request{
 			TTL:        ttl.String(),
 			Method:     method,
-			DecodedURL: queryUnescape(url),
+			DecodedURL: QueryUnescape(url),
 			Header:     opt.Header,
 		}
 	}
@@ -207,7 +207,7 @@ func withFormBody(method, url string, form httpURL.Values, options ...Option) (b
 	}
 
 	if len(opt.QueryForm) > 0 {
-		if url, err = addFormValuesIntoURL(url, opt.QueryForm); err != nil {
+		if url, err = AddFormValuesIntoURL(url, opt.QueryForm); err != nil {
 			return
 		}
 	}
@@ -235,9 +235,9 @@ func withFormBody(method, url string, form httpURL.Values, options ...Option) (b
 		opt.Journal.Request = &journal.Request{
 			TTL:        ttl.String(),
 			Method:     method,
-			DecodedURL: queryUnescape(url),
+			DecodedURL: QueryUnescape(url),
 			Header:     opt.Header,
-			Body:       queryUnescape(formValue),
+			Body:       QueryUnescape(formValue),
 		}
 	}
 
@@ -294,7 +294,7 @@ func withJSONBody(method, url string, raw json.RawMessage, options ...Option) (b
 	}
 
 	if len(opt.QueryForm) > 0 {
-		if url, err = addFormValuesIntoURL(url, opt.QueryForm); err != nil {
+		if url, err = AddFormValuesIntoURL(url, opt.QueryForm); err != nil {
 			return
 		}
 	}
@@ -321,7 +321,7 @@ func withJSONBody(method, url string, raw json.RawMessage, options ...Option) (b
 		opt.Journal.Request = &journal.Request{
 			TTL:        ttl.String(),
 			Method:     method,
-			DecodedURL: queryUnescape(url),
+			DecodedURL: QueryUnescape(url),
 			Header:     opt.Header,
 			Body:       string(raw),
 		}
@@ -397,7 +397,7 @@ func withMultipartFile(method, url string, payload [][]byte, options ...Option) 
 	}
 
 	if len(opt.QueryForm) > 0 {
-		if url, err = addFormValuesIntoURL(url, opt.QueryForm); err != nil {
+		if url, err = AddFormValuesIntoURL(url, opt.QueryForm); err != nil {
 			return
 		}
 	}
@@ -442,7 +442,7 @@ func withMultipartFile(method, url string, payload [][]byte, options ...Option) 
 		opt.Journal.Request = &journal.Request{
 			TTL:        ttl.String(),
 			Method:     method,
-			DecodedURL: queryUnescape(url),
+			DecodedURL: QueryUnescape(url),
 			Header:     opt.Header,
 		}
 	}
