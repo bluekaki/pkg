@@ -1,6 +1,7 @@
 package minami58
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
 )
 
@@ -89,4 +90,38 @@ func Decode(raw []byte) []byte {
 	}
 
 	return buf
+}
+
+// Shorten add some salt if in duplicated
+func Shorten(url string) string {
+	digest := sha256.Sum256([]byte(url))
+
+	link := []byte{
+		lookup([5]byte{digest[0], digest[1], digest[2], digest[3], digest[4] >> 4}),
+		lookup([5]byte{digest[4] << 4 >> 4, digest[5], digest[6], digest[7], digest[8]}),
+		lookup([5]byte{digest[9], digest[10], digest[11], digest[12], digest[13] >> 4}),
+		lookup([5]byte{digest[13] << 4 >> 4, digest[14], digest[15], digest[16], digest[17]}),
+		lookup([5]byte{digest[18], digest[19], digest[20], digest[21], digest[22] >> 4}),
+		lookup([5]byte{digest[22] << 4 >> 4, digest[23], digest[24], digest[25], digest[26]}),
+		lookup([5]byte{digest[27], digest[28], digest[29], digest[30], digest[31] >> 4}),
+	}
+	return string(link)
+}
+
+func lookup(raw [5]byte) byte {
+	offset := uint8(0)
+	for _, x := range []uint8{
+		raw[0] >> 2,
+		raw[1] >> 2,
+		raw[2] >> 2,
+		raw[0]<<6>>2 | raw[1]<<6>>4 | raw[2]<<6>>6,
+		raw[3] >> 2,
+		raw[3]<<6>>2 | raw[4],
+	} {
+		if offset += x % alphabetLen; offset >= alphabetLen {
+			offset -= alphabetLen
+		}
+	}
+
+	return alphabet[offset]
 }

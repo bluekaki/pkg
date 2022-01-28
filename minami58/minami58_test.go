@@ -5,11 +5,12 @@ import (
 	"crypto/rand"
 	"io"
 	mrand "math/rand"
+	"strconv"
 	"testing"
 	"time"
 )
 
-func Test(t *testing.T) {
+func TestEncode(t *testing.T) {
 	rander := mrand.New(mrand.NewSource(time.Now().UnixNano()))
 
 	for k := 0; k < 1000000; k++ {
@@ -26,7 +27,7 @@ func Test(t *testing.T) {
 	}
 }
 
-func Benchmark(b *testing.B) {
+func BenchmarkEncode(b *testing.B) {
 	payload := make([]byte, 1027)
 	io.ReadFull(rand.Reader, payload)
 
@@ -34,4 +35,32 @@ func Benchmark(b *testing.B) {
 	if !bytes.Equal(payload, raw) {
 		b.Fatal("not match")
 	}
+}
+
+func TestShorten(t *testing.T) {
+	total := 30000000
+	index := make(map[string]struct{}, total)
+
+	duplicated := 0
+	for k := 0; k < total; k++ {
+		link := Shorten(strconv.Itoa(k))
+		if _, ok := index[link]; ok {
+			duplicated++
+
+			link = Shorten(strconv.Itoa(k) + " ")
+			if _, ok = index[link]; ok {
+				t.Fatal(strconv.Itoa(k), link)
+			}
+		}
+		index[link] = struct{}{}
+	}
+
+	t.Log("duplicated", duplicated)
+}
+
+func BenchmarkShorten(b *testing.B) {
+	payload := make([]byte, 1027)
+	io.ReadFull(rand.Reader, payload)
+
+	Shorten(string(payload))
 }
