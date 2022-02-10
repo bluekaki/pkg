@@ -18,12 +18,14 @@ const (
 type Trie interface {
 	t()
 	Capacity() uint32
-	String(delimiter string) string
+	String(prefix, delimiter string) string
 	Insert(values []string)
 	HasPrefix(values []string) bool
 	Match(values []string) bool
 	Delete(values []string)
 	Prompt(prefix []string, delimiter string) (phrases []string)
+	Marshal() []byte
+	Unmarshal([]byte) error
 }
 
 func SplitByEmpty(val string) []string {
@@ -128,13 +130,13 @@ func (t *trie) Capacity() uint32 {
 	return t.capacity
 }
 
-func (t *trie) String(delimiter string) string {
+func (t *trie) String(prefix, delimiter string) string {
 	t.RLock()
 	defer t.RUnlock()
 
 	buf := bytes.NewBuffer(nil)
 	for _, cur := range t.root.next {
-		for _, phrase := range walkNode(cur, delimiter, t.fuzzy) {
+		for _, phrase := range walkNode(cur, prefix, delimiter, t.fuzzy) {
 			buf.WriteString(phrase)
 			buf.WriteString("\n")
 		}
@@ -148,7 +150,7 @@ func (t *trie) String(delimiter string) string {
 	return msg
 }
 
-func walkNode(cur *node, delimiter string, fuzzy bool) (phrases []string) {
+func walkNode(cur *node, prefix, delimiter string, fuzzy bool) (phrases []string) {
 	type Entry struct {
 		node  *node
 		index int
@@ -171,7 +173,11 @@ func walkNode(cur *node, delimiter string, fuzzy bool) (phrases []string) {
 				}
 				values = append(values, entry.node.val)
 
-				phrases = append(phrases, strings.Join(values, delimiter))
+				phrase := strings.Join(values, delimiter)
+				if prefix != "" {
+					phrase = prefix + phrase
+				}
+				phrases = append(phrases, phrase)
 			}
 
 		default:
@@ -182,7 +188,11 @@ func walkNode(cur *node, delimiter string, fuzzy bool) (phrases []string) {
 				}
 				values = append(values, entry.node.val)
 
-				phrases = append(phrases, strings.Join(values, delimiter))
+				phrase := strings.Join(values, delimiter)
+				if prefix != "" {
+					phrase = prefix + phrase
+				}
+				phrases = append(phrases, phrase)
 			}
 		}
 
@@ -324,7 +334,17 @@ func (t *trie) Prompt(prefix []string, delimiter string) (phrases []string) {
 	}
 
 	for _, next := range cur.next {
-		phrases = append(phrases, walkNode(next, delimiter, t.fuzzy)...)
+		phrases = append(phrases, walkNode(next, "", delimiter, t.fuzzy)...)
 	}
 	return
+}
+
+func (t *trie) Marshal() []byte {
+	// TODO
+	return nil
+}
+
+func (t *trie) Unmarshal([]byte) error {
+	// TODO
+	return nil
 }
