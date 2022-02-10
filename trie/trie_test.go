@@ -5,29 +5,49 @@ import (
 )
 
 func TestTrie(t *testing.T) {
-	trie := New()
+	tree := New(true)
 
-	trie.Insert([]string{"a"})
-	t.Log(trie.Capacity(), "\n"+trie.String(EmptyDelimiter))
+	tree.Insert(SplitByEmpty("a"))
+	t.Log(tree.Capacity(), len(tree.Prompt(SplitByEmpty(""), EmptyDelimiter)), "\n"+tree.String(EmptyDelimiter))
 
-	trie.Insert([]string{"a", "b"})
-	t.Log(trie.Capacity(), "\n"+trie.String(EmptyDelimiter))
+	tree.Insert(SplitByEmpty("ab"))
+	t.Log(tree.Capacity(), len(tree.Prompt(SplitByEmpty(""), EmptyDelimiter)), "\n"+tree.String(EmptyDelimiter))
 
-	trie.Insert([]string{"a", "b", "c"})
-	t.Log(trie.Capacity(), "\n"+trie.String(EmptyDelimiter))
+	tree.Insert(SplitByEmpty("abc"))
+	t.Log(tree.Capacity(), len(tree.Prompt(SplitByEmpty(""), EmptyDelimiter)), "\n"+tree.String(EmptyDelimiter))
 
-	trie.Insert([]string{"b"})
-	t.Log(trie.Capacity(), "\n"+trie.String(EmptyDelimiter))
+	tree.Insert(SplitByEmpty("b"))
+	t.Log(tree.Capacity(), len(tree.Prompt(SplitByEmpty(""), EmptyDelimiter)), "\n"+tree.String(EmptyDelimiter))
 
-	trie.Insert([]string{"b", "d"})
-	t.Log(trie.Capacity(), "\n"+trie.String(EmptyDelimiter))
+	tree.Insert(SplitByEmpty("bd"))
+	t.Log(tree.Capacity(), len(tree.Prompt(SplitByEmpty(""), EmptyDelimiter)), "\n"+tree.String(EmptyDelimiter))
 
-	trie.Insert([]string{"b", "d", "e"})
-	t.Log(trie.Capacity(), "\n"+trie.String(EmptyDelimiter))
+	tree.Insert(SplitByEmpty("bde"))
+	t.Log(tree.Capacity(), len(tree.Prompt(SplitByEmpty(""), EmptyDelimiter)), "\n"+tree.String(EmptyDelimiter))
 
-	trie.Insert([]string{"b", "d", "f"})
-	t.Log(trie.Capacity(), "\n"+trie.String(EmptyDelimiter))
+	tree.Insert(SplitByEmpty("bdf"))
+	t.Log(tree.Capacity(), len(tree.Prompt(SplitByEmpty(""), EmptyDelimiter)), "\n"+tree.String(EmptyDelimiter))
 
-	t.Log(trie.Prompt([]string{"a"}, EmptyDelimiter))
+	t.Log(tree.Prompt(SplitByEmpty("a"), EmptyDelimiter))
 
+	tree.Delete(SplitByEmpty("b"))
+	t.Log(tree.Capacity(), len(tree.Prompt(SplitByEmpty(""), EmptyDelimiter)), "\n"+tree.String(EmptyDelimiter))
+
+	tree.Delete(SplitByEmpty("bd"))
+	t.Log(tree.Capacity(), len(tree.Prompt(SplitByEmpty(""), EmptyDelimiter)), "\n"+tree.String(EmptyDelimiter))
+
+	tree.Delete(SplitByEmpty("bde"))
+	t.Log(tree.Capacity(), len(tree.Prompt(SplitByEmpty(""), EmptyDelimiter)), "\n"+tree.String(EmptyDelimiter))
+
+	tree.Delete(SplitByEmpty("bdf"))
+	t.Log(tree.Capacity(), len(tree.Prompt(SplitByEmpty(""), EmptyDelimiter)), "\n"+tree.String(EmptyDelimiter))
+
+	tree.Delete(SplitByEmpty("abc"))
+	t.Log(tree.Capacity(), len(tree.Prompt(SplitByEmpty(""), EmptyDelimiter)), "\n"+tree.String(EmptyDelimiter))
+
+	tree.Delete(SplitByEmpty("ab"))
+	t.Log(tree.Capacity(), len(tree.Prompt(SplitByEmpty(""), EmptyDelimiter)), "\n"+tree.String(EmptyDelimiter))
+
+	tree.Delete(SplitByEmpty("a"))
+	t.Log(tree.Capacity(), len(tree.Prompt(SplitByEmpty(""), EmptyDelimiter)), "\n"+tree.String(EmptyDelimiter))
 }
