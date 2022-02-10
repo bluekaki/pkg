@@ -3,6 +3,7 @@ package trie
 import (
 	"bytes"
 	"container/list"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -45,14 +46,20 @@ func (n *node) leaf() bool {
 	return len(n.next) == 0
 }
 
-func (n *node) search(val string) (index int, ok bool) {
-	for i, n := range n.next {
-		if n.val == val {
-			return i, true
-		}
+func (n *node) search(val string) (int, bool) {
+	if len(n.next) == 0 {
+		return -1, false
 	}
 
-	return -1, false
+	index := sort.Search(len(n.next), func(i int) bool {
+		return n.next[i].val >= val
+	})
+
+	if index >= len(n.next) || n.next[index].val != val {
+		return -1, false
+	}
+
+	return index, true
 }
 
 func (n *node) insert(val string, lastOne bool) (*node, bool) {
@@ -71,8 +78,17 @@ func (n *node) insert(val string, lastOne bool) (*node, bool) {
 			continue
 		}
 
-		cur.next = append(cur.next, &node{val: val, section: lastOne})
-		return cur.next[len(cur.next)-1], true
+		index = sort.Search(len(cur.next), func(i int) bool {
+			return cur.next[i].val >= val
+		})
+
+		clone := make([]*node, len(cur.next)+1)
+		copy(clone, cur.next[:index])
+		clone[index] = &node{val: val, section: lastOne}
+		copy(clone[index+1:], cur.next[index:])
+
+		cur.next = clone
+		return cur.next[index], true
 	}
 }
 
