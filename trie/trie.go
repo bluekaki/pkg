@@ -36,6 +36,16 @@ func SplitByEmpty(val string) []string {
 	return values
 }
 
+func SplitByDelimiter(val string, delimiter string) []string {
+	raw := strings.Split(strings.TrimLeft(strings.TrimSpace(val), delimiter), delimiter)
+	values := make([]string, len(raw))
+	for i, char := range raw {
+		values[i] = char
+	}
+
+	return values
+}
+
 type node struct {
 	val     string
 	section bool
