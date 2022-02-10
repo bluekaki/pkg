@@ -19,14 +19,26 @@ type Trie interface {
 	Capacity() uint32
 	String(delimiter string) string
 	Insert(values []string)
-	Exists(values []string) bool
+	HasPrefix(values []string) bool
+	Match(values []string) bool
 	Delete(values []string)
 	Prompt(prefix []string, delimiter string) (phrases []string)
 }
 
+func SplitByEmpty(val string) []string {
+	raw := []rune(val)
+	values := make([]string, len(raw))
+	for i, char := range raw {
+		values[i] = string(char)
+	}
+
+	return values
+}
+
 type node struct {
-	val  string
-	next []*node
+	val     string
+	section bool
+	next    []*node
 }
 
 func (n *node) leaf() bool {
@@ -43,10 +55,13 @@ func (n *node) search(val string) (index int, ok bool) {
 	return -1, false
 }
 
-func (n *node) insert(val string) (*node, bool) {
+func (n *node) insert(val string, lastOne bool) (*node, bool) {
 	cur := n
 	for {
 		if cur.val == val {
+			if lastOne {
+				cur.section = true
+			}
 			return cur, false
 		}
 
@@ -56,7 +71,7 @@ func (n *node) insert(val string) (*node, bool) {
 			continue
 		}
 
-		cur.next = append(cur.next, &node{val: val})
+		cur.next = append(cur.next, &node{val: val, section: lastOne})
 		return cur.next[len(cur.next)-1], true
 	}
 }
@@ -67,12 +82,13 @@ func (n *node) delete(index int) {
 	}
 }
 
-func New() Trie {
-	return &trie{root: new(node)}
+func New(fuzzy bool) Trie {
+	return &trie{fuzzy: fuzzy, root: new(node)}
 }
 
 type trie struct {
 	sync.RWMutex
+	fuzzy    bool
 	root     *node
 	capacity uint32
 }
@@ -92,7 +108,7 @@ func (t *trie) String(delimiter string) string {
 
 	buf := bytes.NewBuffer(nil)
 	for _, cur := range t.root.next {
-		for _, phrase := range walkNode(cur, delimiter) {
+		for _, phrase := range walkNode(cur, delimiter, t.fuzzy) {
 			buf.WriteString(phrase)
 			buf.WriteString("\n")
 		}
@@ -106,7 +122,7 @@ func (t *trie) String(delimiter string) string {
 	return msg
 }
 
-func walkNode(cur *node, delimiter string) (phrases []string) {
+func walkNode(cur *node, delimiter string, fuzzy bool) (phrases []string) {
 	type Entry struct {
 		node  *node
 		index int
@@ -120,15 +136,28 @@ func walkNode(cur *node, delimiter string) (phrases []string) {
 		stack.Remove(element)
 
 		entry := element.Value.(*Entry)
-		if entry.node.leaf() {
-			var values []string
-			for itor := stack.Front(); itor != nil; itor = itor.Next() {
-				values = append(values, itor.Value.(*Entry).node.val)
-			}
-			values = append(values, entry.node.val)
+		switch fuzzy {
+		case true:
+			if entry.node.leaf() {
+				var values []string
+				for itor := stack.Front(); itor != nil; itor = itor.Next() {
+					values = append(values, itor.Value.(*Entry).node.val)
+				}
+				values = append(values, entry.node.val)
 
-			phrases = append(phrases, strings.Join(values, delimiter))
-			continue
+				phrases = append(phrases, strings.Join(values, delimiter))
+			}
+
+		default:
+			if entry.node.section && entry.index == 0 {
+				var values []string
+				for itor := stack.Front(); itor != nil; itor = itor.Next() {
+					values = append(values, itor.Value.(*Entry).node.val)
+				}
+				values = append(values, entry.node.val)
+
+				phrases = append(phrases, strings.Join(values, delimiter))
+			}
 		}
 
 		if entry.index < len(entry.node.next) {
@@ -150,15 +179,16 @@ func (t *trie) Insert(values []string) {
 	cur := t.root
 	var ok bool
 
-	for _, val := range values {
-		cur, ok = cur.insert(val)
+	threshold := len(values) - 1
+	for i, val := range values {
+		cur, ok = cur.insert(val, i == threshold)
 		if ok {
 			t.capacity++
 		}
 	}
 }
 
-func (t *trie) Exists(values []string) bool {
+func (t *trie) HasPrefix(values []string) bool {
 	t.RLock()
 	defer t.RUnlock()
 
@@ -173,6 +203,23 @@ func (t *trie) Exists(values []string) bool {
 	}
 
 	return true
+}
+
+func (t *trie) Match(values []string) bool {
+	t.RLock()
+	defer t.RUnlock()
+
+	cur := t.root
+	for _, val := range values {
+		index, ok := cur.search(val)
+		if !ok {
+			return false
+		}
+
+		cur = cur.next[index]
+	}
+
+	return cur.section || cur.leaf()
 }
 
 func (t *trie) Delete(values []string) {
@@ -196,6 +243,11 @@ func (t *trie) Delete(values []string) {
 		cur = cur.next[index]
 	}
 
+	if !t.fuzzy && cur.section && !cur.leaf() { // intermediate node
+		t.capacity--
+	}
+	cur.section = false
+
 	if !cur.leaf() { // not leaf
 		return
 	}
@@ -204,16 +256,30 @@ func (t *trie) Delete(values []string) {
 	last.node.delete(last.index)
 	t.capacity--
 
-	for k := len(path) - 2; k >= 0; k-- { // the second last
-		if cur := path[k]; last.node.leaf() {
-			cur.node.delete(cur.index)
-			t.capacity--
+	switch t.fuzzy {
+	case true:
+		for k := len(path) - 2; k >= 0; k-- { // the second last
+			if sec := path[k]; last.node.leaf() {
+				sec.node.delete(sec.index)
+				t.capacity--
 
-			last = cur
-			continue
+				last = sec
+				continue
+			}
+
+			return
 		}
 
-		return
+	default:
+		for k := len(path) - 2; k >= 0; k-- { // the second last
+			if sec := path[k]; last.node.leaf() && !last.node.section {
+				sec.node.delete(sec.index)
+				last = sec
+				continue
+			}
+
+			return
+		}
 	}
 }
 
@@ -232,7 +298,7 @@ func (t *trie) Prompt(prefix []string, delimiter string) (phrases []string) {
 	}
 
 	for _, next := range cur.next {
-		phrases = append(phrases, walkNode(next, delimiter)...)
+		phrases = append(phrases, walkNode(next, delimiter, t.fuzzy)...)
 	}
 	return
 }
