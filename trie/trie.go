@@ -3,10 +3,29 @@ package trie
 import (
 	"bytes"
 	"container/list"
+	"strings"
+	"sync"
 )
 
+const (
+	EmptyDelimiter     = ""
+	SpaceDelimiter     = " "
+	SlashDelimiter     = "/"
+	BackSlashDelimiter = "\\"
+)
+
+type Trie interface {
+	t()
+	Capacity() uint32
+	String(delimiter string) string
+	Insert(values []string)
+	Exists(values []string) bool
+	Delete(values []string)
+	Prompt(prefix []string, delimiter string) (phrases []string)
+}
+
 type node struct {
-	char rune
+	val  string
 	next []*node
 }
 
@@ -14,9 +33,9 @@ func (n *node) leaf() bool {
 	return len(n.next) == 0
 }
 
-func (n *node) search(char rune) (index int, ok bool) {
+func (n *node) search(val string) (index int, ok bool) {
 	for i, n := range n.next {
-		if n.char == char {
+		if n.val == val {
 			return i, true
 		}
 	}
@@ -24,20 +43,20 @@ func (n *node) search(char rune) (index int, ok bool) {
 	return -1, false
 }
 
-func (n *node) insert(char rune) (*node, bool) {
+func (n *node) insert(val string) (*node, bool) {
 	cur := n
 	for {
-		if cur.char == char {
+		if cur.val == val {
 			return cur, false
 		}
 
-		index, ok := cur.search(char)
+		index, ok := cur.search(val)
 		if ok {
 			cur = cur.next[index]
 			continue
 		}
 
-		cur.next = append(cur.next, &node{char: char})
+		cur.next = append(cur.next, &node{val: val})
 		return cur.next[len(cur.next)-1], true
 	}
 }
@@ -48,25 +67,46 @@ func (n *node) delete(index int) {
 	}
 }
 
-type Trie struct {
-	root *node
-	size uint32
+func New() Trie {
+	return &trie{root: new(node)}
 }
 
-func (t *Trie) String() string {
+type trie struct {
+	sync.RWMutex
+	root     *node
+	capacity uint32
+}
+
+func (t *trie) t() {}
+
+func (t *trie) Capacity() uint32 {
+	t.RLock()
+	defer t.RUnlock()
+
+	return t.capacity
+}
+
+func (t *trie) String(delimiter string) string {
+	t.RLock()
+	defer t.RUnlock()
+
 	buf := bytes.NewBuffer(nil)
 	for _, cur := range t.root.next {
-		for _, phrase := range walkNode(cur) {
+		for _, phrase := range walkNode(cur, delimiter) {
 			buf.WriteString(phrase)
 			buf.WriteString("\n")
 		}
 	}
 
 	msg := buf.String()
-	return msg[:len(msg)-1] // trim \n
+	if len(msg) > 0 {
+		msg = msg[:len(msg)-1] // trim \n
+	}
+
+	return msg
 }
 
-func walkNode(cur *node) (phrases []string) {
+func walkNode(cur *node, delimiter string) (phrases []string) {
 	type Entry struct {
 		node  *node
 		index int
@@ -81,13 +121,13 @@ func walkNode(cur *node) (phrases []string) {
 
 		entry := element.Value.(*Entry)
 		if entry.node.leaf() {
-			var chars []rune
+			var values []string
 			for itor := stack.Front(); itor != nil; itor = itor.Next() {
-				chars = append(chars, itor.Value.(*Entry).node.char)
+				values = append(values, itor.Value.(*Entry).node.val)
 			}
-			chars = append(chars, entry.node.char)
+			values = append(values, entry.node.val)
 
-			phrases = append(phrases, string((chars)))
+			phrases = append(phrases, strings.Join(values, delimiter))
 			continue
 		}
 
@@ -103,37 +143,28 @@ func walkNode(cur *node) (phrases []string) {
 	return
 }
 
-func (t *Trie) Insert(val string) {
-	if t.root == nil {
-		t.root = new(node)
-	}
+func (t *trie) Insert(values []string) {
+	t.Lock()
+	defer t.Unlock()
 
-	var cur *node
-	chars := []rune(val)
+	cur := t.root
+	var ok bool
 
-	index, ok := t.root.search(chars[0])
-	if ok {
-		cur = t.root.next[index]
-
-	} else {
-		t.root.next = append(t.root.next, &node{char: chars[0]})
-		t.size++
-
-		cur = t.root.next[len(t.root.next)-1]
-	}
-
-	for _, char := range chars[1:] {
-		cur, ok = cur.insert(char)
+	for _, val := range values {
+		cur, ok = cur.insert(val)
 		if ok {
-			t.size++
+			t.capacity++
 		}
 	}
 }
 
-func (t *Trie) Exists(val string) bool {
+func (t *trie) Exists(values []string) bool {
+	t.RLock()
+	defer t.RUnlock()
+
 	cur := t.root
-	for _, char := range []rune(val) {
-		index, ok := cur.search(char)
+	for _, val := range values {
+		index, ok := cur.search(val)
 		if !ok {
 			return false
 		}
@@ -144,7 +175,10 @@ func (t *Trie) Exists(val string) bool {
 	return true
 }
 
-func (t *Trie) Delete(val string) {
+func (t *trie) Delete(values []string) {
+	t.Lock()
+	defer t.Unlock()
+
 	type Entry struct {
 		node  *node
 		index int
@@ -152,8 +186,8 @@ func (t *Trie) Delete(val string) {
 	var path []*Entry
 
 	cur := t.root
-	for _, char := range []rune(val) {
-		index, ok := cur.search(char)
+	for _, val := range values {
+		index, ok := cur.search(val)
 		if !ok {
 			return
 		}
@@ -168,21 +202,37 @@ func (t *Trie) Delete(val string) {
 
 	last := path[len(path)-1]
 	last.node.delete(last.index)
-	t.size--
+	t.capacity--
 
 	for k := len(path) - 2; k >= 0; k-- { // the second last
 		if cur := path[k]; last.node.leaf() {
 			cur.node.delete(cur.index)
-			t.size--
+			t.capacity--
 
 			last = cur
 			continue
 		}
+
 		return
 	}
 }
 
-func (t *Trie) Prompt(prefix string) []string {
+func (t *trie) Prompt(prefix []string, delimiter string) (phrases []string) {
+	t.RLock()
+	defer t.RUnlock()
 
-	return nil
+	cur := t.root
+	for _, val := range prefix {
+		index, ok := cur.search(val)
+		if !ok {
+			return nil
+		}
+
+		cur = cur.next[index]
+	}
+
+	for _, next := range cur.next {
+		phrases = append(phrases, walkNode(next, delimiter)...)
+	}
+	return
 }
