@@ -426,7 +426,7 @@ func generateLTLEGTGE(structName, prefix string, field *protogen.Field, operatio
 		if desc.IsList() {
 			g.P()
 			g.P("for _, val := range ", prefix, ".", field.GoName, "{")
-			g.P("if !(len(val)", operation, condition, "){")
+			g.P("if !(len([]rune(val))", operation, condition, "){")
 			g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` contains illegal value")`)
 			g.P("}")
 			g.P("}")
@@ -434,7 +434,7 @@ func generateLTLEGTGE(structName, prefix string, field *protogen.Field, operatio
 		}
 
 		g.P()
-		g.P("if !(len(", prefix, ".", field.GoName, ")", operation, condition, "){")
+		g.P("if !(len([]rune(", prefix, ".", field.GoName, "))", operation, condition, "){")
 		g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` illegal")`)
 		g.P("}")
 	}
