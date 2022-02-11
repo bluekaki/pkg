@@ -5,7 +5,7 @@ import (
 )
 
 func TestTrie(t *testing.T) {
-	tree := New(false)
+	tree := New()
 
 	tree.Insert(SplitByEmpty("a"))
 	t.Log(tree.Capacity(), len(tree.Prompt(SplitByEmpty(""), EmptyDelimiter)), "\n"+tree.String(EmptyDelimiter, EmptyDelimiter))

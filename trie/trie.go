@@ -19,84 +19,84 @@ type Trie interface {
 	t()
 	Capacity() uint32
 	String(prefix, delimiter string) string
-	Insert(values []string)
-	HasPrefix(values []string) bool
-	Match(values []string) bool
-	Delete(values []string)
+	Insert(fragments []string)
+	HasPrefix(fragments []string) bool
+	Match(fragments []string) bool
+	Delete(fragments []string)
 	Prompt(prefix []string, delimiter string) (phrases []string)
 	Marshal() []byte
-	Unmarshal([]byte) error
+	Unmarshal(raw []byte) error
 }
 
-func SplitByEmpty(val string) []string {
-	raw := []rune(val)
-	values := make([]string, len(raw))
+func SplitByEmpty(phrase string) []string {
+	raw := []rune(phrase)
+	fragments := make([]string, len(raw))
 	for i, char := range raw {
-		values[i] = string(char)
+		fragments[i] = string(char)
 	}
 
-	return values
+	return fragments
 }
 
-func SplitByDelimiter(val string, delimiter string) []string {
-	raw := strings.Split(strings.TrimLeft(strings.TrimSpace(val), delimiter), delimiter)
-	values := make([]string, len(raw))
+func SplitByDelimiter(phrase, delimiter string) []string {
+	raw := strings.Split(strings.TrimLeft(strings.TrimSpace(phrase), delimiter), delimiter)
+	fragments := make([]string, len(raw))
 	for i, char := range raw {
-		values[i] = char
+		fragments[i] = char
 	}
 
-	return values
+	return fragments
 }
 
 type node struct {
-	val     string
-	section bool
-	next    []*node
+	key    string
+	sector bool
+	next   []*node
 }
 
 func (n *node) leaf() bool {
 	return len(n.next) == 0
 }
 
-func (n *node) search(val string) (int, bool) {
+func (n *node) search(key string) (int, bool) {
 	if len(n.next) == 0 {
 		return -1, false
 	}
 
 	index := sort.Search(len(n.next), func(i int) bool {
-		return n.next[i].val >= val
+		return n.next[i].key >= key
 	})
 
-	if index >= len(n.next) || n.next[index].val != val {
+	if index >= len(n.next) || n.next[index].key != key {
 		return -1, false
 	}
 
 	return index, true
 }
 
-func (n *node) insert(val string, lastOne bool) (*node, bool) {
+func (n *node) insert(key string, lastOne bool) (*node, bool) {
 	cur := n
 	for {
-		if cur.val == val {
+		if cur.key == key {
 			if lastOne {
-				cur.section = true
+				cur.sector = true
 			}
 			return cur, false
 		}
 
-		index, ok := cur.search(val)
+		index, ok := cur.search(key)
 		if ok {
 			cur = cur.next[index]
 			continue
 		}
 
 		index = sort.Search(len(cur.next), func(i int) bool {
-			return cur.next[i].val >= val
+			return cur.next[i].key >= key
 		})
 
 		clone := make([]*node, len(cur.next)+1)
 		copy(clone, cur.next[:index])
-		clone[index] = &node{val: val, section: lastOne}
+		clone[index] = &node{key: key, sector: lastOne}
 		copy(clone[index+1:], cur.next[index:])
 
 		cur.next = clone
@@ -110,13 +110,12 @@ func (n *node) delete(index int) {
 	}
 }
 
-func New(fuzzy bool) Trie {
-	return &trie{fuzzy: fuzzy, root: new(node)}
+func New() Trie {
+	return &trie{root: new(node)}
 }
 
 type trie struct {
 	sync.RWMutex
-	fuzzy    bool
 	root     *node
 	capacity uint32
 }
@@ -136,7 +135,7 @@ func (t *trie) String(prefix, delimiter string) string {
 
 	buf := bytes.NewBuffer(nil)
 	for _, cur := range t.root.next {
-		for _, phrase := range walkNode(cur, prefix, delimiter, t.fuzzy) {
+		for _, phrase := range walkNode(cur, prefix, delimiter) {
 			buf.WriteString(phrase)
 			buf.WriteString("\n")
 		}
@@ -150,7 +149,7 @@ func (t *trie) String(prefix, delimiter string) string {
 	return msg
 }
 
-func walkNode(cur *node, prefix, delimiter string, fuzzy bool) (phrases []string) {
+func walkNode(cur *node, prefix, delimiter string) (phrases []string) {
 	type Entry struct {
 		node  *node
 		index int
@@ -164,36 +163,18 @@ func walkNode(cur *node, prefix, delimiter string, fuzzy bool) (phrases []string
 		stack.Remove(element)
 
 		entry := element.Value.(*Entry)
-		switch fuzzy {
-		case true:
-			if entry.node.leaf() {
-				var values []string
-				for itor := stack.Front(); itor != nil; itor = itor.Next() {
-					values = append(values, itor.Value.(*Entry).node.val)
-				}
-				values = append(values, entry.node.val)
-
-				phrase := strings.Join(values, delimiter)
-				if prefix != "" {
-					phrase = prefix + phrase
-				}
-				phrases = append(phrases, phrase)
+		if entry.node.sector && entry.index == 0 {
+			var fragments []string
+			for itor := stack.Front(); itor != nil; itor = itor.Next() {
+				fragments = append(fragments, itor.Value.(*Entry).node.key)
 			}
+			fragments = append(fragments, entry.node.key)
 
-		default:
-			if entry.node.section && entry.index == 0 {
-				var values []string
-				for itor := stack.Front(); itor != nil; itor = itor.Next() {
-					values = append(values, itor.Value.(*Entry).node.val)
-				}
-				values = append(values, entry.node.val)
-
-				phrase := strings.Join(values, delimiter)
-				if prefix != "" {
-					phrase = prefix + phrase
-				}
-				phrases = append(phrases, phrase)
+			phrase := strings.Join(fragments, delimiter)
+			if prefix != "" {
+				phrase = prefix + phrase
 			}
+			phrases = append(phrases, phrase)
 		}
 
 		if entry.index < len(entry.node.next) {
@@ -208,29 +189,29 @@ func walkNode(cur *node, prefix, delimiter string, fuzzy bool) (phrases []string
 	return
 }
 
-func (t *trie) Insert(values []string) {
+func (t *trie) Insert(fragments []string) {
 	t.Lock()
 	defer t.Unlock()
 
 	cur := t.root
 	var ok bool
 
-	threshold := len(values) - 1
-	for i, val := range values {
-		cur, ok = cur.insert(val, i == threshold)
+	threshold := len(fragments) - 1
+	for i, key := range fragments {
+		cur, ok = cur.insert(key, i == threshold)
 		if ok {
 			t.capacity++
 		}
 	}
 }
 
-func (t *trie) HasPrefix(values []string) bool {
+func (t *trie) HasPrefix(fragments []string) bool {
 	t.RLock()
 	defer t.RUnlock()
 
 	cur := t.root
-	for _, val := range values {
-		index, ok := cur.search(val)
+	for _, key := range fragments {
+		index, ok := cur.search(key)
 		if !ok {
 			return false
 		}
@@ -241,13 +222,13 @@ func (t *trie) HasPrefix(values []string) bool {
 	return true
 }
 
-func (t *trie) Match(values []string) bool {
+func (t *trie) Match(fragments []string) bool {
 	t.RLock()
 	defer t.RUnlock()
 
 	cur := t.root
-	for _, val := range values {
-		index, ok := cur.search(val)
+	for _, key := range fragments {
+		index, ok := cur.search(key)
 		if !ok {
 			return false
 		}
@@ -255,10 +236,10 @@ func (t *trie) Match(values []string) bool {
 		cur = cur.next[index]
 	}
 
-	return cur.section || cur.leaf()
+	return cur.sector || cur.leaf()
 }
 
-func (t *trie) Delete(values []string) {
+func (t *trie) Delete(fragments []string) {
 	t.Lock()
 	defer t.Unlock()
 
@@ -269,8 +250,8 @@ func (t *trie) Delete(values []string) {
 	var path []*Entry
 
 	cur := t.root
-	for _, val := range values {
-		index, ok := cur.search(val)
+	for _, key := range fragments {
+		index, ok := cur.search(key)
 		if !ok {
 			return
 		}
@@ -279,11 +260,11 @@ func (t *trie) Delete(values []string) {
 		cur = cur.next[index]
 	}
 
-	if !t.fuzzy && cur.section && !cur.leaf() { // intermediate node
+	if cur.sector && !cur.leaf() { // intermediate node
 		t.capacity--
 	}
-	cur.section = false
 
+	cur.sector = false
 	if !cur.leaf() { // not leaf
 		return
 	}
@@ -292,30 +273,14 @@ func (t *trie) Delete(values []string) {
 	last.node.delete(last.index)
 	t.capacity--
 
-	switch t.fuzzy {
-	case true:
-		for k := len(path) - 2; k >= 0; k-- { // the second last
-			if sec := path[k]; last.node.leaf() {
-				sec.node.delete(sec.index)
-				t.capacity--
-
-				last = sec
-				continue
-			}
-
-			return
+	for k := len(path) - 2; k >= 0; k-- { // the second last
+		if sec := path[k]; last.node.leaf() && !last.node.sector {
+			sec.node.delete(sec.index)
+			last = sec
+			continue
 		}
 
-	default:
-		for k := len(path) - 2; k >= 0; k-- { // the second last
-			if sec := path[k]; last.node.leaf() && !last.node.section {
-				sec.node.delete(sec.index)
-				last = sec
-				continue
-			}
-
-			return
-		}
+		return
 	}
 }
 
@@ -324,8 +289,8 @@ func (t *trie) Prompt(prefix []string, delimiter string) (phrases []string) {
 	defer t.RUnlock()
 
 	cur := t.root
-	for _, val := range prefix {
-		index, ok := cur.search(val)
+	for _, key := range prefix {
+		index, ok := cur.search(key)
 		if !ok {
 			return nil
 		}
@@ -334,7 +299,7 @@ func (t *trie) Prompt(prefix []string, delimiter string) (phrases []string) {
 	}
 
 	for _, next := range cur.next {
-		phrases = append(phrases, walkNode(next, "", delimiter, t.fuzzy)...)
+		phrases = append(phrases, walkNode(next, "", delimiter)...)
 	}
 	return
 }
