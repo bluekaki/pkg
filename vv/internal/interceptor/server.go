@@ -596,6 +596,8 @@ func StreamServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 				doJournal: doJournal,
 				restapi:   forwardedByGrpcGateway(meta),
 				method:    info.FullMethod,
+
+				disableMessageValitator: disableMessageValitator,
 			})
 		}
 
