@@ -116,7 +116,7 @@ func (g *grpcPayload) Body() []byte {
 var serverInitMetricsOnce sync.Once
 
 // UnaryServerInterceptor unary interceptor for server
-func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, metrics func(http.Handler), projectName string) grpc.UnaryServerInterceptor {
+func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, metrics func(http.Handler), projectName string, disableMessageValitator bool) grpc.UnaryServerInterceptor {
 	if metrics != nil {
 		serverInitMetricsOnce.Do(func() {
 			metrics(promhttp.Handler())
@@ -290,7 +290,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 		}()
 
 		if req != nil {
-			if validator, ok := req.(proposal.Validator); ok {
+			if validator, ok := req.(proposal.Validator); ok && !disableMessageValitator {
 				if err := validator.Validate(); err != nil {
 					return nil, status.Error(codes.InvalidArgument, err.Error())
 				}
@@ -404,7 +404,7 @@ func UnaryServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, m
 }
 
 // StreamServerInterceptor stream interceptor for server
-func StreamServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, metrics func(http.Handler), projectName string) grpc.StreamServerInterceptor {
+func StreamServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, metrics func(http.Handler), projectName string, disableMessageValitator bool) grpc.StreamServerInterceptor {
 	if metrics != nil {
 		serverInitMetricsOnce.Do(func() {
 			metrics(promhttp.Handler())
@@ -680,6 +680,8 @@ func StreamServerInterceptor(logger *zap.Logger, notify proposal.NotifyHandler, 
 			doJournal: doJournal,
 			restapi:   forwardedByGrpcGateway(meta),
 			method:    info.FullMethod,
+
+			disableMessageValitator: disableMessageValitator,
 		})
 	}
 }
@@ -701,6 +703,8 @@ type streamServerInterceptor struct {
 	doJournal bool
 	restapi   bool
 	method    string
+
+	disableMessageValitator bool
 }
 
 func (s *streamServerInterceptor) Context() context.Context {
@@ -755,7 +759,7 @@ func (s *streamServerInterceptor) RecvMsg(m interface{}) (err error) {
 		}
 
 		if err == nil && m != nil {
-			if validator, ok := m.(proposal.Validator); ok {
+			if validator, ok := m.(proposal.Validator); ok && !s.disableMessageValitator {
 				if err = validator.Validate(); err != nil {
 					err = status.Error(codes.InvalidArgument, err.Error())
 				}

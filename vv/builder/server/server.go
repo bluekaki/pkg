@@ -44,12 +44,13 @@ func RegisteAuthorizationProxyValidator(name string, handler proposal.SignatureH
 type Option func(*option)
 
 type option struct {
-	credential        credentials.TransportCredentials
-	enforcementPolicy *keepalive.EnforcementPolicy
-	keepalive         *keepalive.ServerParameters
-	metrics           func(http.Handler)
-	projectName       string
-	fds               []protoreflect.FileDescriptor
+	credential              credentials.TransportCredentials
+	enforcementPolicy       *keepalive.EnforcementPolicy
+	keepalive               *keepalive.ServerParameters
+	metrics                 func(http.Handler)
+	projectName             string
+	fds                     []protoreflect.FileDescriptor
+	disableMessageValitator bool
 }
 
 // WithCredential setup credential for tls
@@ -96,6 +97,13 @@ func WithIgnoreFileDescriptor(fd protoreflect.FileDescriptor) Option {
 	}
 }
 
+// WithDisableMessageValitator ignore request message's validator
+func WithDisableMessageValitator() Option {
+	return func(opt *option) {
+		opt.disableMessageValitator = true
+	}
+}
+
 // RegisterEndpoint the only entrance for register service
 type RegisterEndpoint func(server *grpc.Server)
 
@@ -131,8 +139,8 @@ func New(logger *zap.Logger, notify proposal.NotifyHandler, register RegisterEnd
 		grpc.MaxHeaderListSize(configs.MaxMsgSize),
 		grpc.KeepaliveEnforcementPolicy(*enforcementPolicy),
 		grpc.KeepaliveParams(*keepalive),
-		grpc.UnaryInterceptor(interceptor.UnaryServerInterceptor(logger, notify, opt.metrics, opt.projectName)),
-		grpc.StreamInterceptor(interceptor.StreamServerInterceptor(logger, notify, opt.metrics, opt.projectName)),
+		grpc.UnaryInterceptor(interceptor.UnaryServerInterceptor(logger, notify, opt.metrics, opt.projectName, opt.disableMessageValitator)),
+		grpc.StreamInterceptor(interceptor.StreamServerInterceptor(logger, notify, opt.metrics, opt.projectName, opt.disableMessageValitator)),
 	}
 
 	if opt.credential != nil {
