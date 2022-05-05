@@ -30,6 +30,7 @@ type option struct {
 	}
 	MaxConnections uint64
 	HTTPManager    *listener.Filter
+	TCPManager     *listener.Filter
 }
 
 func WithTLS(serverName string, certificate *tls.TlsCertificate, requireClientCertificate bool) Option {
@@ -53,6 +54,12 @@ func WithMaxConnections(maxConnections uint64) Option {
 func WithHTTPManager(manager *listener.Filter) Option {
 	return func(opt *option) {
 		opt.HTTPManager = manager
+	}
+}
+
+func WithTCPManager(manager *listener.Filter) Option {
+	return func(opt *option) {
+		opt.TCPManager = manager
 	}
 }
 
@@ -110,8 +117,12 @@ func New(name string, port uint32, opts ...Option) *listener.Listener {
 						},
 					})
 
+					// the HCM and tcp_proxy filters should not be used together
 					if opt.HTTPManager != nil {
 						filters = append(filters, opt.HTTPManager)
+
+					} else if opt.TCPManager != nil {
+						filters = append(filters, opt.TCPManager)
 					}
 
 					return
@@ -148,7 +159,7 @@ func New(name string, port uint32, opts ...Option) *listener.Listener {
 				}(),
 			},
 		},
-		ListenerFilters: []*listener.ListenerFilter{
+		ListenerFilters: []*listener.ListenerFilter{ // TODO
 			{Name: wellknown.TLSInspector},
 			{Name: wellknown.HTTPInspector},
 		},

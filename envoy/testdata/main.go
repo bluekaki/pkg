@@ -10,6 +10,7 @@ import (
 	"github.com/bluekaki/pkg/envoy/controlplane/cluster"
 	"github.com/bluekaki/pkg/envoy/controlplane/listener"
 	http_manager "github.com/bluekaki/pkg/envoy/controlplane/listener/http"
+	tcp_manager "github.com/bluekaki/pkg/envoy/controlplane/listener/tcp"
 	log "github.com/bluekaki/pkg/envoy/controlplane/logger"
 	"github.com/bluekaki/pkg/envoy/controlplane/router"
 	"github.com/bluekaki/pkg/envoy/controlplane/secret"
@@ -137,6 +138,11 @@ func newSnapshot(logger *zap.Logger) cache.Snapshot {
 							http_manager.WithVia("envoy@"+version),
 						),
 					),
+				),
+
+				listener.New("edge_tcp_proxy_80", 80,
+					listener.WithMaxConnections(100),
+					listener.WithTCPManager(tcp_manager.New("rt_proxy", "rt_cluster")),
 				),
 			},
 
