@@ -9,6 +9,7 @@ import (
 
 	"github.com/bluekaki/pkg/envoy/controlplane/cluster"
 	"github.com/bluekaki/pkg/envoy/controlplane/listener"
+	http_manager "github.com/bluekaki/pkg/envoy/controlplane/listener/http"
 	log "github.com/bluekaki/pkg/envoy/controlplane/logger"
 	"github.com/bluekaki/pkg/envoy/controlplane/router"
 	"github.com/bluekaki/pkg/envoy/controlplane/secret"
@@ -127,11 +128,15 @@ func newSnapshot(logger *zap.Logger) cache.Snapshot {
 	snapshot, err := cache.NewSnapshot(version,
 		map[resource.Type][]types.Resource{
 			resource.ListenerType: {
-				listener.NewHTTP_GRPC("edge_ingress_443", 443,
+				listener.New("edge_ingress_443", 443,
 					listener.WithTLS("*.minami.cc", secret.NewTlsCertificate(certPEM, privkeyPEM, ""), false),
 					listener.WithMaxConnections(100),
-					listener.WithHttpWasmFilter("http://local.minami.cc:64320/httpfilter.wasi", "9063153f86266b9e61205ea5813bb97f4a83061940b5bce24ec5fb80f9003a26"),
-					listener.WithVia("envoy@"+version),
+					listener.WithHTTPManager(
+						http_manager.New("http(2)",
+							http_manager.WithWASMFilter("http://local.minami.cc:64320/httpfilter.wasi", "9063153f86266b9e61205ea5813bb97f4a83061940b5bce24ec5fb80f9003a26"),
+							http_manager.WithVia("envoy@"+version),
+						),
+					),
 				),
 			},
 
