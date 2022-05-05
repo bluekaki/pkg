@@ -1,0 +1,20 @@
+docker run -it --rm --name envoy envoyproxy/envoy-alpine:v1.21.1 -h
+
+
+reset; docker run -it --rm --name envoy \
+-p 9901:9901 -p 443:443 -p 80:80 \
+-v /opt/repo/src/github.com/bluekaki/pkg/envoy/testdata/config.yaml:/config.yaml \
+-v /opt/repo/src/github.com/bluekaki/pkg/envoy/testdata/crypto/fullchain.pem:/fullchain.pem \
+envoyproxy/envoy:v1.21.1 \
+--parent-shutdown-time-s 20 \
+--drain-time-s 20 \
+--file-flush-interval-msec 1000 \
+--local-address-ip-version v4 \
+-c /config.yaml --log-level warn \
+--component-log-level config:error \
+--stats-tag host:minami \
+--mode validate
+
+
+--mode  serve(default)  validate(validate configs and exit)
+
