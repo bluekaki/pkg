@@ -20,6 +20,7 @@ type Option func(*option)
 
 type option struct {
 	WASMFilter *http_connection_manager.HttpFilter
+	ServerName string
 	Via        string
 }
 
@@ -66,6 +67,12 @@ func WithWASMFilter(url, digest string) Option {
 				}(),
 			},
 		}
+	}
+}
+
+func WithServerName(name string) Option {
+	return func(opt *option) {
+		opt.ServerName = name
 	}
 }
 
@@ -158,6 +165,7 @@ func New(name string, opts ...Option) *listener.Filter {
 							ConnectionIdleInterval: durationpb.New(time.Second * 2),
 						},
 					},
+					ServerName:                   opt.ServerName,
 					StreamIdleTimeout:            nil, // overridable by the route-level idle_timeout
 					RequestTimeout:               durationpb.New(time.Second * 10),
 					RequestHeadersTimeout:        durationpb.New(time.Second * 2),
