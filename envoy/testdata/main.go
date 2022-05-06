@@ -142,7 +142,7 @@ func newSnapshot(logger *zap.Logger) cache.Snapshot {
 
 				listener.New("edge_tcp_proxy_80", 80,
 					listener.WithMaxConnections(100),
-					listener.WithTCPManager(tcp_manager.New("rt_proxy", "rt_cluster")),
+					listener.WithTCPManager(tcp_manager.New("mirror_proxy", "mirror_cluster")),
 				),
 			},
 
@@ -167,6 +167,10 @@ func newSnapshot(logger *zap.Logger) cache.Snapshot {
 				// --------------------- manually  -------------------------
 				cluster.New("rt_cluster", []*cluster.Target{
 					{Host: "www.rt.com", Port: 443, TLS: true},
+				}, cluster.WithTCPHealthCheck()),
+
+				cluster.New("mirror_cluster", []*cluster.Target{
+					{Host: "mirror.minami.cc", Port: 8099},
 				}, cluster.WithTCPHealthCheck()),
 			},
 		})

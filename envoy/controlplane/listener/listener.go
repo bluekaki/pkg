@@ -118,10 +118,11 @@ func New(name string, port uint32, opts ...Option) *listener.Listener {
 					})
 
 					// the HCM and tcp_proxy filters should not be used together
-					if opt.HTTPManager != nil {
+					switch {
+					case opt.HTTPManager != nil:
 						filters = append(filters, opt.HTTPManager)
 
-					} else if opt.TCPManager != nil {
+					case opt.TCPManager != nil:
 						filters = append(filters, opt.TCPManager)
 					}
 
@@ -159,10 +160,16 @@ func New(name string, port uint32, opts ...Option) *listener.Listener {
 				}(),
 			},
 		},
-		ListenerFilters: []*listener.ListenerFilter{ // TODO
-			{Name: wellknown.TLSInspector},
-			{Name: wellknown.HTTPInspector},
-		},
+		ListenerFilters: func() (filters []*listener.ListenerFilter) { // used by filterchains
+			if opt.TLS.ServerName != "" {
+				filters = append(filters, &listener.ListenerFilter{Name: wellknown.TLSInspector})
+			}
+			if opt.HTTPManager != nil {
+				filters = append(filters, &listener.ListenerFilter{Name: wellknown.HTTPInspector})
+			}
+
+			return
+		}(),
 		ListenerFiltersTimeout: durationpb.New(time.Second * 2),
 	}
 }
