@@ -19,14 +19,14 @@ import (
 
 var (
 	defaultEnforcementPolicy = &keepalive.EnforcementPolicy{
-		MinTime:             5 * time.Second,
+		MinTime:             time.Second,
 		PermitWithoutStream: true,
 	}
 
 	defaultKeepAlive = &keepalive.ServerParameters{
-		MaxConnectionIdle: 15 * time.Second,
-		Time:              5 * time.Second,
-		Timeout:           2 * time.Second,
+		MaxConnectionIdle: 30 * time.Second,
+		Time:              2 * time.Second,
+		Timeout:           1500 * time.Millisecond,
 	}
 )
 

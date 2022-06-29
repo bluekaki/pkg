@@ -29,8 +29,8 @@ import (
 
 var (
 	defaultKeepAlive = &keepalive.ClientParameters{
-		Time:                10 * time.Second,
-		Timeout:             2 * time.Second,
+		Time:                2 * time.Second,
+		Timeout:             1500 * time.Millisecond,
 		PermitWithoutStream: true,
 	}
 
