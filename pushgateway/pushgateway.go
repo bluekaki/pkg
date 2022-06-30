@@ -21,6 +21,7 @@ type Option func(*option)
 
 type option struct {
 	labels map[string]string
+	ttl    time.Duration
 }
 
 func WithLabel(name, value string) Option {
@@ -29,10 +30,22 @@ func WithLabel(name, value string) Option {
 	}
 }
 
+func WithTTL(duration time.Duration) Option {
+	return func(opt *option) {
+		if duration > 0 {
+			opt.ttl = duration
+		}
+	}
+}
+
 func Run(localMetrics, remotePushgateway string, opts ...Option) chan error {
 	opt := &option{labels: make(map[string]string)}
 	for _, f := range opts {
 		f(opt)
+	}
+
+	if opt.ttl == 0 {
+		opt.ttl = time.Second * 10
 	}
 
 	lables := make([]string, 0, len(opt.labels))
@@ -65,7 +78,7 @@ func Run(localMetrics, remotePushgateway string, opts ...Option) chan error {
 				ticker.Reset(time.Second * 10)
 			}
 
-			if err := fetchAndPush(localMetrics, remotePushgateway); err != nil {
+			if err := fetchAndPush(localMetrics, remotePushgateway, opt.ttl); err != nil {
 				notify(err)
 			}
 		}
@@ -83,7 +96,7 @@ var defaultClient = &http.Client{
 	},
 }
 
-func fetchAndPush(localMetrics, remotePushgateway string) error {
+func fetchAndPush(localMetrics, remotePushgateway string, ttl time.Duration) error {
 	resp, err := http.Get(localMetrics)
 	if err != nil {
 		return errors.Wrapf(err, "get metrics from %s err", localMetrics)
@@ -113,7 +126,7 @@ func fetchAndPush(localMetrics, remotePushgateway string) error {
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), ttl)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, remotePushgateway, payload)
