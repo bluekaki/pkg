@@ -42,6 +42,13 @@ func main() {
 	// go server()
 	// go pusher()
 
+	http.Handle("/metrics", promhttp.Handler())
+	go func() {
+		if err := http.ListenAndServe(":8080", nil); err != nil {
+			panic(err)
+		}
+	}()
+
 	for range time.NewTicker(time.Second).C {
 		KeepaliveCounter.WithLabelValues("/abc").Inc()
 	}

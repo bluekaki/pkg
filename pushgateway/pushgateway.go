@@ -55,6 +55,27 @@ func Run(localMetrics, remotePushgateway string, opts ...Option) chan error {
 
 	remotePushgateway = fmt.Sprintf("%s/metrics/job/pushgateway-converter/%s", remotePushgateway, strings.Join(lables, "/"))
 
+	{ // delete the outdated metrics
+		ctx, cancel := context.WithTimeout(context.Background(), opt.ttl)
+		defer cancel()
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodDelete, remotePushgateway, nil)
+		if err != nil {
+			panic(errors.Wrap(err, "create delete request to pushgateway err"))
+		}
+
+		ack, err := defaultClient.Do(req)
+		if err != nil {
+			panic(errors.Wrap(err, "delete metrics from pushgateway err"))
+		}
+		defer ack.Body.Close()
+
+		if ack.StatusCode != http.StatusOK && ack.StatusCode != http.StatusAccepted {
+			body, _ := io.ReadAll(ack.Body)
+			panic(errors.Errorf("delete metrics from pushgateway err, status: %s, message: %s", ack.Status, string(body)))
+		}
+	}
+
 	ch := make(chan error, 10)
 	go func() {
 		notify := func(err error) {
