@@ -72,7 +72,7 @@ func NewPorter(localMetrics, remotePushgateway string, opts ...Option) Porter {
 		opt.ttl = time.Second * 10
 	}
 
-	opt.labels["_created_at"] = time.Now().Format(time.RFC3339)
+	opt.labels["job_created_at"] = time.Now().Format(time.RFC3339)
 
 	lables := make([]string, 0, len(opt.labels))
 	for name, value := range opt.labels {
