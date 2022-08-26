@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/bluekaki/pkg/errors"
+	"github.com/bluekaki/pkg/mm/httpclient"
 )
 
 type _Label struct {
@@ -98,4 +101,45 @@ func ParseMetrics(metrics []byte) ([]byte, error) {
 	}
 
 	return buffer.Bytes(), nil
+}
+
+// 127.0.0.1:9091
+func DeleteAll(metricServer string) error {
+	body, _, _, err := httpclient.Get(fmt.Sprintf("http://%s/api/v1/metrics", metricServer), nil,
+		httpclient.WithRetryTimes(0), httpclient.WithTTL(time.Minute))
+	if err != nil {
+		return errors.Wrap(err, "get metrics err")
+	}
+
+	targets := &struct {
+		Data []struct {
+			Labels map[string]string `json:"labels"`
+		} `json:"data"`
+	}{}
+	if err := json.Unmarshal(body, targets); err != nil {
+		return errors.Wrap(err, "unmarshal json format metrics err")
+	}
+
+	for _, target := range targets.Data {
+		job, ok := target.Labels["job"]
+		if !ok {
+			continue
+		}
+		delete(target.Labels, "job")
+
+		lables := make([]string, 0, len(target.Labels))
+		for name, value := range target.Labels {
+			lables = append(lables, fmt.Sprintf("%s/%s", name, value))
+		}
+
+		sort.Strings(lables)
+		url := fmt.Sprintf("http://%s/metrics/job/%s/%s", metricServer, job, strings.Join(lables, "/"))
+
+		_, _, statusCode, err := httpclient.Delete(url, nil, httpclient.WithRetryTimes(0), httpclient.WithTTL(time.Minute))
+		if statusCode != http.StatusAccepted && err != nil {
+			return errors.Wrap(err, "delete metrics err")
+		}
+	}
+
+	return nil
 }

@@ -22,3 +22,9 @@ func TestParseMetrics(t *testing.T) {
 
 	t.Log(string(info))
 }
+
+func TestDeleteAll(t *testing.T) {
+	if err := DeleteAll("127.0.0.1:9091"); err != nil {
+		t.Fatal(err)
+	}
+}
