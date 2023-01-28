@@ -15,7 +15,7 @@ import (
 	"google.golang.org/protobuf/types/pluginpb"
 )
 
-const version = "1.1.5"
+const version = "1.1.6"
 
 func main() {
 	showVersion := flag.Bool("version", false, "print the version and exit")
@@ -51,16 +51,20 @@ func generateFile(gen *protogen.Plugin, file *protogen.File) {
 		structName := string(message.Desc.Name())
 		prefix := strings.ToLower(string(structName[0]))
 
-		for _, subMessage := range message.Messages {
-			if subMessage.Desc.IsMapEntry() {
-				continue
-			}
+		generateSubMessage(structName, prefix, message, g)
+		generateMessage(structName, prefix, message, g)
+	}
+}
 
-			subStructName := string(subMessage.Desc.Name())
-			generateMessage(fmt.Sprintf("%s_%s", structName, subStructName), prefix, subMessage, g)
+func generateSubMessage(structName, prefix string, message *protogen.Message, g *protogen.GeneratedFile) {
+	for _, sub := range message.Messages {
+		if sub.Desc.IsMapEntry() {
+			continue
 		}
 
-		generateMessage(structName, prefix, message, g)
+		subStructName := string(sub.Desc.Name())
+		generateSubMessage(fmt.Sprintf("%s_%s", structName, subStructName), prefix, sub, g)
+		generateMessage(fmt.Sprintf("%s_%s", structName, subStructName), prefix, sub, g)
 	}
 }
 
@@ -166,6 +170,27 @@ func generateMessage(structName, prefix string, message *protogen.Message, g *pr
 
 			if fieldValidator.Duration != nil && *fieldValidator.Duration {
 				generateDuration(structName, prefix, field, g)
+			}
+
+		} else if desc.Kind() == protoreflect.MessageKind {
+			if desc.IsList() {
+				g.P("for _, val := range ", prefix, ".", field.GoName, "{")
+				g.P(`if val != nil {`)
+				g.P("if err := val.Validate(); err != nil {")
+				g.P("return err")
+				g.P("}")
+				g.P("}")
+				g.P("}")
+
+			}
+
+			if desc.HasPresence() { // message{}
+				g.P()
+				g.P("if ", prefix, ".", field.GoName, " != nil {")
+				g.P("if err := ", prefix, ".", field.GoName, ".Validate(); err != nil {")
+				g.P("return err")
+				g.P("}")
+				g.P("}")
 			}
 		}
 	}
