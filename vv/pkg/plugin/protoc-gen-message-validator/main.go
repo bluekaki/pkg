@@ -252,7 +252,7 @@ func generateRequire(structName, prefix string, field *protogen.Field, g *protog
 		if desc.IsList() {
 			g.P()
 			g.P("if len(", prefix, ".", field.GoName, ") == 0 {")
-			g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` required")`)
+			g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` required")`)
 			g.P("}")
 		}
 
@@ -271,7 +271,7 @@ func generateRequire(structName, prefix string, field *protogen.Field, g *protog
 		if desc.IsList() {
 			g.P()
 			g.P("if len(", prefix, ".", field.GoName, ") == 0 {")
-			g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` required")`)
+			g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` required")`)
 			g.P("}")
 		}
 
@@ -279,12 +279,12 @@ func generateRequire(structName, prefix string, field *protogen.Field, g *protog
 		if desc.IsList() {
 			g.P()
 			g.P("if len(", prefix, ".", field.GoName, ") == 0 {")
-			g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` required")`)
+			g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` required")`)
 			g.P("}")
 
 			g.P("for _, val := range ", prefix, ".", field.GoName, "{")
 			g.P(`if val == "" {`)
-			g.P("return ", errorsPackage.Ident("New"), `("`, field.GoName, ` contains empty value")`)
+			g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", field.GoName, ` contains empty value")`)
 			g.P("}")
 			g.P("}")
 			return
@@ -292,19 +292,19 @@ func generateRequire(structName, prefix string, field *protogen.Field, g *protog
 
 		g.P()
 		g.P("if ", prefix, ".", field.GoName, ` == "" {`)
-		g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` required")`)
+		g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` required")`)
 		g.P("}")
 
 	case protoreflect.BytesKind:
 		if desc.IsList() {
 			g.P()
 			g.P("if len(", prefix, ".", field.GoName, ") == 0 {")
-			g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` required")`)
+			g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` required")`)
 			g.P("}")
 
 			g.P("for _, val := range ", prefix, ".", field.GoName, "{")
 			g.P(`if len(val) == 0 {`)
-			g.P("return ", errorsPackage.Ident("New"), `("`, field.GoName, ` contains empty value")`)
+			g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", field.GoName, ` contains empty value")`)
 			g.P("}")
 			g.P("}")
 			return
@@ -312,14 +312,14 @@ func generateRequire(structName, prefix string, field *protogen.Field, g *protog
 
 		g.P()
 		g.P("if len(", prefix, ".", field.GoName, ") == 0 {")
-		g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` required")`)
+		g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` required")`)
 		g.P("}")
 
 	case protoreflect.MessageKind: // map<,> or message{}
 		if desc.IsMap() { // map<,>
 			g.P()
 			g.P("if len(", prefix, ".", field.GoName, ") == 0 {")
-			g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` required")`)
+			g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` required")`)
 			g.P("}")
 			return
 		}
@@ -327,12 +327,12 @@ func generateRequire(structName, prefix string, field *protogen.Field, g *protog
 		if desc.IsList() { // repeated message{}
 			g.P()
 			g.P("if len(", prefix, ".", field.GoName, ") == 0 {")
-			g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` required")`)
+			g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` required")`)
 			g.P("}")
 
 			g.P("for _, val := range ", prefix, ".", field.GoName, "{")
 			g.P(`if val == nil {`)
-			g.P("return ", errorsPackage.Ident("New"), `("`, field.GoName, ` contains empty value")`)
+			g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", field.GoName, ` contains empty value")`)
 			g.P("}")
 
 			g.P("if err := val.Validate(); err != nil {")
@@ -346,7 +346,7 @@ func generateRequire(structName, prefix string, field *protogen.Field, g *protog
 		if desc.HasPresence() { // message{}
 			g.P()
 			g.P("if ", prefix, ".", field.GoName, " == nil {")
-			g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` required")`)
+			g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` required")`)
 			g.P("}")
 
 			g.P("if err := ", prefix, ".", field.GoName, ".Validate(); err != nil {")
@@ -385,7 +385,7 @@ func generateEQNE(structName, prefix string, field *protogen.Field, operation, c
 			g.P()
 			g.P("for _, val := range ", prefix, ".", field.GoName, "{")
 			g.P("if !(val", operation, condition, "){")
-			g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` contains illegal value")`)
+			g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` contains illegal value")`)
 			g.P("}")
 			g.P("}")
 			return
@@ -393,7 +393,7 @@ func generateEQNE(structName, prefix string, field *protogen.Field, operation, c
 
 		g.P()
 		g.P("if !(", prefix, ".", field.GoName, operation, condition, "){")
-		g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` illegal")`)
+		g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` illegal")`)
 		g.P("}")
 
 	case protoreflect.StringKind:
@@ -401,7 +401,7 @@ func generateEQNE(structName, prefix string, field *protogen.Field, operation, c
 			g.P()
 			g.P("for _, val := range ", prefix, ".", field.GoName, "{")
 			g.P("if !(val", operation, `"`, condition, `"){`)
-			g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` contains illegal value")`)
+			g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` contains illegal value")`)
 			g.P("}")
 			g.P("}")
 			return
@@ -409,7 +409,7 @@ func generateEQNE(structName, prefix string, field *protogen.Field, operation, c
 
 		g.P()
 		g.P("if !(", prefix, ".", field.GoName, operation, `"`, condition, `"){`)
-		g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` illegal")`)
+		g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` illegal")`)
 		g.P("}")
 	}
 }
@@ -436,7 +436,7 @@ func generateLTLEGTGE(structName, prefix string, field *protogen.Field, operatio
 			g.P()
 			g.P("for _, val := range ", prefix, ".", field.GoName, "{")
 			g.P("if !(val", operation, condition, "){")
-			g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` contains illegal value")`)
+			g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` contains illegal value")`)
 			g.P("}")
 			g.P("}")
 			return
@@ -444,7 +444,7 @@ func generateLTLEGTGE(structName, prefix string, field *protogen.Field, operatio
 
 		g.P()
 		g.P("if !(", prefix, ".", field.GoName, operation, condition, "){")
-		g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` illegal")`)
+		g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` illegal")`)
 		g.P("}")
 
 	case protoreflect.StringKind:
@@ -452,7 +452,7 @@ func generateLTLEGTGE(structName, prefix string, field *protogen.Field, operatio
 			g.P()
 			g.P("for _, val := range ", prefix, ".", field.GoName, "{")
 			g.P("if !(len([]rune(val))", operation, condition, "){")
-			g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` contains illegal value")`)
+			g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` contains illegal value")`)
 			g.P("}")
 			g.P("}")
 			return
@@ -460,7 +460,7 @@ func generateLTLEGTGE(structName, prefix string, field *protogen.Field, operatio
 
 		g.P()
 		g.P("if !(len([]rune(", prefix, ".", field.GoName, "))", operation, condition, "){")
-		g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` illegal")`)
+		g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` illegal")`)
 		g.P("}")
 	}
 }
@@ -472,7 +472,7 @@ func generateCAPMinMax(structName, prefix string, field *protogen.Field, operati
 	if desc.IsList() || desc.IsMap() || desc.Kind() == protoreflect.BytesKind {
 		g.P()
 		g.P("if !(len(", prefix, ".", field.GoName, ")", operation, condition, "){")
-		g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` capacity illegal")`)
+		g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` capacity illegal")`)
 		g.P("}")
 	}
 }
@@ -483,7 +483,7 @@ func generateCSTDatetime(structName, prefix string, field *protogen.Field, g *pr
 	g.P()
 	g.P("if ", prefix, ".", field.GoName, ` != "" {`)
 	g.P("if _, err := ", timePackage.Ident("ParseInLocation"), `("2006-01-02 15:04:05",`, prefix, ".", field.GoName, ", time.Local); err != nil {")
-	g.P("return ", errorsPackage.Ident("Wrap"), `(err, "`, desc.Name(), ` illegal")`)
+	g.P("return ", errorsPackage.Ident("Wrap"), `(err, "`, structName, "_", desc.Name(), ` illegal")`)
 	g.P("}")
 	g.P("}")
 }
@@ -494,7 +494,7 @@ func generateCSTMinute(structName, prefix string, field *protogen.Field, g *prot
 	g.P()
 	g.P("if ", prefix, ".", field.GoName, ` != "" {`)
 	g.P("if _, err := ", timePackage.Ident("ParseInLocation"), `("2006-01-02 15:04",`, prefix, ".", field.GoName, ", time.Local); err != nil {")
-	g.P("return ", errorsPackage.Ident("Wrap"), `(err, "`, desc.Name(), ` illegal")`)
+	g.P("return ", errorsPackage.Ident("Wrap"), `(err, "`, structName, "_", desc.Name(), ` illegal")`)
 	g.P("}")
 	g.P("}")
 }
@@ -505,7 +505,7 @@ func generateCSTDay(structName, prefix string, field *protogen.Field, g *protoge
 	g.P()
 	g.P("if ", prefix, ".", field.GoName, ` != "" {`)
 	g.P("if _, err := ", timePackage.Ident("ParseInLocation"), `("2006-01-02",`, prefix, ".", field.GoName, ", time.Local); err != nil {")
-	g.P("return ", errorsPackage.Ident("Wrap"), `(err, "`, desc.Name(), ` illegal")`)
+	g.P("return ", errorsPackage.Ident("Wrap"), `(err, "`, structName, "_", desc.Name(), ` illegal")`)
 	g.P("}")
 	g.P("}")
 }
@@ -515,12 +515,12 @@ func generateCNMobile(structName, prefix string, field *protogen.Field, g *proto
 
 	g.P()
 	g.P("if len(", prefix, ".", field.GoName, ") != 11 || ", prefix, ".", field.GoName, `[0:1] != "1" {`)
-	g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` illegal")`)
+	g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` illegal")`)
 	g.P("}")
 
 	g.P("for _, v := range ", prefix, ".", field.GoName, "[1:] {")
 	g.P("if v < '0' || v > '9' {")
-	g.P("return ", errorsPackage.Ident("New"), `("`, desc.Name(), ` illegal")`)
+	g.P("return ", errorsPackage.Ident("New"), `("`, structName, "_", desc.Name(), ` illegal")`)
 	g.P("}")
 	g.P("}")
 }
@@ -531,7 +531,7 @@ func generateDuration(structName, prefix string, field *protogen.Field, g *proto
 	g.P()
 	g.P("if ", prefix, ".", field.GoName, ` != "" {`)
 	g.P("if _, err := ", timePackage.Ident("ParseDuration"), "(", prefix, ".", field.GoName, "); err != nil {")
-	g.P("return ", errorsPackage.Ident("Wrap"), `(err, "`, desc.Name(), ` illegal")`)
+	g.P("return ", errorsPackage.Ident("Wrap"), `(err, "`, structName, "_", desc.Name(), ` illegal")`)
 	g.P("}")
 	g.P("}")
 }
