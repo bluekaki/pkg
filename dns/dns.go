@@ -26,10 +26,10 @@ type GoogleDNS interface {
 }
 
 type googleDNS struct {
-	dummy  bool
-	ctx    context.Context
-	cancel context.CancelFunc
-	cache  *sync.Map
+	withTunnel bool
+	ctx        context.Context
+	cancel     context.CancelFunc
+	cache      *sync.Map
 }
 
 type dnsRecord struct {
@@ -39,17 +39,31 @@ type dnsRecord struct {
 	ts      time.Time
 }
 
-// NewGoogleDNS create google dns instance
-func NewGoogleDNS(dummy ...bool) GoogleDNS {
-	ctx, cancel := context.WithCancel(context.Background())
+type Option func(*option)
 
-	dns := &googleDNS{
-		ctx:    ctx,
-		cancel: cancel,
-		cache:  new(sync.Map),
+type option struct {
+	tunnel bool
+}
+
+func WithTunnel() Option {
+	return func(opt *option) {
+		opt.tunnel = true
 	}
-	if dummy != nil {
-		dns.dummy = true
+}
+
+// NewGoogleDNS create google dns instance
+func NewGoogleDNS(opts ...Option) GoogleDNS {
+	opt := new(option)
+	for _, f := range opts {
+		f(opt)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	dns := &googleDNS{
+		withTunnel: opt.tunnel,
+		ctx:        ctx,
+		cancel:     cancel,
+		cache:      new(sync.Map),
 	}
 
 	go dns.cleaner()
@@ -130,7 +144,7 @@ func (g *googleDNS) Query(host string) (network string, ip string, err error) {
 	}
 
 	client := new(http.Client)
-	if g.dummy {
+	if g.withTunnel {
 		proxy, _ := url.Parse("http://127.0.0.1:8087")
 		client.Transport = &http.Transport{
 			Proxy: http.ProxyURL(proxy),

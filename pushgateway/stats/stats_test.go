@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bluekaki/pkg/mm/httpclient"
+	"github.com/bluekaki/pkg/httpclient"
 )
 
 func TestParseMetrics(t *testing.T) {

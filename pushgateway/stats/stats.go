@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/bluekaki/pkg/errors"
-	"github.com/bluekaki/pkg/mm/httpclient"
+	"github.com/bluekaki/pkg/httpclient"
 )
 
 type _Label struct {

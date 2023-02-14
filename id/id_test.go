@@ -53,14 +53,3 @@ func BenchmarkGenrator(b *testing.B) {
 		b.Fatal("prefix not match")
 	}
 }
-
-func TestA20RID(t *testing.T) {
-	for k := 0; k < 100; k++ {
-		id := A20RID(prefix)
-
-		_, ts, err := gen.Parse(id)
-		if err == nil {
-			t.Log(id, ts)
-		}
-	}
-}

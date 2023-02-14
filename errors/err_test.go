@@ -4,11 +4,13 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/bluekaki/pkg/zaplog"
+
 	"go.uber.org/zap"
 )
 
 func TestErr(t *testing.T) {
-	logger, _ := zap.NewProduction()
+	logger, _ := zaplog.NewJSONLogger()
 
 	logger.Info("errorf", zap.Error(Errorf("%s %d", "127.0.0.1", 80)))
 

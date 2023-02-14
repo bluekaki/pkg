@@ -11,7 +11,7 @@ import (
 	"net/url"
 
 	"github.com/bluekaki/pkg/auth"
-	"github.com/bluekaki/pkg/mm/httpclient"
+	"github.com/bluekaki/pkg/httpclient"
 	"github.com/bluekaki/pkg/vv/testdata/api/gen"
 )
 

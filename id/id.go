@@ -1,10 +1,7 @@
 package id
 
 import (
-	"crypto/rand"
-	"encoding/binary"
 	"fmt"
-	"io"
 	"math"
 	"strconv"
 	"time"
@@ -135,16 +132,4 @@ func (g *generator) Parse(id string) (Prefix, time.Time, error) {
 	}
 
 	return [2]byte{id[0], id[1]}, ts.In(time.Local), nil
-}
-
-// A20RID  a 18len decimal random id with 2len prefix
-func A20RID(prefix Prefix) string {
-	id := prefix.String()
-	buf := make([]byte, 8)
-	for len(id) <= 20 {
-		io.ReadFull(rand.Reader, buf)
-		id += strconv.FormatUint(binary.BigEndian.Uint64(buf), 10)
-	}
-
-	return id[:20]
 }

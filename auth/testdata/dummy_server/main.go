@@ -24,17 +24,17 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		method := req.Method
 		uri := req.RequestURI
-		proxyAuthorization := req.Header.Get("proxy-authorization")
+		authorization := req.Header.Get("authorization")
 		date := req.Header.Get("date")
 		body, _ := ioutil.ReadAll(req.Body)
 
 		fmt.Println("method:", method)
 		fmt.Println("uri:", uri)
-		fmt.Println("proxy-authorization:", proxyAuthorization)
+		fmt.Println("authorization:", authorization)
 		fmt.Println("date:", date)
 		fmt.Println("body:", string(body))
 
-		identifier, ok, err := signature.Verify(proxyAuthorization, date, auth.ToMethod(method), uri, body)
+		identifier, ok, err := signature.Verify(authorization, date, auth.ToMethod(method), uri, body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

@@ -9,7 +9,7 @@ import (
 func TestDNS(t *testing.T) {
 	assert := assert.New(t)
 
-	dns := NewGoogleDNS(true)
+	dns := NewGoogleDNS(WithTunnel())
 	defer dns.Close()
 
 	network, ip, err := dns.Query("127.0.0.1")

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/bluekaki/pkg/errors"
-	"github.com/bluekaki/pkg/mm/httpclient/internal/journal"
+	"github.com/bluekaki/pkg/httpclient/internal/journal"
 
 	"go.uber.org/zap"
 )
