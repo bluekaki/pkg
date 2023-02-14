@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+option go_package = "./;pb";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+message HelloRequest {
+  int32 sequence = 2;
+  string message = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  google.protobuf.Duration duration = 5;
+
+  enum Status {
+    UNKNOWN = 0;
+    RUNNING = 1;
+    Shutdown = 3;
+  }
+  Status status = 6;
+
+  message Payload {
+    bytes raw = 1;
+
+    message Metadata {
+      string ts = 1;
+      repeated string nonce = 2;
+    }
+    Metadata meta = 2;
+  }
+  repeated Payload payloads = 7;
+
+  oneof nick_name {
+    string first_name = 8;
+    string last_name = 9;
+  }
+
+  map<int32, bool> meta = 10;
+  repeated sfixed64 nonce = 11;
+  bool ack = 12;
+  string memo = 13;
+}
