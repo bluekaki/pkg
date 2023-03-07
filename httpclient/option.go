@@ -27,6 +27,7 @@ type option struct {
 	QueryForm             url.Values
 	VerifyResponseHandler VerifyResponseHandler
 	NonDurableLogger      *zap.Logger
+	BasicAuth             func() (username, password string)
 }
 
 func newOption() *option {
@@ -104,5 +105,13 @@ func WithVerifyResponseHandler(handler VerifyResponseHandler) Option {
 func WithNonDurableLogger(logger *zap.Logger) Option {
 	return func(opt *option) {
 		opt.NonDurableLogger = logger
+	}
+}
+
+func WithBasicAuth(username, password string) Option {
+	return func(opt *option) {
+		opt.BasicAuth = func() (string, string) {
+			return username, password
+		}
 	}
 }

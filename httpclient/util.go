@@ -46,6 +46,11 @@ func doHTTP(ctx context.Context, method, url string, payload []byte, opt *option
 		req.Header.Set(key, value)
 	}
 
+	if opt.BasicAuth != nil {
+		username, password := opt.BasicAuth()
+		req.SetBasicAuth(username, password)
+	}
+
 	resp, err := defaultClient.Do(req)
 	if err != nil {
 		err = errors.Wrapf(err, "do request [%s %s] err", method, url)
